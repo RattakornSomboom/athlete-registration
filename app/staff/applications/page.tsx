@@ -55,6 +55,13 @@ export default function StaffApplicationsPage() {
   const selectedCount = applications.filter((a) => a.status === "selected").length;
   const pendingCount = applications.filter((a) => a.status === "pending").length;
 
+  <button
+  onClick={() => router.push("/staff/settings")}
+  className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+>
+  ⚙️ ตั้งค่า
+</button>
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
