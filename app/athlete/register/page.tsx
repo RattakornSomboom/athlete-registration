@@ -11,10 +11,10 @@ const SPORTS = [
 
 const MOCK_STUDENT = {
   studentId: "66027012",
-  firstName: "สมชาย",
-  lastName: "ใจดี",
-  faculty: "วิทยาศาสตร์",
-  major: "วิทยาการคอมพิวเตอร์",
+  firstName: "รัฐฑกร",
+  lastName: "สมบูรณ์",
+  faculty: "เทคโนโลยีสารสนเทศและการสื่อสาร",
+  major: "เทคโนโลยีสารสนเทศ",
   year: "4",
 };
 

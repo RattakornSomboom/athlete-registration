@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { apiLogin } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,27 +17,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdTokenResult();
-      const role = (token.claims.role as string) ?? "athlete";
+      const data = await apiLogin(email, password);
+      localStorage.setItem("token", data.token);
+      document.cookie = `role=${data.role}; path=/`;
 
-      document.cookie = `role=${role}; path=/`;
-
-      if (role === "athlete") router.push("/athlete/register");
-      else if (role === "club") router.push("/club/athletes");
-      else if (role === "staff") router.push("/staff/applications");
+      if (data.role === "athlete") router.push("/athlete/register");
+      else if (data.role === "club") router.push("/club/athletes");
+      else if (data.role === "staff") router.push("/staff/applications");
       else setError("ไม่พบสิทธิ์การเข้าใช้งาน กรุณาติดต่อเจ้าหน้าที่");
 
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        const code = (err as { code?: string }).code;
-        if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
-          setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-        } else if (code === "auth/invalid-email") {
-          setError("รูปแบบอีเมลไม่ถูกต้อง");
-        } else {
-          setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
-        }
+      if (err && typeof err === "object" && "message" in err) {
+        setError(err.message as string);
+      } else {
+        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       }
     } finally {
       setLoading(false);
@@ -63,8 +55,9 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="xxxxxxxx@up.ac.th"
+              placeholder="66027012@up.ac.th"
               required
+              autoComplete="off"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -77,6 +70,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder=""
               required
+              autoComplete="new-password"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
