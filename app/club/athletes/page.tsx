@@ -111,6 +111,10 @@ export default function ClubAthletesPage() {
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => handleReject(a.id)} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่ผ่าน</button>
                     <button onClick={() => handleApprove(a.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">ผ่าน</button>
+                    <button onClick={() => router.push(`/athlete/${a.id}`)}
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+                            ดูข้อมูล
+                    </button>
                   </div>
                 )}
               </div>
