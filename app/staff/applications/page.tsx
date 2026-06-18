@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LogoutButton from "@/components/shared/LogoutButton";
 
 type Application = {
   id: string;
@@ -55,12 +56,8 @@ export default function StaffApplicationsPage() {
   const selectedCount = applications.filter((a) => a.status === "selected").length;
   const pendingCount = applications.filter((a) => a.status === "pending").length;
 
-  <button
-  onClick={() => router.push("/staff/settings")}
-  className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
->
-  ⚙️ ตั้งค่า
-</button>
+  
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -71,12 +68,28 @@ export default function StaffApplicationsPage() {
             <p className="text-gray-500 text-sm mt-1">รอคัดเลือก {pendingCount} คน · คัดเลือกแล้ว {selectedCount} คน</p>
           </div>
           <button
+              onClick={() => router.push("/staff/settings")}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+              ⚙️ ตั้งค่า
+          </button>
+
+          <button
+              onClick={() => router.push("/staff/activities")}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+              📋 กิจกรรมชมรม
+          </button>
+          <button
             onClick={() => router.push("/staff/selection")}
             disabled={selectedCount === 0}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             ประกาศผล ({selectedCount})
           </button>
+        </div>
+        <div className="flex items-center justify-between mb-6">
+          <LogoutButton />
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">

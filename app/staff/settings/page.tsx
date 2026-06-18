@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LogoutButton from "@/components/shared/LogoutButton";
 
 type Sport = {
   id: string;
@@ -88,6 +89,7 @@ export default function StaffSettingsPage() {
             <h1 className="text-2xl font-semibold text-gray-900">ตั้งค่าการรับสมัคร</h1>
             <p className="text-gray-500 text-sm mt-1">จัดการชนิดกีฬาและเงื่อนไขการสมัคร</p>
           </div>
+        
           <div className="flex gap-3">
             <button
               onClick={() => setShowAddForm(true)}
@@ -101,6 +103,9 @@ export default function StaffSettingsPage() {
             >
               {saved ? "บันทึกแล้ว ✓" : "บันทึก"}
             </button>
+            <div className="flex items-center justify-between mb-6">
+              <LogoutButton />
+            </div>
           </div>
         </div>
 

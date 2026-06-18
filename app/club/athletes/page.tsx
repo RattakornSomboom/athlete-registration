@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LogoutButton from "@/components/shared/LogoutButton";
 
 type Athlete = {
   id: string;
@@ -57,11 +58,20 @@ export default function ClubAthletesPage() {
             <p className="text-gray-500 text-sm mt-1">ชมรมฟุตบอล — รอพิจารณา {pendingCount} คน</p>
           </div>
           <button
+              onClick={() => router.push("/club/activities")}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+          📋 กิจกรรมชมรม
+          </button>
+          <button
             onClick={() => router.push("/club/review")}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             ส่งต่อกิจการนิสิต
           </button>
+        </div>
+        <div className="flex items-center justify-between mb-6">
+          <LogoutButton />
         </div>
 
         <div className="flex gap-3 mb-4">

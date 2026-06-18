@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LogoutButton from "@/components/shared/LogoutButton";
 
 const SPORTS = [
   "กรีฑา", "ว่ายน้ำ", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล",
@@ -61,9 +62,12 @@ const removeFile = (index: number) => {
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
-        <div className="mb-6">
+        <div className="flex items-center justify-between mb-6">
+        <div>
           <h1 className="text-2xl font-semibold text-gray-900">ลงทะเบียนนักกีฬา</h1>
           <p className="text-gray-500 text-sm mt-1">กีฬามหาวิทยาลัยแห่งประเทศไทย</p>
+        </div>
+          <LogoutButton />
         </div>
 
         {/* Step indicator */}
