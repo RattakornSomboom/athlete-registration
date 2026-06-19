@@ -4,6 +4,30 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
+const COMPETITION_LEVELS = [
+  "ทีมชาติ / เยาวชนทีมชาติ",
+  "การแข่งขันกีฬาแห่งชาติ (รอบมหกรรม)",
+  "การแข่งขันกีฬาเยาวชนแห่งชาติ (รอบมหกรรม)",
+  "ชิงชนะเลิศแห่งประเทศไทย",
+  "กีฬานักเรียนนักศึกษาแห่งประเทศไทย (รอบมหกรรม)",
+  "กีฬาระหว่างโรงเรียน (กรมพลศึกษา)",
+  "กีฬานักเรียนนักศึกษาแห่งประเทศไทย (รอบคัดเลือกตัวแทนเขต)",
+  "กีฬาแห่งชาติ/เยาวชนแห่งชาติ (รอบคัดเลือกตัวแทนภาค)",
+  "ชิงชนะเลิศระดับจังหวัด/ภูมิภาค",
+  "อื่น ๆ",
+];
+
+const CURRENT_YEAR_BE = 2569; // ปี พ.ศ. ปัจจุบัน
+
+type CompetitionResult = {
+  id: string;
+  level: string;
+  competitionName: string;
+  rank: string;
+  year: string;
+};
+
+const generateId = () => Math.random().toString(36).substring(2, 9);
 const SPORTS = [
   "กรีฑา", "ว่ายน้ำ", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล",
   "เทนนิส", "แบดมินตัน", "ตะกร้อ", "มวยสากล", "ยูโด",
@@ -41,16 +65,53 @@ export default function AthleteRegisterPage() {
   setFiles((prev) => [...prev, ...valid]);
 };
 
-const removeFile = (index: number) => {
-  setFiles((prev) => prev.filter((_, i) => i !== index));
-};
+  const [competitions, setCompetitions] = useState<CompetitionResult[]>([]);
+  const [newComp, setNewComp] = useState({ level: "", competitionName: "", rank: "", year: "" });
+
+  const [hasClub, setHasClub] = useState<"yes" | "no" | "">("");
+  const [noClubFile, setNoClubFile] = useState<File | null>(null);
+  const [supervisorName, setSupervisorName] = useState("");
+  const [supervisorPosition, setSupervisorPosition] = useState("");
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleNoClubFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.size <= 10 * 1024 * 1024) {
+      setNoClubFile(file);
+    }
+  };
+
+  const addCompetition = () => {
+    if (!newComp.level || !newComp.competitionName || !newComp.rank || !newComp.year) return;
+    setCompetitions((prev) => [...prev, { ...newComp, id: generateId() }]);
+    setNewComp({ level: "", competitionName: "", rank: "", year: "" });
+  };
+
+  const removeCompetition = (id: string) => {
+    setCompetitions((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const isWithinTwoYears = (year: string) => {
+    const y = parseInt(year);
+    return y >= CURRENT_YEAR_BE - 2;
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // TODO: เชื่อม API ตอน Backend พร้อม
-      console.log("submit", form);
-      await new Promise((r) => setTimeout(r, 1000)); // mock delay
+      console.log("submit", {
+        ...form,
+        competitions,
+        hasClub,
+        supervisorName: hasClub === "no" ? supervisorName : null,
+        supervisorPosition: hasClub === "no" ? supervisorPosition : null,
+        noClubFile: hasClub === "no" ? noClubFile?.name : null,
+        files: files.map((f) => f.name),
+      });
+      await new Promise((r) => setTimeout(r, 1000));
       router.push("/athlete/status");
     } finally {
       setLoading(false);
@@ -178,10 +239,85 @@ const removeFile = (index: number) => {
           )}
 
           {/* Step 2: ข้อมูลกีฬา */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชนิดกีฬาที่สมัคร</label>
+{step === 2 && (
+  <div className="space-y-4">
+
+    {/* เลือกว่ามีชมรมหรือไม่ */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        ท่านเป็นสมาชิกชมรมกีฬาที่จัดตั้งในมหาวิทยาลัยหรือไม่?
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => setHasClub("yes")}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+            hasClub === "yes" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"
+          }`}
+        >
+          มีชมรม
+        </button>
+        <button
+          type="button"
+          onClick={() => setHasClub("no")}
+          className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+            hasClub === "no" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"
+          }`}
+        >
+          ไม่มีชมรม
+        </button>
+      </div>
+    </div>
+
+    {/* กรณีไม่มีชมรม: ต้องมีบุคลากรรับรอง + หนังสือขออนุญาต */}
+    {hasClub === "no" && (
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+        <p className="text-sm text-amber-800 font-medium">
+          ⚠️ กรณีไม่มีชมรม ต้องทำหนังสือขออนุญาตพร้อมมีบุคลากรในสังกัดมหาวิทยาลัยอย่างน้อย 1 คน เป็นผู้รับรองและรับผิดชอบทีม
+        </p>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล บุคลากรผู้รับรอง</label>
+          <input
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="เช่น อาจารย์สมศักดิ์ ดีใจ"
+            value={supervisorName}
+            onChange={(e) => setSupervisorName(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง / สังกัด</label>
+          <input
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="เช่น อาจารย์คณะวิทยาศาสตร์"
+            value={supervisorPosition}
+            onChange={(e) => setSupervisorPosition(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">หนังสือขออนุญาตจัดส่งนักกีฬา</label>
+          <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-amber-300 rounded-lg cursor-pointer hover:border-amber-400 hover:bg-amber-50 transition-colors bg-white">
+            <span className="text-xl mb-1">📄</span>
+            <span className="text-sm text-gray-500">คลิกเพื่อแนบหนังสือขออนุญาต (PDF)</span>
+            <input type="file" accept=".pdf" className="hidden" onChange={handleNoClubFile} />
+          </label>
+          {noClubFile && (
+            <div className="flex items-center justify-between bg-white rounded-lg px-3 py-2 text-sm mt-2 border border-gray-200">
+              <div className="flex items-center gap-2">
+                <span>📄</span>
+                <span className="truncate text-gray-700">{noClubFile.name}</span>
+              </div>
+              <button onClick={() => setNoClubFile(null)} className="text-red-400 hover:text-red-600">✕</button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">ชนิดกีฬาที่สมัคร</label>
                 <select
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   value={form.sport}
@@ -220,14 +356,75 @@ const removeFile = (index: number) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ผลงาน / รางวัลที่เคยได้รับ</label>
-                <textarea
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows={3}
-                  placeholder="เช่น แชมป์กีฬาเขต ปี 2566, เหรียญทองกีฬาแห่งชาติ..."
-                  value={form.achievement}
-                  onChange={(e) => set("achievement", e.target.value)}
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ผลงานการแข่งขัน
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  ตามประกาศมหาวิทยาลัย ต้องมีผลงานไม่เกิน 2 ปีย้อนหลัง (พ.ศ. {CURRENT_YEAR_BE - 2} เป็นต้นไป)
+                </p>
+
+                {/* รายการผลงานที่เพิ่มแล้ว */}
+                {competitions.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {competitions.map((c) => (
+                      <div key={c.id} className="bg-gray-50 rounded-lg p-3 flex items-start justify-between gap-3">
+                        <div className="text-sm">
+                          <p className="font-medium text-gray-900">{c.competitionName}</p>
+                          <p className="text-gray-500 text-xs mt-0.5">{c.level} · อันดับที่ {c.rank} · พ.ศ. {c.year}</p>
+                          {!isWithinTwoYears(c.year) && (
+                            <p className="text-red-500 text-xs mt-1">⚠️ ผลงานนี้เกิน 2 ปีย้อนหลัง อาจไม่นำมาพิจารณา</p>
+                          )}
+                        </div>
+                        <button onClick={() => removeCompetition(c.id)} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ฟอร์มเพิ่มผลงาน */}
+                <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <select
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    value={newComp.level}
+                    onChange={(e) => setNewComp((p) => ({ ...p, level: e.target.value }))}
+                  >
+                    <option value="">เลือกระดับการแข่งขัน</option>
+                    {COMPETITION_LEVELS.map((l) => (
+                      <option key={l} value={l}>{l}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="ชื่อการแข่งขัน เช่น กีฬาแห่งชาติ ครั้งที่ 49"
+                    value={newComp.competitionName}
+                    onChange={(e) => setNewComp((p) => ({ ...p, competitionName: e.target.value }))}
+                  />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="อันดับที่ได้รับ เช่น 1"
+                      value={newComp.rank}
+                      onChange={(e) => setNewComp((p) => ({ ...p, rank: e.target.value }))}
+                    />
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="ปี พ.ศ. เช่น 2568"
+                      value={newComp.year}
+                      onChange={(e) => setNewComp((p) => ({ ...p, year: e.target.value }))}
+                    />
+                  </div>
+
+                  <button
+                    onClick={addCompetition}
+                    disabled={!newComp.level || !newComp.competitionName || !newComp.rank || !newComp.year}
+                    className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors"
+                  >
+                    + เพิ่มผลงาน
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -286,7 +483,11 @@ const removeFile = (index: number) => {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={!form.sport || !form.position || !form.experience || loading}
+                  disabled={
+                    !form.sport || !form.position || !form.experience || !hasClub ||
+                    (hasClub === "no" && (!supervisorName || !supervisorPosition || !noClubFile)) ||
+                    loading
+                  }
                   className="flex-2 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
                 >
                   {loading ? "กำลังส่งข้อมูล..." : "ส่งใบสมัคร"}

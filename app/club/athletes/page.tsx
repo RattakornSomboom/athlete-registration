@@ -64,6 +64,12 @@ export default function ClubAthletesPage() {
           📋 กิจกรรมชมรม
           </button>
           <button
+            onClick={() => router.push("/club/requests")}
+            className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            📝 คำร้องพิเศษ
+</button>
+          <button
             onClick={() => router.push("/club/review")}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >

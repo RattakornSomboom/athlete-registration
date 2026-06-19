@@ -10,15 +10,19 @@ type Sport = {
   isOpen: boolean;
   positions: string[];
   requirements: string;
+  competitionType: "qualifier" | "final_only" | "";
+  qualifierNote: string;
+  reachedTop16LastYear: boolean | null;
+  top16Note: string;
 };
 
-const INITIAL_SPORTS: Sport[] = [
-  { id: "1", name: "ฟุตบอล", maxAthletes: 22, isOpen: true, positions: ["กองหน้า", "กองกลาง", "กองหลัง", "ผู้รักษาประตู"], requirements: "ต้องผ่านการคัดเลือกจากชมรม" },
-  { id: "2", name: "บาสเกตบอล", maxAthletes: 12, isOpen: true, positions: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"], requirements: "ประสบการณ์อย่างน้อย 1 ปี" },
-  { id: "3", name: "วอลเลย์บอล", maxAthletes: 12, isOpen: false, positions: ["ตัวรับ", "ตัวต้าน", "ตัวเซต", "ตัวรุก"], requirements: "" },
-];
+  const INITIAL_SPORTS: Sport[] = [
+    { id: "1", name: "ฟุตบอล", maxAthletes: 22, isOpen: true, positions: ["กองหน้า", "กองกลาง", "กองหลัง", "ผู้รักษาประตู"], requirements: "ต้องผ่านการคัดเลือกจากชมรม", competitionType: "qualifier", qualifierNote: "ต้องเป็นตัวแทนภาคเหนือก่อนเข้ารอบมหกรรม", reachedTop16LastYear: null, top16Note: "" },
+    { id: "2", name: "บาสเกตบอล", maxAthletes: 12, isOpen: true, positions: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"], requirements: "ประสบการณ์อย่างน้อย 1 ปี", competitionType: "final_only", qualifierNote: "ต้องเคยผ่านเข้ารอบ 16 ทีม ปีที่ผ่านมา", reachedTop16LastYear: true, top16Note: "ผ่านเข้ารอบ 16 ทีม กีฬามหาวิทยาลัยฯ ครั้งที่ 48" },
+    { id: "3", name: "วอลเลย์บอล", maxAthletes: 12, isOpen: false, positions: ["ตัวรับ", "ตัวต้าน", "ตัวเซต", "ตัวรุก"], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
+  ];
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
+  const generateId = () => Math.random().toString(36).substring(2, 9);
 
 export default function StaffSettingsPage() {
   const [sports, setSports] = useState<Sport[]>(INITIAL_SPORTS);
@@ -32,6 +36,10 @@ export default function StaffSettingsPage() {
     isOpen: true,
     positions: [],
     requirements: "",
+    competitionType: "",
+    qualifierNote: "",
+    reachedTop16LastYear: null,
+    top16Note: "",
   });
 
   const [positionInput, setPositionInput] = useState("");
@@ -47,12 +55,12 @@ export default function StaffSettingsPage() {
 
   // เพิ่มกีฬาใหม่
   const handleAddSport = () => {
-    if (!newSport.name) return;
-    setSports((prev) => [...prev, { ...newSport, id: generateId() }]);
-    setNewSport({ name: "", maxAthletes: 10, isOpen: true, positions: [], requirements: "" });
-    setPositionInput("");
-    setShowAddForm(false);
-  };
+  if (!newSport.name) return;
+  setSports((prev) => [...prev, { ...newSport, id: generateId() }]);
+  setNewSport({ name: "", maxAthletes: 10, isOpen: true, positions: [], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" });
+  setPositionInput("");
+  setShowAddForm(false);
+};
 
   // แก้ไขกีฬา
   const handleEdit = (id: string, field: keyof Sport, value: unknown) =>
@@ -136,6 +144,77 @@ export default function StaffSettingsPage() {
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">ประเภทการแข่งขัน</label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  value={newSport.competitionType}
+                  onChange={(e) => setNewSport((p) => ({ ...p, competitionType: e.target.value as Sport["competitionType"] }))}
+                >
+                  <option value="">เลือกประเภท</option>
+                  <option value="qualifier">มีรอบคัดเลือก (ต้องเป็นตัวแทนภาคก่อน)</option>
+                  <option value="final_only">มีเฉพาะรอบมหกรรม (ต้องเคยผ่านรอบ 16 ทีม)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขศักยภาพ (ถ้ามี)</label>
+                <input
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="เช่น ต้องเป็นตัวแทนภาคเหนือ"
+                  value={newSport.qualifierNote}
+                  onChange={(e) => setNewSport((p) => ({ ...p, qualifierNote: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขศักยภาพ (ถ้ามี)</label>
+                <input
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="เช่น ต้องเป็นตัวแทนภาคเหนือ"
+                  value={newSport.qualifierNote}
+                  onChange={(e) => setNewSport((p) => ({ ...p, qualifierNote: e.target.value }))}
+                />
+              </div>
+
+              {newSport.competitionType === "final_only" && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+                  <label className="block text-xs font-medium text-orange-800">
+                    ผลการแข่งขันปีที่ผ่านมา (กีฬามหาวิทยาลัยฯ ครั้งก่อน)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: true }))}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        newSport.reachedTop16LastYear === true ? "bg-green-600 text-white border-green-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      ผ่านเข้ารอบ 16 ทีม
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: false }))}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                        newSport.reachedTop16LastYear === false ? "bg-red-600 text-white border-red-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                      }`}
+                    >
+                      ไม่ผ่านเข้ารอบ
+                    </button>
+                  </div>
+                  <input
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    placeholder="หมายเหตุ เช่น ผ่านเข้ารอบ 16 ทีม ครั้งที่ 48"
+                    value={newSport.top16Note}
+                    onChange={(e) => setNewSport((p) => ({ ...p, top16Note: e.target.value }))}
+                  />
+                  {newSport.reachedTop16LastYear === false && (
+                    <p className="text-xs text-red-600">
+                      ⚠️ ตามประกาศข้อ 8(2) กีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขันปีนี้ เนื่องจากไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">ตำแหน่ง / ประเภท</label>
                 <div className="flex gap-2">
                   <input
@@ -215,6 +294,22 @@ export default function StaffSettingsPage() {
               {editingId !== sport.id && (
                 <div className="text-sm text-gray-500 space-y-1">
                   <p>จำนวนรับสูงสุด: <span className="text-gray-900 font-medium">{sport.maxAthletes} คน</span></p>
+                  {sport.competitionType && (
+                    <p className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sport.competitionType === "qualifier" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
+                        {sport.competitionType === "qualifier" ? "มีรอบคัดเลือก" : "เฉพาะรอบมหกรรม"}
+                      </span>
+                      {sport.qualifierNote && <span className="text-xs text-gray-400">{sport.qualifierNote}</span>}
+                    </p>
+                  )}
+                  {sport.competitionType === "final_only" && sport.reachedTop16LastYear !== null && (
+                    <p className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sport.reachedTop16LastYear ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {sport.reachedTop16LastYear ? "✓ ผ่านเข้ารอบ 16 ทีมปีที่แล้ว" : "✕ ไม่ผ่านเข้ารอบปีที่แล้ว"}
+                      </span>
+                      {sport.top16Note && <span className="text-xs text-gray-400">{sport.top16Note}</span>}
+                    </p>
+                  )}
                   {sport.positions.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {sport.positions.map((p, i) => (
@@ -247,6 +342,64 @@ export default function StaffSettingsPage() {
                         onChange={(e) => handleEdit(sport.id, "maxAthletes", Number(e.target.value))}
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">ประเภทการแข่งขัน</label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          value={sport.competitionType}
+                          onChange={(e) => handleEdit(sport.id, "competitionType", e.target.value)}
+                        >
+                          <option value="">เลือกประเภท</option>
+                          <option value="qualifier">มีรอบคัดเลือก</option>
+                          <option value="final_only">เฉพาะรอบมหกรรม</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขศักยภาพ</label>
+                        <input
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value={sport.qualifierNote}
+                          onChange={(e) => handleEdit(sport.id, "qualifierNote", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {sport.competitionType === "final_only" && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+                        <label className="block text-xs font-medium text-orange-800">ผลการแข่งขันปีที่ผ่านมา</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(sport.id, "reachedTop16LastYear", true)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                              sport.reachedTop16LastYear === true ? "bg-green-600 text-white border-green-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                            }`}
+                          >
+                            ผ่านเข้ารอบ 16 ทีม
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(sport.id, "reachedTop16LastYear", false)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                              sport.reachedTop16LastYear === false ? "bg-red-600 text-white border-red-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                            }`}
+                          >
+                            ไม่ผ่านเข้ารอบ
+                          </button>
+                        </div>
+                        <input
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          placeholder="หมายเหตุ"
+                          value={sport.top16Note}
+                          onChange={(e) => handleEdit(sport.id, "top16Note", e.target.value)}
+                        />
+                        {sport.reachedTop16LastYear === false && (
+                          <p className="text-xs text-red-600">
+                            ⚠️ กีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขันปีนี้ ตามประกาศข้อ 8(2)
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
