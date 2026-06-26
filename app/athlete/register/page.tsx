@@ -19,6 +19,15 @@ const COMPETITION_LEVELS = [
 
 const CURRENT_YEAR_BE = 2569; // ปี พ.ศ. ปัจจุบัน
 
+const CURRENT_YEAR_CE = 2026; // ปี ค.ศ. ปัจจุบัน สำหรับคำนวณอายุ
+
+// TODO: ดึงจาก reg.up จริงตอน Backend พร้อม
+const MOCK_STUDENT_EXTRA = {
+  birthYearCE: 2003, // ปีเกิด ค.ศ.
+  studentLevel: "bachelor" as "bachelor" | "graduate", // ปริญญาตรี หรือ บัณฑิตศึกษา
+  previousEntriesCount: 1, // จำนวนครั้งที่เคยสมัครเข้าแข่งขันกีฬามหาวิทยาลัยฯ มาก่อน
+};
+
 type CompetitionResult = {
   id: string;
   level: string;
@@ -98,6 +107,19 @@ export default function AthleteRegisterPage() {
     const y = parseInt(year);
     return y >= CURRENT_YEAR_BE - 2;
   };
+
+  const calculateAge = (birthYearCE: number) => CURRENT_YEAR_CE - birthYearCE;
+
+const MAX_ENTRIES = {
+  bachelor: 5,
+  graduate: 3,
+};
+
+const athleteAge = calculateAge(MOCK_STUDENT_EXTRA.birthYearCE);
+const isAgeEligible = athleteAge <= 28;
+const maxEntries = MAX_ENTRIES[MOCK_STUDENT_EXTRA.studentLevel];
+const isEntryCountEligible = MOCK_STUDENT_EXTRA.previousEntriesCount < maxEntries;
+const remainingEntries = maxEntries - MOCK_STUDENT_EXTRA.previousEntriesCount;
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -227,10 +249,48 @@ export default function AthleteRegisterPage() {
                   onChange={(e) => set("phone", e.target.value)}
                 />
               </div>
+              
+              <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-500">อายุ (ปีปฏิทิน)</span>
+                  <p className="font-medium text-gray-900 mt-0.5">{athleteAge} ปี</p>
+                </div>
+                <div>
+                  <span className="text-gray-500">จำนวนครั้งที่เคยสมัคร</span>
+                  <p className="font-medium text-gray-900 mt-0.5">
+                    {MOCK_STUDENT_EXTRA.previousEntriesCount} / {maxEntries} ครั้ง
+                    {" "}({MOCK_STUDENT_EXTRA.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"})
+                  </p>
+                </div>
+              </div>
+
+              {(!isAgeEligible || !isEntryCountEligible) && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm font-medium text-red-800 mb-1">⚠️ ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
+                  {!isAgeEligible && (
+                    <p className="text-sm text-red-600">
+                      อายุของท่าน ({athleteAge} ปี) เกิน 28 ปี ตามระเบียบ กกมท. ข้อ 6.5 นักกีฬาต้องมีอายุไม่เกิน 28 ปี นับปีปฏิทินในปีที่แข่งขันรอบมหกรรม
+                    </p>
+                  )}
+                  {!isEntryCountEligible && (
+                    <p className="text-sm text-red-600">
+                      ท่านสมัครเข้าแข่งขันครบ {maxEntries} ครั้งแล้ว ตามระเบียบ กกมท. ข้อ 7.2 {MOCK_STUDENT_EXTRA.studentLevel === "bachelor" ? "นักศึกษาปริญญาตรี" : "นักศึกษาบัณฑิตศึกษา"}สมัครได้ไม่เกิน {maxEntries} ครั้ง
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {isAgeEligible && isEntryCountEligible && remainingEntries === 1 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-sm text-amber-700">
+                    ⚠️ นี่จะเป็นการสมัครครั้งสุดท้ายของท่าน ({MOCK_STUDENT_EXTRA.previousEntriesCount + 1}/{maxEntries} ครั้ง) ตามระเบียบ กกมท. ข้อ 7.2
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={() => setStep(2)}
-                disabled={!form.firstName || !form.lastName || !form.studentId || !form.faculty || !form.year}
+                disabled={!form.firstName || !form.lastName || !form.studentId || !form.faculty || !form.year || !isAgeEligible || !isEntryCountEligible}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
               >
                 ถัดไป
@@ -486,6 +546,7 @@ export default function AthleteRegisterPage() {
                   disabled={
                     !form.sport || !form.position || !form.experience || !hasClub ||
                     (hasClub === "no" && (!supervisorName || !supervisorPosition || !noClubFile)) ||
+                    !isAgeEligible || !isEntryCountEligible ||
                     loading
                   }
                   className="flex-2 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
