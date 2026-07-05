@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import { UP_FACULTIES } from "@/lib/up-faculties";
 
 const SPORTS = [
   "กรีฑา", "ว่ายน้ำ", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล",
@@ -13,46 +14,29 @@ const SPORTS = [
 const CURRENT_YEAR_BE = 2569;
 const CURRENT_YEAR_CE = 2026;
 
-// TODO: ดึงจาก reg.up จริงตอน Backend พร้อม — รวมข้อมูลตามแบบใบสมัครจริง
-const MOCK_STUDENT = {
-  firstName: "สมชาย",
-  lastName: "ใจดี",
-  studentId: "66027012",
-  faculty: "วิทยาศาสตร์",
-  major: "วิทยาการคอมพิวเตอร์",
-  studentLevel: "bachelor" as "bachelor" | "graduate",
-  year: "4",
-  nationalId: "",
-  nationality: "ไทย",
-  birthDate: "", // yyyy-mm-dd
-  gpaSemester: "",
-  gpaCumulative: "",
-  addressNo: "",
-  subDistrict: "",
-  district: "",
-  province: "",
-  postalCode: "",
-  phone: "",
+// TODO: ดึงจาก reg.up จริงตอน Backend พร้อม — ตอนนี้ยังไม่เชื่อม ใช้ค่า mock สำหรับ logic การคำนวณสิทธิ์เท่านั้น
+const MOCK_REG_DATA = {
   birthYearCE: 2003,
   previousEntriesCount: 1,
 };
 
 type CompetitionResult = {
   id: string;
-  competitionName: string; // รายการที่เข้าร่วมแข่งขัน/ผู้จัดการแข่งขัน
-  year: string; // ปี พ.ศ.
-  result: string; // ผลการแข่งขัน
+  competitionName: string;
+  year: string;
+  result: string;
 };
 
 type SportEntry = {
   id: string;
   sport: string;
-  category: string; // ประเภท
-  division: string; // รุ่น
+  category: string;
+  division: string;
 };
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 const MAX_ENTRIES = { bachelor: 5, graduate: 3 };
+const MAX_ENTRIES_STRICT = 5; // ขั้นสูงสุดไม่ว่าระดับใด
 const MAX_SPORTS_PER_APPLICATION = 4;
 
 export default function AthleteRegisterPage() {
@@ -63,17 +47,24 @@ export default function AthleteRegisterPage() {
   const [files, setFiles] = useState<File[]>([]);
 
   const [form, setForm] = useState({
-    nationalId: MOCK_STUDENT.nationalId,
-    nationality: MOCK_STUDENT.nationality,
-    birthDate: MOCK_STUDENT.birthDate,
-    gpaSemester: MOCK_STUDENT.gpaSemester,
-    gpaCumulative: MOCK_STUDENT.gpaCumulative,
-    addressNo: MOCK_STUDENT.addressNo,
-    subDistrict: MOCK_STUDENT.subDistrict,
-    district: MOCK_STUDENT.district,
-    province: MOCK_STUDENT.province,
-    postalCode: MOCK_STUDENT.postalCode,
-    phone: MOCK_STUDENT.phone,
+    firstName: "",
+    lastName: "",
+    studentId: "",
+    faculty: "",
+    major: "",
+    studentLevel: "" as "bachelor" | "graduate" | "",
+    year: "",
+    nationalId: "",
+    nationality: "ไทย",
+    birthDate: "",
+    gpaSemester: "",
+    gpaCumulative: "",
+    addressNo: "",
+    subDistrict: "",
+    district: "",
+    province: "",
+    postalCode: "",
+    phone: "",
     round: "" as "qualifier" | "final" | "",
     hasPreviousEntry: "" as "none" | "has" | "",
     previousBachelorCount: "",
@@ -97,11 +88,12 @@ export default function AthleteRegisterPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
 
   const calculateAge = (birthYearCE: number) => CURRENT_YEAR_CE - birthYearCE;
-  const athleteAge = calculateAge(MOCK_STUDENT.birthYearCE);
+  const athleteAge = calculateAge(MOCK_REG_DATA.birthYearCE);
   const isAgeEligible = athleteAge <= 28;
-  const maxEntries = MAX_ENTRIES[MOCK_STUDENT.studentLevel];
-  const isEntryCountEligible = MOCK_STUDENT.previousEntriesCount < maxEntries;
-  const remainingEntries = maxEntries - MOCK_STUDENT.previousEntriesCount;
+  const maxEntries = form.studentLevel ? MAX_ENTRIES[form.studentLevel] : MAX_ENTRIES.bachelor;
+  const isEntryCountEligible = MOCK_REG_DATA.previousEntriesCount < maxEntries;
+  const isOverMaxStrict = MOCK_REG_DATA.previousEntriesCount >= MAX_ENTRIES_STRICT; // เกิน 5 ครั้ง ปฏิเสธทันที
+  const remainingEntries = maxEntries - MOCK_REG_DATA.previousEntriesCount;
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,7 +135,6 @@ export default function AthleteRegisterPage() {
     setLoading(true);
     try {
       console.log("submit", {
-        ...MOCK_STUDENT,
         ...form,
         photo: photo?.name,
         sportEntries,
@@ -161,7 +152,11 @@ export default function AthleteRegisterPage() {
     }
   };
 
-  const step1Valid = !!(form.nationalId && form.nationality && form.birthDate && form.addressNo && form.subDistrict && form.district && form.province && form.postalCode && form.phone);
+  const step1Valid = !!(
+    form.firstName && form.lastName && form.studentId && form.faculty && form.major && form.studentLevel &&
+    form.nationalId && form.nationality && form.birthDate &&
+    form.addressNo && form.subDistrict && form.district && form.province && form.postalCode && form.phone
+  );
   const step2Valid = !!(form.round && hasClub && (hasClub === "yes" || (supervisorName && supervisorPosition && noClubFile)));
   const step3Valid = sportEntries.length > 0;
 
@@ -178,29 +173,28 @@ export default function AthleteRegisterPage() {
           <LogoutButton />
         </div>
 
-        {/* ข้อมูลนิสิตจาก reg.up */}
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
-          <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-3">ข้อมูลนิสิต (ดึงจากระบบทะเบียน)</p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            <div><span className="text-gray-500">ชื่อ-นามสกุล</span><p className="font-medium text-gray-900 mt-0.5">{MOCK_STUDENT.firstName} {MOCK_STUDENT.lastName}</p></div>
-            <div><span className="text-gray-500">รหัสนิสิต</span><p className="font-medium text-gray-900 mt-0.5">{MOCK_STUDENT.studentId}</p></div>
-            <div><span className="text-gray-500">คณะ</span><p className="font-medium text-gray-900 mt-0.5">{MOCK_STUDENT.faculty}</p></div>
-            <div><span className="text-gray-500">สาขา</span><p className="font-medium text-gray-900 mt-0.5">{MOCK_STUDENT.major}</p></div>
-            <div><span className="text-gray-500">ระดับ/ชั้นปี</span><p className="font-medium text-gray-900 mt-0.5">{MOCK_STUDENT.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปี {MOCK_STUDENT.year}</p></div>
-            <div><span className="text-gray-500">อายุ (ปีปฏิทิน)</span><p className="font-medium text-gray-900 mt-0.5">{athleteAge} ปี</p></div>
-          </div>
+        {/* แจ้งเตือนชั่วคราว */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
+          <p className="text-xs text-amber-700">⚠️ ระบบยังไม่เชื่อมต่อกับระบบทะเบียนนิสิต กรุณากรอกข้อมูลด้วยตนเองในขั้นตอนถัดไป</p>
         </div>
 
-        {(!isAgeEligible || !isEntryCountEligible) && (
+        {isOverMaxStrict && (
+          <div className="bg-red-100 border border-red-300 rounded-xl p-4 mb-6">
+            <p className="text-sm font-bold text-red-900 mb-1">🚫 ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
+            <p className="text-sm text-red-700">ท่านเคยเข้าร่วมการแข่งขันกีฬามหาวิทยาลัยฯ ครบ 5 ครั้งแล้ว ตามระเบียบ กกมท. ข้อ 7.2 นักศึกษาปริญญาตรีสมัครได้ไม่เกิน 5 ครั้งตลอดระยะเวลาการศึกษา ระบบไม่สามารถรับใบสมัครของท่านได้</p>
+          </div>
+        )}
+        {!isOverMaxStrict && (!isAgeEligible || !isEntryCountEligible) && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <p className="text-sm font-medium text-red-800 mb-1">⚠️ ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
             {!isAgeEligible && <p className="text-sm text-red-600">อายุของท่าน ({athleteAge} ปี) เกิน 28 ปี ตามระเบียบ กกมท. ข้อ 6.5</p>}
             {!isEntryCountEligible && <p className="text-sm text-red-600">ท่านสมัครครบ {maxEntries} ครั้งแล้ว ตามระเบียบ กกมท. ข้อ 7.2</p>}
           </div>
         )}
+
         {isAgeEligible && isEntryCountEligible && remainingEntries === 1 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-amber-700">⚠️ นี่จะเป็นการสมัครครั้งสุดท้ายของท่าน ({MOCK_STUDENT.previousEntriesCount + 1}/{maxEntries} ครั้ง)</p>
+            <p className="text-sm text-amber-700">⚠️ นี่จะเป็นการสมัครครั้งสุดท้ายของท่าน ({MOCK_REG_DATA.previousEntriesCount + 1}/{maxEntries} ครั้ง)</p>
           </div>
         )}
 
@@ -219,7 +213,7 @@ export default function AthleteRegisterPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
-          {/* Step 1: ข้อมูลส่วนตัวเพิ่มเติม */}
+          {/* Step 1: ข้อมูลส่วนตัว */}
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-sm font-medium text-gray-700">รูปถ่ายชุดนิสิต (ขนาด 1 นิ้ว)</p>
@@ -228,6 +222,62 @@ export default function AthleteRegisterPage() {
                 <span className="text-xs text-gray-500 text-center px-2">{photo ? photo.name : "แนบรูปถ่าย"}</span>
                 <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={handlePhotoChange} />
               </label>
+
+              <p className="text-sm font-medium text-gray-700 pt-2">ข้อมูลนิสิต</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
+                  <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="สมชาย" value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">นามสกุล</label>
+                  <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ใจดี" value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="66027012" value={form.studentId} onChange={(e) => set("studentId", e.target.value)} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
+                <select
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  value={form.faculty}
+                  onChange={(e) => { set("faculty", e.target.value); set("major", ""); }}
+                >
+                  <option value="">เลือกคณะ</option>
+                  {UP_FACULTIES.map((f) => (
+                    <option key={f.name} value={f.name}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">สาขา</label>
+                  <select
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    value={form.major}
+                    onChange={(e) => set("major", e.target.value)}
+                    disabled={!form.faculty}
+                  >
+                    <option value="">{form.faculty ? "เลือกสาขา" : "เลือกคณะก่อน"}</option>
+                    {UP_FACULTIES.find((f) => f.name === form.faculty)?.majors.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ระดับการศึกษา</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => set("studentLevel", "bachelor")} className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${form.studentLevel === "bachelor" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>ปริญญาตรี</button>
+                  <button type="button" onClick={() => set("studentLevel", "graduate")} className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${form.studentLevel === "graduate" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>บัณฑิตศึกษา (โท/เอก)</button>
+                </div>
+              </div>
+            </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -316,8 +366,17 @@ export default function AthleteRegisterPage() {
               </div>
 
               {hasClub === "no" && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                  <p className="text-sm text-amber-800 font-medium">⚠️ กรณีไม่มีชมรม ต้องทำหนังสือขออนุญาตพร้อมมีบุคลากรมหาวิทยาลัยอย่างน้อย 1 คน รับรอง</p>
+                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
+                  <div className="bg-orange-100 rounded-lg p-3 mb-2">
+                    <p className="text-sm font-medium text-orange-900 mb-1">📋 ขั้นตอนสำหรับนักกีฬาที่ไม่มีชมรม</p>
+                    <ol className="text-xs text-orange-800 space-y-1 list-decimal list-inside">
+                      <li>กรอกข้อมูลและแนบหนังสือขออนุญาตพร้อมบุคลากรรับรองอย่างน้อย 1 คน</li>
+                      <li>ระบบจะส่งข้อมูลไปยัง <strong>กองกิจการนิสิต</strong> โดยตรง (ไม่ผ่านชมรม)</li>
+                      <li>กองกิจจะพิจารณาและแต่งตั้งเจ้าหน้าที่รับผิดชอบแยกต่างหาก</li>
+                      <li>รอการแจ้งผลการพิจารณาจากกองกิจการนิสิต</li>
+                    </ol>
+                  </div>
+                  <p className="text-sm text-orange-800 font-medium">⚠️ ต้องทำหนังสือขออนุญาตพร้อมมีบุคลากรในสังกัดมหาวิทยาลัยอย่างน้อย 1 คน รับรองและรับผิดชอบทีม</p>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล บุคลากรผู้รับรอง</label>
                     <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={supervisorName} onChange={(e) => setSupervisorName(e.target.value)} />
