@@ -237,9 +237,8 @@ export default function AthleteDetailPage() {
                 </span>
 
                 <span
-                  className={`text-sm font-medium px-3 py-1 rounded-full ${
-                    STATUS_COLOR[athlete.currentStatus]
-                  }`}
+                  className={`text-sm font-medium px-3 py-1 rounded-full ${STATUS_COLOR[athlete.currentStatus]
+                    }`}
                 >
                   {CURRENT_STATUS[athlete.currentStatus]}
                 </span>

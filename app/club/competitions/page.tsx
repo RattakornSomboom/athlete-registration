@@ -39,6 +39,7 @@ export default function ClubCompetitionsPage() {
 
         <div className="flex items-start justify-between mb-6">
           <div>
+            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
             <h1 className="text-2xl font-semibold text-gray-900">รายการแข่งขัน</h1>
             <p className="text-gray-500 text-sm mt-1">ชมรม{MOCK_CLUB_SPORT} — กีฬามหาวิทยาลัยฯ ครั้งที่ 52</p>
           </div>
