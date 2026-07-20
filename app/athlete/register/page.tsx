@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
-import { getAthleteProfile, type AthleteProfile } from "@/lib/athlete-profile";
+import { type AthleteProfile } from "@/lib/athlete-profile";
 import { getSportConfig } from "@/lib/sports-categories";
 
 const SPORTS = [
@@ -64,9 +64,56 @@ export default function AthleteRegisterPage() {
   const [studentProfile, setStudentProfile] = useState<AthleteProfile | null>(null);
 
   useEffect(() => {
-    // TODO: เปลี่ยนเป็น fetch /api/athletes/profile เมื่อ Backend พร้อม
-    const profile = getAthleteProfile();
-    setStudentProfile(profile);
+    const fetchProfile = async () => {
+      const studentId = localStorage.getItem("current_student_id");
+      if (!studentId) return;
+
+      try {
+        const res = await fetch(`/api/athletes/profile?studentId=${studentId}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const p = data.profile;
+
+        // แปลงข้อมูลจาก DB ให้ตรงกับ type ที่ UI ใช้
+        const birthDateStr = p.birthDate
+          ? new Date(p.birthDate).toISOString().split("T")[0]
+          : "";
+        const birthYearCE = birthDateStr
+          ? parseInt(birthDateStr.split("-")[0], 10)
+          : new Date().getFullYear() - 20;
+
+        const profile: AthleteProfile = {
+          studentId,
+          firstName: p.firstName ?? "",
+          lastName: p.lastName ?? "",
+          faculty: p.faculty ?? "",
+          major: p.major ?? "",
+          studentLevel: p.studentLevel === "GRADUATE" ? "graduate" : "bachelor",
+          year: p.year ?? "",
+          nationalId: p.nationalId ?? "",
+          nationality: p.nationality ?? "ไทย",
+          birthDate: birthDateStr,
+          gpaSemester: p.gpaSemester ?? "",
+          gpaCumulative: p.gpaCumulative ?? "",
+          addressNo: p.addressNo ?? "",
+          subDistrict: p.subDistrict ?? "",
+          district: p.district ?? "",
+          province: p.province ?? "",
+          postalCode: p.postalCode ?? "",
+          phone: p.phone ?? "",
+          photoName: p.photoUrl ?? undefined,
+          birthYearCE,
+          previousEntriesCount: 0,
+        };
+
+        setStudentProfile(profile);
+      } catch (err) {
+        console.error("Failed to fetch athlete profile:", err);
+      }
+    };
+
+    fetchProfile();
   }, []);
 
   const [form, setForm] = useState({

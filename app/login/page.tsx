@@ -3,14 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UP_FACULTIES } from "@/lib/up-faculties";
-import {
-  saveAthleteProfile,
-  hasAthleteProfile,
-  calcBirthYearCE,
-  type AthleteProfile,
-} from "@/lib/athlete-profile";
-
-// TODO: เชื่อม API จริงตอน Backend พร้อม
 const validatePassword = (password: string) => {
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
@@ -26,6 +18,7 @@ export default function LoginPage() {
   const [registerStep, setRegisterStep] = useState<"account" | "profile">("account");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -41,7 +34,7 @@ export default function LoginPage() {
 
   // Register step 2 — personal profile
   const [photo, setPhoto] = useState<File | null>(null);
-  const [profileForm, setProfileForm] = useState<Omit<AthleteProfile, "studentId" | "birthYearCE" | "previousEntriesCount" | "photoName">>({
+  const [profileForm, setProfileForm] = useState({
     firstName: "",
     lastName: "",
     faculty: "",
@@ -79,9 +72,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     setLoading(true);
     try {
-      // TODO: เชื่อม API Login จริง
       if (!loginForm.username.endsWith("@up.ac.th")) {
         setError("กรุณาใช้ Username รูปแบบ รหัสนิสิต@up.ac.th");
         return;
@@ -90,19 +83,30 @@ export default function LoginPage() {
         setError("กรุณากรอกรหัสผ่าน");
         return;
       }
-      await new Promise((r) => setTimeout(r, 800));
-      document.cookie = `role=athlete; path=/`;
-      // บันทึก studentId ที่กำลัง login
-      const studentId = loginForm.username.replace("@up.ac.th", "");
-      localStorage.setItem("current_student_id", studentId);
 
-      // ตรวจว่ามี profile แล้วหรือยัง
-      if (hasAthleteProfile(studentId)) {
-        router.push("/athlete/register");
-      } else {
-        // ถ้าไม่มีข้อมูลส่วนตัว ให้ไปกรอกก่อน
-        router.push("/athlete/register");
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: loginForm.username,
+          password: loginForm.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "เข้าสู่ระบบไม่สำเร็จ");
+        return;
       }
+
+      // บันทึกข้อมูลผู้ใช้ลง localStorage
+      localStorage.setItem("current_student_id", data.user.studentId);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      router.push("/athlete/register");
+    } catch {
+      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {
       setLoading(false);
     }
@@ -134,23 +138,50 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      // TODO: ส่ง API Register จริง → บันทึก account + profile ลง DB
-      await new Promise((r) => setTimeout(r, 800));
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: registerForm.studentId,
+          password: registerForm.password,
+          profile: {
+            firstName: profileForm.firstName,
+            lastName: profileForm.lastName,
+            faculty: profileForm.faculty,
+            major: profileForm.major,
+            studentLevel: profileForm.studentLevel,
+            year: profileForm.year,
+            nationalId: profileForm.nationalId,
+            nationality: profileForm.nationality,
+            birthDate: profileForm.birthDate,
+            gpaSemester: profileForm.gpaSemester || undefined,
+            gpaCumulative: profileForm.gpaCumulative || undefined,
+            addressNo: profileForm.addressNo,
+            subDistrict: profileForm.subDistrict,
+            district: profileForm.district,
+            province: profileForm.province,
+            postalCode: profileForm.postalCode,
+            phone: profileForm.phone,
+            photoUrl: photo?.name || undefined,
+          },
+        }),
+      });
 
-      const birthYearCE = calcBirthYearCE(profileForm.birthDate);
+      const data = await res.json();
 
-      const profile: AthleteProfile = {
-        studentId: registerForm.studentId,
-        ...profileForm,
-        birthYearCE,
-        previousEntriesCount: 0,
-        photoName: photo?.name,
-      };
+      if (!res.ok) {
+        setError(data.error || "ลงทะเบียนไม่สำเร็จ");
+        return;
+      }
 
-      saveAthleteProfile(profile);
-
-      document.cookie = `role=athlete; path=/`;
-      router.push("/athlete/register");
+      // สมัครสำเร็จ → กลับไปหน้า Login พร้อม Username ที่กรอกไว้
+      const createdUsername = `${registerForm.studentId}@up.ac.th`;
+      setLoginForm({ username: createdUsername, password: "" });
+      setMode("login");
+      setRegisterStep("account");
+      setSuccessMessage("ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบด้วยรหัสผ่านที่ตั้งไว้");
+    } catch {
+      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {
       setLoading(false);
     }
@@ -223,6 +254,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {successMessage && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2.5 rounded-lg">{successMessage}</div>}
             {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-lg">{error}</div>}
 
             <button
