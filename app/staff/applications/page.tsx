@@ -60,7 +60,7 @@ export default function StaffApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-full lg:max-w-7xl mx-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
@@ -82,6 +82,12 @@ export default function StaffApplicationsPage() {
               className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               🏆 ประกาศผล
+            </button>
+            <button
+              onClick={() => router.push("/staff/settings")}
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              ⚙️ ตั้งค่าระบบ
             </button>
             <LogoutButton />
           </div>

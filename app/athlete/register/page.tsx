@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { getAthleteProfile, type AthleteProfile } from "@/lib/athlete-profile";
+import { getSportConfig } from "@/lib/sports-categories";
 
 const SPORTS = [
   // กีฬาบังคับ (7 ชนิด)
@@ -162,12 +163,12 @@ export default function AthleteRegisterPage() {
   const step3Valid = !!(
     form.hasPreviousEntry &&
     (form.hasPreviousEntry === "none" || (form.previousBachelorCount || form.previousGraduateCount) && form.previousLastYear) &&
-    photoFile && idCardFile && studentCardFile && studentCertFile && upAcademyFile
+    photoFile && idCardFile && studentCardFile && studentCertFile && upAcademyFile && fitnessTestFile
   );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-full lg:max-w-5xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -275,6 +276,14 @@ export default function AthleteRegisterPage() {
                   <button type="button" onClick={() => set("round", "final")} className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${form.round === "final" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>รอบมหกรรม</button>
                 </div>
               </div>
+              
+              {form.round && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+                  {form.round === "qualifier" 
+                    ? "📅 กำหนดการทดสอบสมรรถภาพรอบคัดเลือก: วันพุธที่ 2 ก.ย. 2569 (สำหรับ เปตอง, วอลเลย์บอล, บาสเกตบอล, ฟุตซอล)" 
+                    : "📅 กำหนดการทดสอบสมรรถภาพรอบมหกรรม: วันอังคารที่ 1 ธ.ค. 2569 (สำหรับกีฬา 11 ชนิด และกีฬาที่ผ่านรอบคัดเลือก)"}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">ท่านเป็นสมาชิกชมรมกีฬาที่จัดตั้งในมหาวิทยาลัยหรือไม่?</label>
@@ -345,19 +354,27 @@ export default function AthleteRegisterPage() {
                   </div>
                 )}
 
-                {sportEntries.length < MAX_SPORTS_PER_APPLICATION && (
+                {sportEntries.length < MAX_SPORTS_PER_APPLICATION && (() => {
+                  const config = newSportEntry.sport ? getSportConfig(newSportEntry.sport) : null;
+                  return (
                   <div className="border border-gray-200 rounded-lg p-3 space-y-2">
-                    <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.sport} onChange={(e) => setNewSportEntry((p) => ({ ...p, sport: e.target.value }))}>
+                    <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.sport} onChange={(e) => setNewSportEntry({ sport: e.target.value, category: "", division: "" })}>
                       <option value="">เลือกชนิดกีฬา</option>
                       {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <div className="grid grid-cols-2 gap-2">
-                      <input className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ประเภท เช่น เดี่ยว/ทีม" value={newSportEntry.category} onChange={(e) => setNewSportEntry((p) => ({ ...p, category: e.target.value }))} />
-                      <input className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="รุ่น เช่น 60 กก." value={newSportEntry.division} onChange={(e) => setNewSportEntry((p) => ({ ...p, division: e.target.value }))} />
+                      <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.category} onChange={(e) => setNewSportEntry((p) => ({ ...p, category: e.target.value }))} disabled={!newSportEntry.sport}>
+                        <option value="">เลือกประเภท</option>
+                        {config?.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.division} onChange={(e) => setNewSportEntry((p) => ({ ...p, division: e.target.value }))} disabled={!newSportEntry.sport}>
+                        <option value="">เลือกรุ่น</option>
+                        {config?.divisions.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
                     </div>
-                    <button onClick={addSportEntry} disabled={!newSportEntry.sport} className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors">+ เพิ่มชนิดกีฬา</button>
+                    <button onClick={addSportEntry} disabled={!newSportEntry.sport || !newSportEntry.category || !newSportEntry.division} className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors">+ เพิ่มชนิดกีฬา</button>
                   </div>
-                )}
+                )})()}
               </div>
 
               <div className="flex gap-3 mt-2">
@@ -464,11 +481,12 @@ export default function AthleteRegisterPage() {
                     </label>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ผลการทดสอบสมรรถภาพทางกาย (ถ้ามี)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">ผลการทดสอบสมรรถภาพทางกาย <span className="text-red-500">*</span></label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{fitnessTestFile ? fitnessTestFile.name : "แนบไฟล์ (PDF/JPG)"}</span>
+                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{fitnessTestFile ? fitnessTestFile.name : "แนบไฟล์ผลทดสอบ (PDF/JPG)"}</span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setFitnessTestFile)} />
                     </label>
+                    <p className="text-[10px] text-gray-500 mt-1">อ้างอิงประกาศ: ต้องมีผลทดสอบระดับ "ปานกลาง" ขึ้นไป</p>
                   </div>
                 </div>
               </div>

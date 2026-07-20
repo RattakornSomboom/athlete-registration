@@ -137,7 +137,7 @@ export default function ClubCompetitionDetailPage() {
     `}</style>
 
       <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-full lg:max-w-7xl mx-auto">
 
           <div className="mb-6">
             <button onClick={() => router.push("/club/competitions")} className="text-sm text-gray-500 hover:text-gray-700 mb-3 flex items-center gap-1">← กลับไปรายการแข่งขัน</button>
