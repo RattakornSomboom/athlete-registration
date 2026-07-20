@@ -39,6 +39,7 @@ export default function TeamOfficialRegisterPage() {
     previousCount: "",
     appliedPosition: "" as Position | "",
     appliedPositionOther: "",
+    acceptedRules: "false",
   });
 
   const set = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
@@ -69,12 +70,12 @@ export default function TeamOfficialRegisterPage() {
     form.firstName && form.lastName && form.nationalId && form.birthDate &&
     form.addressNo && form.subDistrict && form.district && form.province && form.postalCode &&
     form.phone && form.email && form.workplace && form.workPosition &&
-    form.appliedPosition && planFile && idCardFile
+    form.appliedPosition && planFile && idCardFile && form.acceptedRules === "true"
   );
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-full lg:max-w-5xl mx-auto">
 
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -194,9 +195,15 @@ export default function TeamOfficialRegisterPage() {
             </label>
           </div>
 
-          <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700">
-            ข้าพเจ้ารับทราบระเบียบและข้อบังคับการจัดการแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทยโดยละเอียด และยินดีปฏิบัติตามคำตัดสินของคณะกรรมการฯ ทุกประการ
-          </div>
+          <label className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700 flex items-start gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+              checked={form.acceptedRules === "true"} 
+              onChange={(e) => set("acceptedRules", e.target.checked ? "true" : "false")} 
+            />
+            <span>ข้าพเจ้ารับทราบระเบียบและข้อบังคับการจัดการแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทยโดยละเอียด และยินดีปฏิบัติตามคำตัดสินของคณะกรรมการฯ ทุกประการ</span>
+          </label>
 
           <button
             onClick={handleSubmit}

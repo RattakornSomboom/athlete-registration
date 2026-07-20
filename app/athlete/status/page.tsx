@@ -1,14 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 export default function AthleteStatusPage() {
+  const router = useRouter();
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-full lg:max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-        <LogoutButton />
-      </div>
+          <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">← ย้อนกลับ</button>
+          <LogoutButton />
+        </div>
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">สถานะการสมัคร</h1>
           <p className="text-gray-500 text-sm mt-1">ติดตามผลการพิจารณาของชมรม</p>
