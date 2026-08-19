@@ -1,53 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
-type Athlete = {
+type SportEntry = { sport: string; category: string; division?: string | null };
+
+type Application = {
   id: string;
-  firstName: string;
-  lastName: string;
-  studentId: string;
-  faculty: string;
+  status: string;
   sport: string;
-  position: string;
-  experience: string;
-  achievement: string;
-  status: "pending" | "approved" | "rejected";
+  category: string;
+  createdAt: string;
+  user: {
+    studentId: string;
+    profile?: {
+      firstName: string;
+      lastName: string;
+      faculty: string;
+    } | null;
+  };
+  competition: { name: string; sport: string };
+  sportEntries: SportEntry[];
 };
 
-const MOCK_ATHLETES: Athlete[] = [
-  { id: "1", firstName: "สมชาย", lastName: "ใจดี", studentId: "66027012", faculty: "วิทยาศาสตร์", sport: "ฟุตบอล", position: "กองหน้า", experience: "3-5 ปี", achievement: "แชมป์กีฬาเขต 2566", status: "pending" },
-  { id: "2", firstName: "สมหญิง", lastName: "รักดี", studentId: "66027013", faculty: "วิศวกรรมศาสตร์", sport: "ฟุตบอล", position: "กองกลาง", experience: "1-3 ปี", achievement: "", status: "pending" },
-  { id: "3", firstName: "มานะ", lastName: "สู้งาน", studentId: "65027001", faculty: "บริหาร", sport: "ฟุตบอล", position: "ผู้รักษาประตู", experience: "มากกว่า 5 ปี", achievement: "เหรียญทองกีฬาแห่งชาติ", status: "approved" },
-];
-
-const STATUS_LABEL = {
-  pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "ผ่านการคัดเลือก", className: "bg-green-100 text-green-800" },
-  rejected: { label: "ไม่ผ่าน", className: "bg-red-100 text-red-800" },
+const STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  SUBMITTED:      { label: "รอพิจารณา",       className: "bg-yellow-100 text-yellow-800" },
+  CLUB_APPROVED:  { label: "ชมรมอนุมัติ",     className: "bg-blue-100 text-blue-700" },
+  CLUB_REJECTED:  { label: "ชมรมไม่อนุมัติ",  className: "bg-red-100 text-red-700" },
+  STAFF_APPROVED: { label: "เจ้าหน้าที่อนุมัติ", className: "bg-green-100 text-green-800" },
+  STAFF_REJECTED: { label: "เจ้าหน้าที่ไม่อนุมัติ", className: "bg-red-100 text-red-700" },
+  FINAL_SELECTED: { label: "ผ่านการคัดเลือก", className: "bg-emerald-100 text-emerald-800" },
 };
 
 export default function ClubAthletesPage() {
   const router = useRouter();
-  const [athletes, setAthletes] = useState<Athlete[]>(MOCK_ATHLETES);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [clubId, setClubId] = useState<string | null>(null);
+  const [clubName, setClubName] = useState("");
 
-  const filtered = athletes.filter((a) => {
-    const matchSearch = `${a.firstName} ${a.lastName} ${a.studentId}`.toLowerCase().includes(search.toLowerCase());
+  const fetchAthletes = useCallback(async (cId: string) => {
+    try {
+      const url = filterStatus === "all"
+        ? `/api/clubs/${cId}/athletes`
+        : `/api/clubs/${cId}/athletes?status=${filterStatus}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setApplications(data.athletes ?? []);
+      if (data.club) setClubName(data.club.name);
+    } catch {
+      console.error("Failed to fetch athletes");
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("current_club_id");
+    if (!stored) { router.push("/login"); return; }
+    setClubId(stored);
+    fetchAthletes(stored);
+  }, [router, fetchAthletes]);
+
+  const handleDecision = async (applicationId: string, decision: "CLUB_APPROVED" | "CLUB_REJECTED") => {
+    const stored = localStorage.getItem("club");
+    const club = stored ? JSON.parse(stored) : null;
+    const label = decision === "CLUB_APPROVED" ? "ชมรมอนุมัติ" : "ชมรมไม่อนุมัติ";
+
+    const res = await fetch(`/api/applications/${applicationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: decision,
+        label,
+        by: club?.name ?? "ชมรม",
+      }),
+    });
+
+    if (res.ok) {
+      setApplications((prev) =>
+        prev.map((a) => a.id === applicationId ? { ...a, status: decision } : a)
+      );
+    } else {
+      alert("ดำเนินการไม่สำเร็จ กรุณาลองใหม่");
+    }
+  };
+
+  const filtered = applications.filter((a) => {
+    const name = `${a.user.profile?.firstName ?? ""} ${a.user.profile?.lastName ?? ""} ${a.user.studentId}`.toLowerCase();
+    const matchSearch = name.includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const handleApprove = (id: string) =>
-    setAthletes((prev) => prev.map((a) => (a.id === id ? { ...a, status: "approved" } : a)));
-
-  const handleReject = (id: string) =>
-    setAthletes((prev) => prev.map((a) => (a.id === id ? { ...a, status: "rejected" } : a)));
-
-  const pendingCount = athletes.filter((a) => a.status === "pending").length;
+  const pendingCount = applications.filter((a) => a.status === "SUBMITTED").length;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -56,29 +105,13 @@ export default function ClubAthletesPage() {
           <div>
             <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
             <h1 className="text-2xl font-semibold text-gray-900">รายชื่อนักกีฬา</h1>
-            <p className="text-gray-500 text-sm mt-1">ชมรมฟุตบอล — รอพิจารณา {pendingCount} คน</p>
+            <p className="text-gray-500 text-sm mt-1">{clubName} — รอพิจารณา {pendingCount} คน</p>
           </div>
-          <button
-              onClick={() => router.push("/club/activities")}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-          📋 กิจกรรมชมรม
-          </button>
-          <button
-            onClick={() => router.push("/club/requests")}
-            className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            📝 คำร้องพิเศษ
-</button>
-          <button
-            onClick={() => router.push("/club/review")}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            ส่งต่อกิจการนิสิต
-          </button>
-        </div>
-        <div className="flex items-center justify-between mb-6">
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push("/club/activities")} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">📋 กิจกรรมชมรม</button>
+            <button onClick={() => router.push("/club/requests")} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">📝 คำร้องพิเศษ</button>
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="flex gap-3 mb-4">
@@ -92,52 +125,57 @@ export default function ClubAthletesPage() {
           <select
             className="px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => { setFilterStatus(e.target.value); if (clubId) fetchAthletes(clubId); }}
           >
             <option value="all">ทุกสถานะ</option>
-            <option value="pending">รอพิจารณา</option>
-            <option value="approved">ผ่านการคัดเลือก</option>
-            <option value="rejected">ไม่ผ่าน</option>
+            <option value="SUBMITTED">รอพิจารณา</option>
+            <option value="CLUB_APPROVED">อนุมัติแล้ว</option>
+            <option value="CLUB_REJECTED">ไม่อนุมัติ</option>
           </select>
         </div>
 
-        <div className="space-y-3">
-          {filtered.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-              ไม่พบรายชื่อนักกีฬา
-            </div>
-          )}
-          {filtered.map((a) => (
-            <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-900">{a.firstName} {a.lastName}</span>
-                    <span className="text-gray-400 text-sm">#{a.studentId}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[a.status].className}`}>
-                      {STATUS_LABEL[a.status].label}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500 space-y-0.5">
-                    <p>{a.faculty} — {a.sport} ({a.position})</p>
-                    <p>ประสบการณ์: {a.experience}</p>
-                    {a.achievement && <p>ผลงาน: {a.achievement}</p>}
+        {loading ? (
+          <div className="text-center py-12 text-gray-400">กำลังโหลด...</div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.length === 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">ไม่พบรายชื่อนักกีฬา</div>
+            )}
+            {filtered.map((a) => {
+              const statusInfo = STATUS_LABEL[a.status] ?? { label: a.status, className: "bg-gray-100 text-gray-500" };
+              return (
+                <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-gray-900">
+                          {a.user.profile ? `${a.user.profile.firstName} ${a.user.profile.lastName}` : "ไม่มีชื่อ"}
+                        </span>
+                        <span className="text-gray-400 text-sm">#{a.user.studentId}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusInfo.className}`}>
+                          {statusInfo.label}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-500 space-y-0.5">
+                        <p>{a.user.profile?.faculty ?? "-"} — {a.competition.name}</p>
+                        <p>กีฬา: {a.sportEntries.map((e) => `${e.sport} (${e.category})`).join(", ") || a.sport}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      {a.status === "SUBMITTED" && (
+                        <>
+                          <button onClick={() => handleDecision(a.id, "CLUB_REJECTED")} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่ผ่าน</button>
+                          <button onClick={() => handleDecision(a.id, "CLUB_APPROVED")} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">ผ่าน</button>
+                        </>
+                      )}
+                      <button onClick={() => router.push(`/athlete/${a.id}`)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">ดูข้อมูล</button>
+                    </div>
                   </div>
                 </div>
-                {a.status === "pending" && (
-                  <div className="flex gap-2 shrink-0">
-                    <button onClick={() => handleReject(a.id)} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่ผ่าน</button>
-                    <button onClick={() => handleApprove(a.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">ผ่าน</button>
-                    <button onClick={() => router.push(`/athlete/${a.id}`)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
-                            ดูข้อมูล
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

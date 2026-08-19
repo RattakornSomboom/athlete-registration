@@ -11,8 +11,13 @@ export async function GET(request: Request) {
     const userId = searchParams.get("userId");
     const studentId = searchParams.get("studentId");
     const status = searchParams.get("status");
+    const competitionId = searchParams.get("competitionId");
 
     const where: Record<string, unknown> = {};
+
+    if (competitionId) {
+      where.competitionId = competitionId;
+    }
 
     if (userId) {
       where.userId = userId;
@@ -86,6 +91,19 @@ export async function POST(request: Request) {
       note,
       sportEntries,
       competitionResults,
+      photoFileUrl,
+      idCardFileUrl,
+      studentCardFileUrl,
+      studentCertFileUrl,
+      upAcademyFileUrl,
+      fitnessTestFileUrl,
+      noClubFileUrl,
+      supervisorName,
+      supervisorPosition,
+      round,
+      previousBachelorCount,
+      previousGraduateCount,
+      previousLastYear,
     } = body;
 
     if (!studentId || !competitionId || !sport || !category) {
@@ -97,12 +115,36 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { studentId },
+      include: { profile: true },
     });
 
-    if (!user) {
+    if (!user || !user.profile) {
       return NextResponse.json(
-        { error: "ไม่พบบัญชีผู้ใช้" },
+        { error: "ไม่พบบัญชีผู้ใช้ หรือยังไม่ได้ลงทะเบียนประวัตินักกีฬา" },
         { status: 404 }
+      );
+    }
+
+    // ─── การตรวจสอบสิทธิ์ (Validation) ───
+    const CURRENT_YEAR_CE = 2026;
+    const birthYearCE = user.profile.birthDate.getFullYear();
+    const athleteAge = CURRENT_YEAR_CE - birthYearCE;
+    if (athleteAge > 28) {
+      return NextResponse.json(
+        { error: `ไม่อนุญาตให้สมัคร เนื่องจากอายุเกิน 28 ปี (อายุ ${athleteAge} ปี)` },
+        { status: 400 }
+      );
+    }
+
+    const prevB = parseInt(previousBachelorCount || "0", 10);
+    const prevG = parseInt(previousGraduateCount || "0", 10);
+    const totalPreviousEntries = prevB + prevG;
+    const maxEntries = user.profile.studentLevel === "GRADUATE" ? 3 : 5;
+    
+    if (totalPreviousEntries >= maxEntries) {
+      return NextResponse.json(
+        { error: `ไม่อนุญาตให้สมัคร เนื่องจากเข้าร่วมการแข่งขันครบ ${maxEntries} ครั้งแล้ว` },
+        { status: 400 }
       );
     }
 
@@ -115,6 +157,15 @@ export async function POST(request: Request) {
         division: division || null,
         note: note || null,
         status: "SUBMITTED",
+        photoFileUrl: photoFileUrl || "",
+        idCardFileUrl: idCardFileUrl || "",
+        studentCardFileUrl: studentCardFileUrl || "",
+        studentCertFileUrl: studentCertFileUrl || "",
+        upAcademyFileUrl: upAcademyFileUrl || "",
+        fitnessTestFileUrl: fitnessTestFileUrl || "",
+        noClubFileUrl: noClubFileUrl || null,
+        supervisorName: supervisorName || null,
+        supervisorPosition: supervisorPosition || null,
         statusHistory: {
           create: {
             status: "SUBMITTED",

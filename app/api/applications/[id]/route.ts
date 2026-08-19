@@ -55,7 +55,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, label, by } = body;
+    const { status, label, by, squadType } = body;
 
     if (!status || !label || !by) {
       return NextResponse.json(
@@ -68,6 +68,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: {
         status: status.toUpperCase(),
+        ...(squadType !== undefined && { squadType }),
         statusHistory: {
           create: {
             status: status.toUpperCase(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -135,6 +135,7 @@ export default function AdminClubsPage() {
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [newPresidentForm, setNewPresidentForm] = useState({ presidentName: "", presidentPhone: "", email: "" });
   const [showAddNewClubModal, setShowAddNewClubModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
   const [newClubForm, setNewClubForm] = useState({
     clubName: "",
     sport: "",
@@ -144,17 +145,38 @@ export default function AdminClubsPage() {
     password: ""
   });
 
+  // Merge ชมรมจาก DB เข้ากับ MOCK (เพื่อได้ id จริง)
+  useEffect(() => {
+    fetch("/api/clubs")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.clubs?.length > 0) {
+          const dbMap = new Map<string, { id: string; isActive: boolean; createdAt: string }>(
+            data.clubs.map((c: { email: string; id: string; isActive: boolean; createdAt: string }) => [c.email, c])
+          );
+          setClubs((prev) =>
+            prev.map((mock) => {
+              const db = dbMap.get(mock.email);
+              if (!db) return mock;
+              return { ...mock, id: db.id, status: db.isActive ? "active" as const : "inactive" as const, createdAt: new Date(db.createdAt).toLocaleDateString("th-TH") };
+            })
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const pendingCount = clubs.filter((c) => c.status === "pending").length;
 
   const handleApprove = (id: string) => {
-    setClubs((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" } : c));
+    setClubs((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" as const } : c));
   };
 
   const handleSetPresident = () => {
     if (!selectedClubId || !newPresidentForm.presidentName || !newPresidentForm.email) return;
     setClubs((prev) => prev.map((c) =>
       c.id === selectedClubId
-        ? { ...c, presidentName: newPresidentForm.presidentName, presidentPhone: newPresidentForm.presidentPhone, email: newPresidentForm.email, status: "pending", createdAt: "วันนี้" }
+        ? { ...c, presidentName: newPresidentForm.presidentName, presidentPhone: newPresidentForm.presidentPhone, email: newPresidentForm.email, status: "pending" as const, createdAt: "วันนี้" }
         : c
     ));
     setShowAddModal(false);
@@ -162,25 +184,45 @@ export default function AdminClubsPage() {
     setNewPresidentForm({ presidentName: "", presidentPhone: "", email: "" });
   };
 
-  const handleAddNewClub = () => {
-    if (!newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password) return;
-    
-    const newClub: ClubAccount = {
-      id: Math.random().toString(36).substr(2, 9),
-      clubName: newClubForm.clubName,
-      sport: newClubForm.sport,
-      presidentName: newClubForm.presidentName,
-      presidentPhone: newClubForm.presidentPhone,
-      email: newClubForm.username,
-      advisors: [],
-      status: "active",
-      createdAt: "วันนี้"
-    };
-    
-    setClubs([...clubs, newClub]);
-    setShowAddNewClubModal(false);
-    setNewClubForm({ clubName: "", sport: "", presidentName: "", presidentPhone: "", username: "", password: "" });
+  const handleAddNewClub = async () => {
+    if (!newClubForm.clubName || !newClubForm.sport || !newClubForm.username || !newClubForm.password) return;
+    setCreateLoading(true);
+    try {
+      const res = await fetch("/api/clubs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newClubForm.clubName,
+          sport: newClubForm.sport,
+          email: newClubForm.username,
+          password: newClubForm.password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error ?? "สร้างชมรมไม่สำเร็จ"); return; }
+
+      const newClub: ClubAccount = {
+        id: data.club.id,
+        clubName: data.club.name,
+        sport: data.club.sport,
+        presidentName: newClubForm.presidentName || "-",
+        presidentPhone: newClubForm.presidentPhone || "-",
+        email: data.club.email,
+        advisors: [],
+        status: "active",
+        createdAt: "วันนี้",
+      };
+      setClubs((prev) => [...prev, newClub]);
+      setShowAddNewClubModal(false);
+      setNewClubForm({ clubName: "", sport: "", presidentName: "", presidentPhone: "", username: "", password: "" });
+      alert(`สร้างชมรม "${newClub.clubName}" สำเร็จ! ประธานชมรม login ด้วย email: ${newClub.email}`);
+    } catch {
+      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+    } finally {
+      setCreateLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

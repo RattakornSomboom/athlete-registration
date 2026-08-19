@@ -75,8 +75,12 @@ export default function LoginPage() {
     setSuccessMessage("");
     setLoading(true);
     try {
-      if (!loginForm.username.endsWith("@up.ac.th")) {
-        setError("กรุณาใช้ Username รูปแบบ รหัสนิสิต@up.ac.th");
+      // รองรับทั้ง studentId@up.ac.th และ email ชมรม
+      const isStudentEmail = loginForm.username.endsWith("@up.ac.th");
+      const isClubEmail = loginForm.username.includes("@") && !loginForm.username.endsWith("@up.ac.th");
+
+      if (!loginForm.username.includes("@")) {
+        setError("กรุณาใช้ Username รูปแบบ รหัสนิสิต@up.ac.th หรือ email ชมรม");
         return;
       }
       if (!loginForm.password) {
@@ -100,17 +104,30 @@ export default function LoginPage() {
         return;
       }
 
-      // บันทึกข้อมูลผู้ใช้ลง localStorage
-      localStorage.setItem("current_student_id", data.user.studentId);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      router.push("/athlete/register");
+      // redirect ตาม role
+      const role = data.role;
+      if (role === "athlete") {
+        localStorage.setItem("current_student_id", data.user.studentId);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        router.push("/athlete/register");
+      } else if (role === "club") {
+        localStorage.setItem("current_club_id", data.club.id);
+        localStorage.setItem("club", JSON.stringify(data.club));
+        router.push("/club/competitions");
+      } else if (role === "staff") {
+        router.push("/staff/applications");
+      } else if (role === "admin") {
+        router.push("/admin/clubs");
+      } else {
+        router.push("/");
+      }
     } catch {
       setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {
       setLoading(false);
     }
   };
+
 
   // Register Step 1 — ตรวจ account แล้วไป Step 2
   const handleRegisterAccount = (e: React.FormEvent) => {

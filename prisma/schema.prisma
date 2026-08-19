@@ -116,8 +116,23 @@ model Application {
   sport         String
   category      String
   division      String?
+  squadType     String?
   status        ApplicationStatus @default(SUBMITTED)
   note          String?
+  
+  // เอกสารแนบ
+  photoFileUrl       String
+  idCardFileUrl      String
+  studentCardFileUrl String
+  studentCertFileUrl String
+  upAcademyFileUrl   String
+  fitnessTestFileUrl String
+  
+  // กรณีไม่มีชมรม
+  noClubFileUrl      String?
+  supervisorName     String?
+  supervisorPosition String?
+
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
@@ -155,13 +170,14 @@ model StatusHistory {
 }
 
 model Activity {
-  id          String   @id @default(cuid())
-  clubId      String
-  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  date        DateTime
-  location    String?
-  status      String   @default("planned")
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  clubId          String
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  date            DateTime
+  location        String?
+  status          String   @default("planned")
+  rejectionReason String?
+  createdAt       DateTime @default(now())
 }

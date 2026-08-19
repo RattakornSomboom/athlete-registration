@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { type AthleteProfile } from "@/lib/athlete-profile";
 import { getSportConfig } from "@/lib/sports-categories";
@@ -136,6 +137,18 @@ export default function AthleteRegisterPage() {
   const [competitions, setCompetitions] = useState<CompetitionResult[]>([]);
   const [newComp, setNewComp] = useState({ competitionName: "", year: "", result: "" });
 
+  // รายการแข่งขันที่เปิดรับสมัคร (ดึงจาก API)
+  type OpenCompetition = { id: string; name: string; sport: string; round: string; year: number; club: { name: string } };
+  const [openCompetitions, setOpenCompetitions] = useState<OpenCompetition[]>([]);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/competitions?status=OPEN")
+      .then((r) => r.json())
+      .then((data) => setOpenCompetitions(data.competitions ?? []))
+      .catch(() => {});
+  }, []);
+
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -178,27 +191,93 @@ export default function AthleteRegisterPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // TODO: ส่ง API POST /api/applications เมื่อ Backend พร้อม
-      console.log("submit", {
-        ...studentProfile,
-        ...form,
-        sportEntries,
-        competitions,
-        hasClub,
-        supervisorName: hasClub === "no" ? supervisorName : null,
-        supervisorPosition: hasClub === "no" ? supervisorPosition : null,
-        noClubFile: hasClub === "no" ? noClubFile?.name : null,
-        files: {
-          photoFile: photoFile?.name,
-          idCardFile: idCardFile?.name,
-          studentCardFile: studentCardFile?.name,
-          studentCertFile: studentCertFile?.name,
-          upAcademyFile: upAcademyFile?.name,
-          fitnessTestFile: fitnessTestFile?.name,
-        }
+      if (!selectedCompetitionId) {
+        alert("กรุณาเลือกรายการแข่งขัน");
+        return;
+      }
+
+      const studentId = localStorage.getItem("current_student_id");
+      if (!studentId) {
+        alert("ไม่พบข้อมูล session กรุณา login ใหม่");
+        router.push("/login");
+        return;
+      }
+
+      // Upload files to Supabase Storage
+      const uploadFile = async (file: File, prefix: string) => {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${studentId}_${prefix}_${Date.now()}.${fileExt}`;
+        const filePath = `${studentId}/${fileName}`;
+        
+        const { error } = await supabase.storage.from("athlete-docs").upload(filePath, file);
+        if (error) throw error;
+        
+        return supabase.storage.from("athlete-docs").getPublicUrl(filePath).data.publicUrl;
+      };
+
+      let noClubFileUrl = null;
+      if (hasClub === "no" && noClubFile) {
+        noClubFileUrl = await uploadFile(noClubFile, "noclub");
+      }
+
+      const [
+        photoFileUrl,
+        idCardFileUrl,
+        studentCardFileUrl,
+        studentCertFileUrl,
+        upAcademyFileUrl,
+        fitnessTestFileUrl
+      ] = await Promise.all([
+        uploadFile(photoFile!, "photo"),
+        uploadFile(idCardFile!, "idcard"),
+        uploadFile(studentCardFile!, "studentcard"),
+        uploadFile(studentCertFile!, "studentcert"),
+        uploadFile(upAcademyFile!, "upacademy"),
+        uploadFile(fitnessTestFile!, "fitness")
+      ]);
+
+      // ส่งใบสมัครไป API จริง
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          competitionId: selectedCompetitionId,
+          sport: sportEntries[0]?.sport ?? "",
+          category: sportEntries[0]?.category ?? "",
+          division: sportEntries[0]?.division ?? null,
+          note: form.note,
+          
+          round: form.round,
+          previousBachelorCount: form.hasPreviousEntry === "has" ? parseInt(form.previousBachelorCount || "0", 10) : 0,
+          previousGraduateCount: form.hasPreviousEntry === "has" ? parseInt(form.previousGraduateCount || "0", 10) : 0,
+          previousLastYear: form.hasPreviousEntry === "has" ? parseInt(form.previousLastYear || "0", 10) : null,
+
+          sportEntries: sportEntries.map(({ sport, category, division }) => ({ sport, category, division })),
+          competitionResults: competitions.map(({ competitionName, year, result }) => ({ competitionName, year, result })),
+          
+          photoFileUrl,
+          idCardFileUrl,
+          studentCardFileUrl,
+          studentCertFileUrl,
+          upAcademyFileUrl,
+          fitnessTestFileUrl,
+          noClubFileUrl,
+          supervisorName: hasClub === "no" ? supervisorName : null,
+          supervisorPosition: hasClub === "no" ? supervisorPosition : null,
+        }),
       });
-      await new Promise((r) => setTimeout(r, 1000));
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "ส่งใบสมัครไม่สำเร็จ");
+        return;
+      }
+
       router.push("/athlete/status");
+    } catch {
+      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
     } finally {
       setLoading(false);
     }
@@ -312,6 +391,25 @@ export default function AthleteRegisterPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+
+          {/* เลือกรายการแข่งขัน */}
+          {step === 1 && openCompetitions.length > 0 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">รายการแข่งขันที่เปิดรับสมัคร</label>
+              <select
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={selectedCompetitionId}
+                onChange={(e) => setSelectedCompetitionId(e.target.value)}
+              >
+                <option value="">-- เลือกรายการแข่งขัน --</option>
+                {openCompetitions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.sport} · {c.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {c.year} BE)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Step 1: รอบแข่งขัน + ชมรม */}
           {step === 1 && (

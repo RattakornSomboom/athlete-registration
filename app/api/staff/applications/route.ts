@@ -12,12 +12,15 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const clubId = searchParams.get("clubId");
     const sport = searchParams.get("sport");
+    const competitionId = searchParams.get("competitionId");
 
     const where: Record<string, unknown> = {};
 
     if (status) where.status = status.toUpperCase();
     if (sport) where.sport = sport;
-    if (clubId) {
+    if (competitionId) {
+      where.competitionId = competitionId;
+    } else if (clubId) {
       where.competition = { clubId };
     }
 

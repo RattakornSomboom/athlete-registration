@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 export default function LogoutButton() {
   const router = useRouter();
 
-  const handleLogout = () => {
-    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    // เรียก API logout เพื่อลบ httpOnly cookie ฝั่ง server
+    await fetch("/api/auth/logout", { method: "POST" });
+    // ลบ localStorage ที่ใช้เก็บ studentId
+    localStorage.removeItem("current_student_id");
     router.push("/login");
   };
 

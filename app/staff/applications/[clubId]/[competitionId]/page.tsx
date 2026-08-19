@@ -1,107 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-// ข้อมูลชมรม (ใช้ร่วมกัน)
-const CLUB_INFO: Record<string, { name: string; sport: string }> = {
-  football: { name: "ชมรมฟุตบอล", sport: "ฟุตบอล" },
-  basketball: { name: "ชมรมบาสเกตบอล", sport: "บาสเกตบอล" },
-  volleyball: { name: "ชมรมวอลเลย์บอล", sport: "วอลเลย์บอล" },
-  swimming: { name: "ชมรมว่ายน้ำ", sport: "ว่ายน้ำ" },
-};
-
-const EVENT_NAMES: Record<string, string> = {
-  "1": "ฟุตบอล 11 คน",
-  "2": "ฟุตบอล 7 คน",
-  "3": "บาสเกตบอล 5 คน",
-  "4": "บาสเกตบอล 3x3",
-  "5": "100 เมตร ผีเสื้อ",
-  "6": "200 เมตร กบ",
-  "7": "ผลัด 4×100 เมตร",
-  "8": "วอลเลย์บอล 6 คน",
-};
-
-type CompetitionResult = {
-  competitionName: string;
-  year: string;
-  result: string;
-};
-
-type AthleteApplication = {
+type Application = {
   id: string;
-  firstName: string;
-  lastName: string;
-  studentId: string;
-  faculty: string;
-  major: string;
-  year: string;
-  studentLevel: "bachelor" | "graduate";
-  nationalId: string;
-  nationality: string;
-  birthDate: string;
-  gpaSemester: string;
-  gpaCumulative: string;
-  addressNo: string;
-  subDistrict: string;
-  district: string;
-  province: string;
-  postalCode: string;
-  phone: string;
+  status: string;
+  squadType: string | null;
   category: string;
-  division: string;
-  hasPreviousEntry: "none" | "has";
-  previousBachelorCount: string;
-  previousGraduateCount: string;
-  previousLastYear: string;
-  competitions: CompetitionResult[];
-  note: string;
-  status: "pending" | "approved" | "rejected";
-  squadType: "main" | "reserve" | "";
-  rejectReason?: string;
+  division: string | null;
+  user: {
+    studentId: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+      faculty: string;
+      major: string;
+      year: string;
+      studentLevel: string;
+      nationalId: string;
+      nationality: string;
+      birthDate: string;
+      gpaSemester: string;
+      gpaCumulative: string;
+      phone: string;
+      addressNo: string;
+      subDistrict: string;
+      district: string;
+      province: string;
+      postalCode: string;
+    } | null;
+  };
+  sportEntries: any[];
+  competitionResults: any[];
+  note: string | null;
 };
 
-// TODO: ดึงจาก database จริงตอน Backend พร้อม — mock data ใช้ร่วมกับ club/competitions/[id]
-const MOCK_APPLICANTS: AthleteApplication[] = [
-  {
-    id: "1", firstName: "สมชาย", lastName: "ใจดี", studentId: "66027012",
-    faculty: "วิทยาศาสตร์", major: "วิทยาการคอมพิวเตอร์", year: "4", studentLevel: "bachelor",
-    nationalId: "1-2345-67890-12-3", nationality: "ไทย", birthDate: "2003-05-12",
-    gpaSemester: "3.45", gpaCumulative: "3.50",
-    addressNo: "99/1", subDistrict: "แม่กา", district: "เมือง", province: "พะเยา", postalCode: "56000",
-    phone: "081-234-5678", category: "กองหน้า", division: "-",
-    hasPreviousEntry: "none", previousBachelorCount: "", previousGraduateCount: "", previousLastYear: "",
-    competitions: [
-      { competitionName: "ฟุตบอลกีฬาเขตภาคเหนือ / สมาคมกีฬาภาคเหนือ", year: "2568", result: "อันดับ 1" },
-      { competitionName: "ฟุตบอลกีฬามหาวิทยาลัยฯ ครั้งที่ 51 / กกมท.", year: "2567", result: "เข้ารอบ 16 ทีม" },
-    ],
-    note: "", status: "pending", squadType: "",
-  },
-  {
-    id: "2", firstName: "สมหญิง", lastName: "รักดี", studentId: "66027013",
-    faculty: "วิศวกรรมศาสตร์", major: "วิศวกรรมไฟฟ้า", year: "3", studentLevel: "bachelor",
-    nationalId: "1-2345-67891-34-5", nationality: "ไทย", birthDate: "2004-02-20",
-    gpaSemester: "3.10", gpaCumulative: "3.05",
-    addressNo: "12", subDistrict: "บ้านต๋อม", district: "เมือง", province: "พะเยา", postalCode: "56000",
-    phone: "082-345-6789", category: "กองกลาง", division: "-",
-    hasPreviousEntry: "none", previousBachelorCount: "", previousGraduateCount: "", previousLastYear: "",
-    competitions: [],
-    note: "", status: "pending", squadType: "",
-  },
-  {
-    id: "3", firstName: "มานะ", lastName: "สู้งาน", studentId: "65027001",
-    faculty: "บริหาร", major: "การจัดการ", year: "4", studentLevel: "bachelor",
-    nationalId: "1-2345-67892-56-7", nationality: "ไทย", birthDate: "2003-09-08",
-    gpaSemester: "3.60", gpaCumulative: "3.55",
-    addressNo: "45", subDistrict: "แม่ต๋ำ", district: "เมือง", province: "พะเยา", postalCode: "56000",
-    phone: "083-456-7890", category: "ผู้รักษาประตู", division: "-",
-    hasPreviousEntry: "has", previousBachelorCount: "2", previousGraduateCount: "", previousLastYear: "2567",
-    competitions: [
-      { competitionName: "ฟุตบอลกีฬาแห่งชาติ / กกท.", year: "2567", result: "เหรียญทอง" },
-    ],
-    note: "ผ่านการคัดเลือกระดับชาติ", status: "approved", squadType: "main",
-  },
-];
+type Competition = {
+  name: string;
+  sport: string;
+  club: { name: string };
+};
 
 export default function StaffCompetitionApplicantsPage() {
   const router = useRouter();
@@ -109,46 +48,93 @@ export default function StaffCompetitionApplicantsPage() {
   const clubId = params.clubId as string;
   const competitionId = params.competitionId as string;
 
-  const club = CLUB_INFO[clubId];
-  const eventName = EVENT_NAMES[competitionId] || "ไม่พบรายการแข่งขัน";
-
-  const [applicants, setApplicants] = useState<AthleteApplication[]>(MOCK_APPLICANTS);
+  const [competition, setCompetition] = useState<Competition | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [squadModalId, setSquadModalId] = useState<string | null>(null);
-  const [squadChoice, setSquadChoice] = useState<"main" | "reserve" | "">("");
   const [rejectReasonInput, setRejectReasonInput] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
-
-  const handlePrint = () => window.print();
+  const [squadModalId, setSquadModalId] = useState<string | null>(null);
+  const [squadChoice, setSquadChoice] = useState<"main" | "reserve" | "">("");
 
   const openSquadModal = (id: string) => {
     setSquadModalId(id);
-    const current = applicants.find((a) => a.id === id);
-    setSquadChoice(current?.squadType || "");
+    const current = applications.find((a) => a.id === id);
+    setSquadChoice(current?.squadType === "main" || current?.squadType === "reserve" ? current.squadType : "");
   };
 
-  const confirmApprove = () => {
+  const fetchData = useCallback(async () => {
+    try {
+      const [compRes, appsRes] = await Promise.all([
+        fetch(`/api/competitions/${competitionId}`),
+        fetch(`/api/staff/applications?competitionId=${competitionId}`)
+      ]);
+      const compData = await compRes.json();
+      const appsData = await appsRes.json();
+      
+      setCompetition(compData.competition);
+      setApplications(appsData.applications ?? []);
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, [competitionId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handlePrint = () => window.print();
+
+  const handleApprove = async () => {
     if (!squadModalId || !squadChoice) return;
-    setApplicants((prev) =>
-      prev.map((a) => a.id === squadModalId ? { ...a, status: "approved", squadType: squadChoice } : a)
-    );
-    setSquadModalId(null);
-    setSquadChoice("");
+    try {
+      const res = await fetch(`/api/applications/${squadModalId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          status: "STAFF_APPROVED", 
+          label: "อนุมัติโดยเจ้าหน้าที่", 
+          by: "staff",
+          squadType: squadChoice
+        })
+      });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => a.id === squadModalId ? { ...a, status: "STAFF_APPROVED", squadType: squadChoice } : a));
+        setSquadModalId(null);
+        setSquadChoice("");
+      } else {
+        alert("ดำเนินการไม่สำเร็จ");
+      }
+    } catch {
+      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
   };
 
-  const handleReject = (id: string, reason: string) => {
+  const handleReject = async (id: string, reason: string) => {
     if (!reason.trim()) return;
-    setApplicants((prev) =>
-      prev.map((a) => a.id === id ? { ...a, status: "rejected", squadType: "", rejectReason: reason } : a)
-    );
-    setShowRejectInput(null);
-    setRejectReasonInput((prev) => ({ ...prev, [id]: "" }));
+    try {
+      const res = await fetch(`/api/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "STAFF_REJECTED", label: `ปฏิเสธ: ${reason}`, by: "staff" })
+      });
+      if (res.ok) {
+        setApplications(prev => prev.map(a => a.id === id ? { ...a, status: "STAFF_REJECTED" } : a));
+        setShowRejectInput(null);
+      } else {
+        alert("ดำเนินการไม่สำเร็จ");
+      }
+    } catch {
+      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
   };
 
-  const mainCount = applicants.filter((a) => a.squadType === "main").length;
-  const reserveCount = applicants.filter((a) => a.squadType === "reserve").length;
-  const pendingCount = applicants.filter((a) => a.status === "pending").length;
-  const detailAthlete = applicants.find((a) => a.id === detailId);
+  const approvedCount = applications.filter(a => a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED").length;
+  const mainCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "main").length;
+  const reserveCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "reserve").length;
+  const pendingCount = applications.filter(a => a.status === "CLUB_APPROVED").length;
+  const detailAthlete = applications.find(a => a.id === detailId);
 
   return (
     <>
@@ -173,10 +159,10 @@ export default function StaffCompetitionApplicantsPage() {
             </button>
             <div className="flex items-start justify-between">
               <div>
-                {club && (
-                  <p className="text-sm text-blue-600 font-medium mb-1">{club.name}</p>
+                {competition?.club && (
+                  <p className="text-sm text-blue-600 font-medium mb-1">{competition.club.name}</p>
                 )}
-                <h1 className="text-2xl font-semibold text-gray-900">{eventName}</h1>
+                <h1 className="text-2xl font-semibold text-gray-900">{competition?.name || "กำลังโหลด..."}</h1>
                 <p className="text-gray-500 text-sm mt-1">
                   ตัวจริง {mainCount} คน · ตัวสำรอง {reserveCount} คน · รอพิจารณา {pendingCount} คน
                 </p>
@@ -186,89 +172,94 @@ export default function StaffCompetitionApplicantsPage() {
           </div>
 
           {/* รายชื่อผู้สมัคร */}
-          <div className="space-y-3">
-            {applicants.length === 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-                ยังไม่มีผู้สมัคร
-              </div>
-            )}
-            {applicants.map((a) => (
-              <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <div className="flex items-start justify-between gap-4">
-                  {/* ชื่อ + สถานะ — กดดูรายละเอียด */}
-                  <button
-                    onClick={() => setDetailId(a.id)}
-                    className="flex-1 text-left hover:bg-gray-50 -m-1 p-1 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-medium text-gray-900">{a.firstName} {a.lastName}</span>
-                      <span className="text-gray-400 text-sm">#{a.studentId}</span>
-                      {a.status === "pending" && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-800">รอพิจารณา</span>
-                      )}
-                      {a.status === "approved" && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.squadType === "main" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-700"}`}>
-                          {a.squadType === "main" ? "ตัวจริง" : "ตัวสำรอง"}
-                        </span>
-                      )}
-                      {a.status === "rejected" && (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-800">ไม่ผ่าน</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      <p>{a.faculty} — {a.category}{a.division !== "-" && ` (รุ่น ${a.division})`}</p>
-                    </div>
-                  </button>
-
-                  {/* ปุ่มพิจารณา */}
-                  {a.status === "pending" && (
-                    <div className="flex flex-col gap-2 shrink-0">
-                      {showRejectInput === a.id ? (
-                        <div className="flex flex-col gap-2 min-w-48">
-                          <input
-                            className="w-full px-3 py-1.5 rounded-lg border border-red-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                            placeholder="ระบุเหตุผล (เอกสารไม่ครบ, ฯลฯ)"
-                            value={rejectReasonInput[a.id] || ""}
-                            onChange={(e) => setRejectReasonInput((prev) => ({ ...prev, [a.id]: e.target.value }))}
-                          />
-                          <div className="flex gap-2">
-                            <button onClick={() => setShowRejectInput(null)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                            <button onClick={() => handleReject(a.id, rejectReasonInput[a.id] || "")} disabled={!rejectReasonInput[a.id]} className="flex-1 px-2 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-xs transition-colors">ยืนยัน</button>
-                          </div>
+          {loading ? (
+            <div className="text-center py-12 text-gray-400 text-sm">กำลังโหลด...</div>
+          ) : applications.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
+              ยังไม่มีผู้สมัคร
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {applications.map((a) => {
+                const profile = a.user.profile;
+                if (!profile) return null;
+                const isPending = a.status === "CLUB_APPROVED";
+                const isApproved = a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED";
+                const isRejected = a.status === "STAFF_REJECTED";
+                
+                return (
+                  <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* ชื่อ + สถานะ — กดดูรายละเอียด */}
+                      <button
+                        onClick={() => setDetailId(a.id)}
+                        className="flex-1 text-left hover:bg-gray-50 -m-1 p-1 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-medium text-gray-900">{profile.firstName} {profile.lastName}</span>
+                          <span className="text-gray-400 text-sm">#{a.user.studentId}</span>
+                          {isPending && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-800">รอพิจารณา</span>
+                          )}
+                          {isApproved && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.squadType === "main" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-700"}`}>
+                              {a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ผ่านการพิจารณา"}
+                            </span>
+                          )}
+                          {isRejected && (
+                            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-800">ไม่ผ่าน</span>
+                          )}
                         </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <button onClick={() => setShowRejectInput(a.id)} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่ผ่าน</button>
-                          <button onClick={() => openSquadModal(a.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">ผ่าน</button>
+                        <div className="text-sm text-gray-500">
+                          <p>{profile.faculty} — {a.category}{a.division ? ` (รุ่น ${a.division})` : ''}</p>
+                        </div>
+                      </button>
+
+                      {/* ปุ่มพิจารณา */}
+                      {isPending && (
+                        <div className="flex flex-col gap-2 shrink-0">
+                          {showRejectInput === a.id ? (
+                            <div className="flex flex-col gap-2 min-w-48">
+                              <input
+                                className="w-full px-3 py-1.5 rounded-lg border border-red-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                                placeholder="ระบุเหตุผล (เอกสารไม่ครบ, ฯลฯ)"
+                                value={rejectReasonInput[a.id] || ""}
+                                onChange={(e) => setRejectReasonInput((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={() => setShowRejectInput(null)} className="flex-1 px-2 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors">ยกเลิก</button>
+                                <button onClick={() => handleReject(a.id, rejectReasonInput[a.id] || "")} disabled={!rejectReasonInput[a.id]} className="flex-1 px-2 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-xs transition-colors">ยืนยัน</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button onClick={() => setShowRejectInput(a.id)} className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่ผ่าน</button>
+                              <button onClick={() => openSquadModal(a.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">ผ่าน</button>
+                            </div>
+                          )}
                         </div>
                       )}
+                      {isApproved && (
+                        <button onClick={() => openSquadModal(a.id)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors shrink-0">
+                          เปลี่ยนตัวจริง/สำรอง
+                        </button>
+                      )}
                     </div>
-                  )}
-                  {a.status === "approved" && (
-                    <button onClick={() => openSquadModal(a.id)} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors shrink-0">
-                      เปลี่ยนตัวจริง/สำรอง
-                    </button>
-                  )}
-                </div>
-
-                {a.status === "rejected" && a.rejectReason && (
-                  <div className="mt-2 bg-red-50 border border-red-100 rounded-lg px-3 py-1.5 text-xs text-red-600 w-full">
-                    เหตุผล: {a.rejectReason}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Modal รายละเอียดใบสมัครเต็ม */}
-        {detailAthlete && (
+        {detailAthlete && detailAthlete.user.profile && (
           <div className="print-modal fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-6 my-8 max-h-[90vh] overflow-y-auto print-card">
               <div className="flex items-start justify-between mb-4 no-print">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{detailAthlete.firstName} {detailAthlete.lastName}</h2>
-                  <p className="text-gray-500 text-sm">#{detailAthlete.studentId}</p>
+                  <h2 className="text-lg font-semibold text-gray-900">{detailAthlete.user.profile.firstName} {detailAthlete.user.profile.lastName}</h2>
+                  <p className="text-gray-500 text-sm">#{detailAthlete.user.studentId}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={handlePrint} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors flex items-center gap-1">
@@ -280,66 +271,31 @@ export default function StaffCompetitionApplicantsPage() {
 
               {/* หัวเรื่องสำหรับพิมพ์ */}
               <div className="hidden print:block mb-4 text-center border-b border-gray-200 pb-4">
-                <h2 className="text-lg font-semibold text-gray-900">ใบสมัครนักกีฬา — {detailAthlete.firstName} {detailAthlete.lastName}</h2>
-                <p className="text-gray-500 text-sm">รหัสนิสิต {detailAthlete.studentId} · {eventName} · กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52</p>
+                <h2 className="text-lg font-semibold text-gray-900">ใบสมัครนักกีฬา — {detailAthlete.user.profile.firstName} {detailAthlete.user.profile.lastName}</h2>
+                <p className="text-gray-500 text-sm">รหัสนิสิต {detailAthlete.user.studentId} · {competition?.name} · กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52</p>
               </div>
 
               <div className="space-y-5">
                 <div>
                   <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">ข้อมูลส่วนตัว</h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div><span className="text-gray-500">คณะ</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.faculty}</p></div>
-                    <div><span className="text-gray-500">สาขา</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.major}</p></div>
-                    <div><span className="text-gray-500">ระดับ/ชั้นปี</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปี {detailAthlete.year}</p></div>
-                    <div><span className="text-gray-500">เลขบัตรประชาชน</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.nationalId}</p></div>
-                    <div><span className="text-gray-500">สัญชาติ</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.nationality}</p></div>
-                    <div><span className="text-gray-500">วันเกิด</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.birthDate}</p></div>
-                    <div><span className="text-gray-500">เกรดเฉลี่ย (ภาคล่าสุด)</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.gpaSemester || "-"}</p></div>
-                    <div><span className="text-gray-500">เกรดเฉลี่ยสะสม</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.gpaCumulative || "-"}</p></div>
-                    <div><span className="text-gray-500">เบอร์โทรศัพท์</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.phone}</p></div>
+                    <div><span className="text-gray-500">คณะ</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.faculty}</p></div>
+                    <div><span className="text-gray-500">สาขา</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.major}</p></div>
+                    <div><span className="text-gray-500">ระดับ/ชั้นปี</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.studentLevel === "BACHELOR" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปี {detailAthlete.user.profile.year}</p></div>
+                    <div><span className="text-gray-500">เลขบัตรประชาชน</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.nationalId}</p></div>
+                    <div><span className="text-gray-500">สัญชาติ</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.nationality}</p></div>
+                    <div><span className="text-gray-500">เกรดเฉลี่ย (ภาคล่าสุด)</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.gpaSemester || "-"}</p></div>
+                    <div><span className="text-gray-500">เกรดเฉลี่ยสะสม</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.gpaCumulative || "-"}</p></div>
+                    <div><span className="text-gray-500">เบอร์โทรศัพท์</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.user.profile.phone}</p></div>
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">ที่อยู่ปัจจุบัน</h3>
-                  <p className="text-sm text-gray-900">
-                    {detailAthlete.addressNo} ตำบล{detailAthlete.subDistrict} อำเภอ{detailAthlete.district} จังหวัด{detailAthlete.province} {detailAthlete.postalCode}
-                  </p>
                 </div>
 
                 <div>
                   <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">ข้อมูลการสมัคร</h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <div><span className="text-gray-500">ตำแหน่ง/ประเภท</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.category}</p></div>
-                    <div><span className="text-gray-500">รุ่น</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.division}</p></div>
+                    <div><span className="text-gray-500">รุ่น</span><p className="font-medium text-gray-900 mt-0.5">{detailAthlete.division || "-"}</p></div>
                   </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">ประวัติเข้าร่วมกีฬามหาวิทยาลัยฯ</h3>
-                  {detailAthlete.hasPreviousEntry === "none" ? (
-                    <p className="text-sm text-gray-900">ไม่เคยเข้าร่วมมาก่อน</p>
-                  ) : (
-                    <p className="text-sm text-gray-900">
-                      เคยเข้าร่วม ระดับปริญญาตรี {detailAthlete.previousBachelorCount || 0} ครั้ง · ระดับโท/เอก {detailAthlete.previousGraduateCount || 0} ครั้ง · ครั้งล่าสุดปี พ.ศ. {detailAthlete.previousLastYear || "-"}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">ประวัติผลงานการแข่งขัน (ไม่เกิน 2 ปี)</h3>
-                  {detailAthlete.competitions.length === 0 ? (
-                    <p className="text-sm text-gray-400">ไม่มีผลงานที่บันทึกไว้</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {detailAthlete.competitions.map((c, i) => (
-                        <div key={i} className="bg-gray-50 rounded-lg p-3 text-sm">
-                          <p className="font-medium text-gray-900">{c.competitionName}</p>
-                          <p className="text-gray-500 text-xs mt-0.5">พ.ศ. {c.year} · ผลการแข่งขัน: {c.result}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {detailAthlete.note && (
@@ -352,7 +308,7 @@ export default function StaffCompetitionApplicantsPage() {
 
               {/* ปุ่มพิจารณาใน Modal */}
               <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100 no-print">
-                {detailAthlete.status === "pending" && (
+                {detailAthlete.status === "CLUB_APPROVED" && (
                   <>
                     {showRejectInput === detailAthlete.id ? (
                       <div className="flex-1 space-y-2">
@@ -375,7 +331,7 @@ export default function StaffCompetitionApplicantsPage() {
                     )}
                   </>
                 )}
-                {detailAthlete.status !== "pending" && (
+                {detailAthlete.status !== "CLUB_APPROVED" && (
                   <button onClick={() => setDetailId(null)} className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors">ปิด</button>
                 )}
               </div>
@@ -389,7 +345,7 @@ export default function StaffCompetitionApplicantsPage() {
             <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">เลือกสถานะนักกีฬา</h2>
               <p className="text-gray-500 text-sm mb-4">
-                {applicants.find((a) => a.id === squadModalId)?.firstName} {applicants.find((a) => a.id === squadModalId)?.lastName}
+                {applications.find((a) => a.id === squadModalId)?.user.profile?.firstName} {applications.find((a) => a.id === squadModalId)?.user.profile?.lastName}
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
@@ -399,7 +355,7 @@ export default function StaffCompetitionApplicantsPage() {
 
               <div className="flex gap-3">
                 <button onClick={() => { setSquadModalId(null); setSquadChoice(""); }} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ยกเลิก</button>
-                <button onClick={confirmApprove} disabled={!squadChoice} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">ยืนยัน</button>
+                <button onClick={handleApprove} disabled={!squadChoice} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">ยืนยัน</button>
               </div>
             </div>
           </div>
