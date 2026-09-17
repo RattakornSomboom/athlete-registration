@@ -183,59 +183,74 @@ export default function AdminClubsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
-            <h1 className="text-2xl font-semibold text-gray-900">จัดการ Account ประธานชมรม</h1>
-            <p className="text-gray-500 text-sm mt-1">Admin — กำหนดสิทธิ์ประธานชมรมแต่ละกีฬา</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              ระบบผู้ดูแลระบบกลาง · กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              การบริหารจัดการบัญชีผู้ใช้งานประธานชมรมกีฬา
+            </h1>
+            <p className="text-xs text-slate-500">
+              กำหนดสิทธิ์และแต่งตั้งผู้รับผิดชอบชมรมกีฬาแต่ละชนิด สำหรับการแข่งขัน กกมท. ครั้งที่ 52
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <button 
+          <div className="flex items-center gap-2">
+            <button
               onClick={() => setShowAddNewClubModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+              className="bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg text-xs transition-colors cursor-pointer"
             >
-              + เพิ่มชมรมใหม่
+              + เพิ่มชมรมกีฬาใหม่
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ย้อนกลับ
             </button>
             <LogoutButton />
           </div>
         </div>
 
         {pendingCount > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🔔</span>
-              <div>
-                <h3 className="text-sm font-semibold text-amber-900">แจ้งเตือน: คำขอรอการอนุมัติ</h3>
-                <p className="text-sm text-amber-800 mt-0.5">มีคำขอเปลี่ยน/แต่งตั้งประธานชมรมใหม่จำนวน <span className="font-bold">{pendingCount}</span> รายการ ที่รอการอนุมัติจากคุณ</p>
-              </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between shadow-xs">
+            <div>
+              <h3 className="text-xs font-bold text-amber-900">คำขอแต่งตั้งหรือเปลี่ยนตัวประธานชมรมรอการอนุมัติ</h3>
+              <p className="text-xs text-amber-800 mt-0.5">มีคำขอจำนวน <span className="font-bold">{pendingCount}</span> รายการ ที่รอการอนุมัติจากผู้ดูแลระบบ</p>
             </div>
           </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-sm text-blue-800 shadow-sm">
-          📋 เมื่อชมรมจัดตั้งใหม่ ให้ Admin กำหนด Account และสิทธิ์ประธานชมรมในหน้านี้ ประธานชมรมจะสามารถ Login เข้าระบบได้หลังจาก Admin อนุมัติแล้วเท่านั้น
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 shadow-xs">
+          <strong>แนวปฏิบัติ:</strong> เมื่อมีการจัดตั้งชมรมใหม่หรือเปลี่ยนวาระประธานชมรม ผู้ดูแลระบบต้องกำหนดบัญชีผู้ใช้งานและอนุมัติสิทธิ์ในระบบนี้ เพื่อให้ประธานชมรมสามารถเข้าสู่ระบบและจัดทำบัญชีรายชื่อนักกีฬาได้
         </div>
 
         <div className="space-y-3">
           {clubs.map((club) => (
-            <div key={club.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div key={club.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-medium text-gray-900">{club.clubName}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[club.status].className}`}>
+                    <h2 className="font-semibold text-slate-900 text-sm">{club.clubName}</h2>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${
+                      club.status === "active"
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        : club.status === "pending"
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-slate-100 text-slate-600 border-slate-200"
+                    }`}>
                       {STATUS_LABEL[club.status].label}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">กีฬา: {club.sport}</p>
+                  <p className="text-xs text-slate-500">ชนิดกีฬา: {club.sport}</p>
                   {club.presidentName !== "-" && (
-                    <div className="mt-2 text-sm text-gray-500">
-                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <div className="mt-3 text-xs text-slate-600">
+                      <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-2">
                         <div>
-                          <p className="font-medium text-gray-700">ประธานชมรม</p>
+                          <p className="font-semibold text-slate-800">ประธานชมรม</p>
                           <p>{club.presidentName} {club.presidentPhone && `(โทร: ${club.presidentPhone})`}</p>
                           <p className="text-xs text-gray-400">{club.email}</p>
                         </div>

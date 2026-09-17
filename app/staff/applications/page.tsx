@@ -59,35 +59,46 @@ export default function StaffApplicationsPage() {
   const totalPending = MOCK_CLUBS.reduce((sum, c) => sum + c.pendingApplicants, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">จัดการใบสมัครนักกีฬา</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 · รอพิจารณารวม {totalPending} คน
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              การบริหารจัดการใบสมัครและคัดเลือกนักกีฬา
+            </h1>
+            <p className="text-xs text-slate-500">
+              กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 · ผู้สมัครรอการพิจารณารวม {totalPending} คน
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/staff/analytics")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              แดชบอร์ดวิเคราะห์ผล
+            </button>
             <button
               onClick={() => router.push("/staff/activities")}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              📋 กิจกรรมชมรม
+              กิจกรรมชมรม
             </button>
             <button
               onClick={() => router.push("/staff/selection")}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              🏆 ประกาศผล
+              ประกาศผล
             </button>
             <button
               onClick={() => router.push("/staff/settings")}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
             >
-              ⚙️ ตั้งค่าระบบ
+              ตั้งค่าระบบ
             </button>
             <LogoutButton />
           </div>
@@ -95,19 +106,19 @@ export default function StaffApplicationsPage() {
 
         {/* สรุปภาพรวม */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">{MOCK_CLUBS.length}</p>
-            <p className="text-sm text-gray-500 mt-1">ชมรมทั้งหมด</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+            <p className="text-2xl font-bold text-slate-900">{MOCK_CLUBS.length}</p>
+            <p className="text-xs text-slate-500 mt-1">ชมรมสังกัดทั้งหมด</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-600">{totalPending}</p>
-            <p className="text-sm text-gray-500 mt-1">รอพิจารณา</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+            <p className="text-2xl font-bold text-slate-700">{totalPending}</p>
+            <p className="text-xs text-slate-500 mt-1">ผู้สมัครรอการพิจารณา</p>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+            <p className="text-2xl font-bold text-blue-900">
               {MOCK_CLUBS.reduce((sum, c) => sum + c.totalApplicants, 0)}
             </p>
-            <p className="text-sm text-gray-500 mt-1">ผู้สมัครทั้งหมด</p>
+            <p className="text-xs text-slate-500 mt-1">ผู้สมัครรวมทุกชนิดกีฬา</p>
           </div>
         </div>
 
@@ -117,26 +128,26 @@ export default function StaffApplicationsPage() {
             <button
               key={club.id}
               onClick={() => router.push(`/staff/applications/${club.id}`)}
-              className="w-full text-left bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+              className="w-full text-left bg-white rounded-xl border border-slate-200 shadow-xs p-5 hover:border-slate-400 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-medium text-gray-900">{club.name}</h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    <h2 className="font-semibold text-slate-900">{club.name}</h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
                       {club.sport}
                     </span>
                     {club.pendingApplicants > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 font-semibold">
                         รอพิจารณา {club.pendingApplicants} คน
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">
-                    ประธาน: {club.presidentName} · {club.totalCompetitions} รายการแข่งขัน · ผู้สมัคร {club.totalApplicants} คน
+                  <p className="text-xs text-slate-500">
+                    ประธานชมรม: {club.presidentName} · {club.totalCompetitions} รายการแข่งขัน · ผู้สมัคร {club.totalApplicants} คน
                   </p>
                 </div>
-                <span className="text-gray-400 shrink-0">→</span>
+                <span className="text-slate-400 shrink-0 text-sm">→</span>
               </div>
             </button>
           ))}
