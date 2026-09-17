@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/athletes/profile?studentId=...
@@ -7,6 +9,14 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session) {
+      return NextResponse.json(
+        { error: "กรุณาเข้าสู่ระบบก่อน" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
 
@@ -21,6 +31,13 @@ export async function GET(request: Request) {
       where: { studentId },
       include: { profile: true },
     });
+
+    if (session.role === "ATHLETE" && session.id !== user?.id) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์เข้าถึงข้อมูลของผู้อื่น" },
+        { status: 403 }
+      );
+    }
 
     if (!user || !user.profile) {
       return NextResponse.json(
@@ -49,6 +66,14 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json();
     const { studentId, ...profileData } = body;
+
+    const session = getSession(request as NextRequest);
+    if (!session || session.studentId !== studentId) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์แก้ไขข้อมูลของผู้อื่น" },
+        { status: 403 }
+      );
+    }
 
     if (!studentId) {
       return NextResponse.json(

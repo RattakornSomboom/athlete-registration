@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type Application = {
@@ -10,7 +11,7 @@ type Application = {
   squadType: string | null;
   user: {
     studentId: string;
-    profile?: { firstName: string; lastName: string; faculty: string } | null;
+    profile?: { firstName: string; lastName: string; faculty: string; phone: string } | null;
   };
   competition: { name: string; sport: string; club: { name: string } };
 };
@@ -54,6 +55,23 @@ export default function StaffSelectionPage() {
     }
   };
 
+  const handleExportExcel = () => {
+    const data = applications.map((a, i) => ({
+      "ลำดับ": i + 1,
+      "รหัสนิสิต": a.user.studentId,
+      "ชื่อ-นามสกุล": a.user.profile ? `${a.user.profile.firstName} ${a.user.profile.lastName}` : "-",
+      "คณะ": a.user.profile?.faculty || "-",
+      "ชนิดกีฬา": a.sport,
+      "สถานะ": a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ผ่านการคัดเลือก",
+      "หมายเลขโทรศัพท์": a.user.profile?.phone || "-"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "รายชื่อนักกีฬา");
+    XLSX.writeFile(workbook, "athlete-selection.xlsx");
+  };
+
   if (announced) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -82,7 +100,14 @@ export default function StaffSelectionPage() {
               นักกีฬาที่ผ่านการอนุมัติจากเจ้าหน้าที่ {loading ? "..." : applications.length} คน
             </p>
           </div>
-          <LogoutButton />
+          <div className="flex gap-2">
+            {!loading && applications.length > 0 && (
+              <button onClick={handleExportExcel} className="text-sm font-medium bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                <span>📥</span> Export Excel
+              </button>
+            )}
+            <LogoutButton />
+          </div>
         </div>
 
         {loading ? (
@@ -119,7 +144,7 @@ export default function StaffSelectionPage() {
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-              <p className="text-sm text-amber-800">⚠️ เมื่อกดยืนยัน สถานะของนักกีฬาทั้งหมดจะเปลี่ยนเป็น "ผ่านการคัดเลือก" และไม่สามารถยกเลิกได้</p>
+              <p className="text-sm text-amber-800">⚠️ เมื่อกดยืนยัน สถานะของนักกีฬาทั้งหมดจะเปลี่ยนเป็น &quot;ผ่านการคัดเลือก&quot; และไม่สามารถยกเลิกได้</p>
             </div>
 
             <button

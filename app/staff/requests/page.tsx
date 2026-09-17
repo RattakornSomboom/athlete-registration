@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -15,37 +15,54 @@ type SpecialRequest = {
   status: "pending" | "approved" | "rejected";
 };
 
-const MOCK_REQUESTS: SpecialRequest[] = [
-  {
-    id: "1",
-    clubName: "ชมรมฟุตบอล",
-    title: "ขอผ่อนผันเกณฑ์ผลงานการแข่งขัน",
-    reason: "นักกีฬามีผลงานเกิน 2 ปีย้อนหลังเล็กน้อย แต่มีศักยภาพสูงและเพิ่งกลับจากอาการบาดเจ็บ",
-    advisorName: "อาจารย์สมศักดิ์ ดีใจ",
-    date: "15 พ.ค. 2568",
-    document: "หนังสือร้องขอ_001.pdf",
-    status: "pending",
-  },
-];
-
-const STATUS_LABEL = {
-  pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
-  rejected: { label: "ไม่อนุมัติ", className: "bg-red-100 text-red-800" },
-};
-
 export default function StaffRequestsPage() {
   const router = useRouter();
-  const [requests, setRequests] = useState<SpecialRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<SpecialRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
 
-  const handleApprove = (id: string) =>
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "approved" } : r));
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/staff/requests");
+      const data = await res.json();
+      if (data.requests) {
+        setRequests(data.requests.map((r: any) => ({
+          ...r,
+          clubName: r.club.name,
+          advisorName: r.club.presidentName || "ไม่ระบุ",
+          date: new Date(r.createdAt).toLocaleDateString("th-TH"),
+          document: "เอกสารแนบ"
+        })));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const handleReject = (id: string) => {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: "rejected" } : r));
-    setShowRejectInput(null);
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+
+  const handleAction = async (id: string, status: "approved" | "rejected") => {
+    if (status === "rejected" && !rejectReason[id]) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/staff/requests/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, rejectedReason: rejectReason[id] })
+      });
+      if (res.ok) {
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+        setShowRejectInput(null);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
@@ -57,7 +74,9 @@ export default function StaffRequestsPage() {
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">คำร้องกรณีพิเศษ</h1>
-            <p className="text-gray-500 text-sm mt-1">รอพิจารณา {pendingCount} คำร้อง</p>
+            <p className="text-gray-500 text-sm mt-1">
+              {loading ? "กำลังโหลด..." : `รอพิจารณา ${pendingCount} คำร้อง`}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -70,13 +89,18 @@ export default function StaffRequestsPage() {
           </div>
         </div>
 
+        {loading ? (
+          <div className="text-center py-16 text-gray-400 text-sm">กำลังโหลด...</div>
+        ) : requests.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 text-sm">ไม่มีคำร้อง</div>
+        ) : (
         <div className="space-y-4">
           {requests.map((r) => (
             <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <h2 className="font-medium text-gray-900">{r.title}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[r.status].className}`}>
-                  {STATUS_LABEL[r.status].label}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === 'approved' ? 'bg-green-100 text-green-800' : r.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {r.status === 'approved' ? 'อนุมัติแล้ว' : r.status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{r.clubName}</span>
               </div>
@@ -108,12 +132,16 @@ export default function StaffRequestsPage() {
                   {showRejectInput === r.id ? (
                     <>
                       <button onClick={() => setShowRejectInput(null)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                      <button onClick={() => handleReject(r.id)} disabled={!rejectReason[r.id]} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm transition-colors">ยืนยันไม่อนุมัติ</button>
+                      <button onClick={() => handleAction(r.id, "rejected")} disabled={!rejectReason[r.id] || actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm transition-colors">
+                        {actionLoading === r.id ? "กำลังบันทึก..." : "ยืนยันไม่อนุมัติ"}
+                      </button>
                     </>
                   ) : (
                     <>
                       <button onClick={() => setShowRejectInput(r.id)} className="flex-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่อนุมัติ</button>
-                      <button onClick={() => handleApprove(r.id)} className="flex-1 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">อนุมัติ</button>
+                      <button onClick={() => handleAction(r.id, "approved")} disabled={actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm transition-colors">
+                        {actionLoading === r.id ? "กำลังบันทึก..." : "อนุมัติ"}
+                      </button>
                     </>
                   )}
                 </div>
@@ -121,6 +149,7 @@ export default function StaffRequestsPage() {
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

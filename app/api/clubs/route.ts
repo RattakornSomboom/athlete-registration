@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 
 /**
@@ -45,6 +47,14 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { name, sport, email, password } = body;
 

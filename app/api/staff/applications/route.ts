@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/staff/applications
@@ -8,6 +10,14 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session || !["STAFF", "ADMIN"].includes(session.role)) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะเจ้าหน้าที่)" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const clubId = searchParams.get("clubId");

@@ -31,9 +31,18 @@ type Application = {
       postalCode: string;
     } | null;
   };
-  sportEntries: any[];
-  competitionResults: any[];
+  sportEntries: unknown[];
+  competitionResults: unknown[];
   note: string | null;
+  photoFileUrl: string | null;
+  idCardFileUrl: string | null;
+  studentCardFileUrl: string | null;
+  studentCertFileUrl: string | null;
+  upAcademyFileUrl: string | null;
+  fitnessTestFileUrl: string | null;
+  noClubFileUrl: string | null;
+  supervisorName: string | null;
+  supervisorPosition: string | null;
 };
 
 type Competition = {
@@ -45,7 +54,6 @@ type Competition = {
 export default function StaffCompetitionApplicantsPage() {
   const router = useRouter();
   const params = useParams();
-  const clubId = params.clubId as string;
   const competitionId = params.competitionId as string;
 
   const [competition, setCompetition] = useState<Competition | null>(null);
@@ -82,7 +90,10 @@ export default function StaffCompetitionApplicantsPage() {
     }
   }, [competitionId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData(); 
+  }, [fetchData]);
 
   const handlePrint = () => window.print();
 
@@ -130,7 +141,6 @@ export default function StaffCompetitionApplicantsPage() {
     }
   };
 
-  const approvedCount = applications.filter(a => a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED").length;
   const mainCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "main").length;
   const reserveCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "reserve").length;
   const pendingCount = applications.filter(a => a.status === "CLUB_APPROVED").length;
@@ -298,10 +308,80 @@ export default function StaffCompetitionApplicantsPage() {
                   </div>
                 </div>
 
+                {/* เอกสารแนบ */}
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">เอกสารแนบ</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {detailAthlete.photoFileUrl && (
+                      <a href={detailAthlete.photoFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">🖼️</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">รูปถ่าย</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.idCardFileUrl && (
+                      <a href={detailAthlete.idCardFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📄</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">สำเนาบัตร ปชช.</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.studentCardFileUrl && (
+                      <a href={detailAthlete.studentCardFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📄</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">สำเนาบัตรนิสิต</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.studentCertFileUrl && (
+                      <a href={detailAthlete.studentCertFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📄</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">ใบรับรองนิสิต</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.upAcademyFileUrl && (
+                      <a href={detailAthlete.upAcademyFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📄</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">UP Academy</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.fitnessTestFileUrl && (
+                      <a href={detailAthlete.fitnessTestFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📊</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-gray-900">ผลทดสอบสมรรถภาพ</p>
+                          <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                        </div>
+                      </a>
+                    )}
+                    {detailAthlete.noClubFileUrl && (
+                      <a href={detailAthlete.noClubFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg p-2 transition-colors">
+                        <span className="text-xl">📄</span>
+                        <div className="flex-1 truncate">
+                          <p className="text-xs font-medium text-amber-900">หนังสือรับรอง (ไม่มีชมรม)</p>
+                          <p className="text-[10px] text-amber-700 truncate">{detailAthlete.supervisorName || "ดูเอกสาร"}</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
                 {detailAthlete.note && (
                   <div>
                     <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-2 pb-2 border-b border-gray-100">หมายเหตุ</h3>
-                    <p className="text-sm text-gray-900">{detailAthlete.note}</p>
+                    <p className="text-sm text-gray-700">{detailAthlete.note}</p>
                   </div>
                 )}
               </div>

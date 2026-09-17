@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type SpecialRequest = {
@@ -13,18 +13,10 @@ type SpecialRequest = {
   rejectedReason?: string;
 };
 
-const MOCK_REQUESTS: SpecialRequest[] = [
-  {
-    id: "1",
-    title: "ขอผ่อนผันเกณฑ์ผลงานการแข่งขัน",
-    reason: "นักกีฬามีผลงานเกิน 2 ปีย้อนหลังเล็กน้อย แต่มีศักยภาพสูงและเพิ่งกลับจากอาการบาดเจ็บ",
-    date: "15 พ.ค. 2568",
-    document: "หนังสือร้องขอ_001.pdf",
-    status: "pending",
-  },
-];
-
-const STATUS_LABEL = {
+const STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
+  APPROVED: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
+  REJECTED: { label: "ไม่อนุมัติ", className: "bg-red-100 text-red-800" },
   pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
   approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
   rejected: { label: "ไม่อนุมัติ", className: "bg-red-100 text-red-800" },
@@ -32,7 +24,28 @@ const STATUS_LABEL = {
 
 export default function ClubRequestsPage() {
   const router = useRouter();
-  const [requests] = useState<SpecialRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<SpecialRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/clubs/requests")
+      .then(res => res.json())
+      .then(data => {
+        if (data.requests) {
+          const mapped = data.requests.map((r: any) => ({
+            ...r,
+            date: new Date(r.createdAt).toLocaleDateString("th-TH"),
+            document: r.documentUrl || "ดูเอกสารแนบ"
+          }));
+          setRequests(mapped);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">

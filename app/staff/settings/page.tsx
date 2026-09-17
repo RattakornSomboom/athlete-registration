@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type SportCategory = "mandatory" | "international" | "general" | "thai" | "demonstration" | "";
@@ -35,14 +35,6 @@ const CATEGORY_REQUIREMENT: Record<string, string> = {
   demonstration: "ชนิดกีฬาที่ไม่เคยจัดมาก่อน (ข้อ 9.6)",
 };
 
-const INITIAL_SPORTS: Sport[] = [
-  { id: "1", name: "ฟุตบอล", category: "mandatory", maxAthletes: 22, isOpen: true, positions: ["กองหน้า", "กองกลาง", "กองหลัง", "ผู้รักษาประตู"], requirements: "ต้องผ่านการคัดเลือกจากชมรม", competitionType: "qualifier", qualifierNote: "ต้องเป็นตัวแทนภาคเหนือก่อนเข้ารอบมหกรรม", reachedTop16LastYear: null, top16Note: "" },
-  { id: "2", name: "บาสเกตบอล", category: "mandatory", maxAthletes: 12, isOpen: true, positions: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"], requirements: "ประสบการณ์อย่างน้อย 1 ปี", competitionType: "final_only", qualifierNote: "ต้องเคยผ่านเข้ารอบ 16 ทีม ปีที่ผ่านมา", reachedTop16LastYear: true, top16Note: "ผ่านเข้ารอบ 16 ทีม กีฬามหาวิทยาลัยฯ ครั้งที่ 48" },
-  { id: "3", name: "วอลเลย์บอล", category: "mandatory", maxAthletes: 12, isOpen: false, positions: ["ตัวรับ", "ตัวต้าน", "ตัวเซต", "ตัวรุก"], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-  { id: "4", name: "เปตอง", category: "international", maxAthletes: 8, isOpen: true, positions: ["เดี่ยว", "คู่", "ทีม"], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-  { id: "5", name: "ดาบไทย", category: "thai", maxAthletes: 6, isOpen: false, positions: [], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-];
-
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 type QualifierSchedule = {
@@ -54,22 +46,30 @@ type QualifierSchedule = {
   note: string;
 };
 
-const INITIAL_SCHEDULE: QualifierSchedule = {
-  region: "ภาคเหนือ",
-  hostUniversity: "มหาวิทยาลัยราชภัฏนครสวรรค์",
-  startDate: "2026-10-24",
-  endDate: "2026-10-29",
-  location: "มหาวิทยาลัยราชภัฏนครสวรรค์",
-  note: "กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 รอบคัดเลือกเขตภาคเหนือ",
-};
-
 export default function StaffSettingsPage() {
-  const [sports, setSports] = useState<Sport[]>(INITIAL_SPORTS);
+  const [sports, setSports] = useState<Sport[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [schedule, setSchedule] = useState<QualifierSchedule>(INITIAL_SCHEDULE);
+  const [schedule, setSchedule] = useState<QualifierSchedule>({
+    region: "", hostUniversity: "", startDate: "", endDate: "", location: "", note: ""
+  });
+
+  useEffect(() => {
+    fetch("/api/staff/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.sports) setSports(data.sports);
+        if (data.schedule) setSchedule(data.schedule);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
   const [editingSchedule, setEditingSchedule] = useState(false);
 
   const formatDateRange = (start: string, end: string) => {
@@ -131,10 +131,22 @@ export default function StaffSettingsPage() {
   };
 
   const handleSave = async () => {
-    console.log("save sports", sports);
-    console.log("save schedule", schedule);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      const res = await fetch("/api/staff/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sports, schedule }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } else {
+        alert("บันทึกไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    }
   };
 
   return (

@@ -52,9 +52,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const session = getSession(request);
 
-    if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
+    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
-        { error: "เฉพาะเจ้าหน้าที่หรือผู้ดูแลระบบเท่านั้นที่สามารถแก้ไขรายการแข่งขันได้" },
+        { error: "ไม่มีสิทธิ์ในการแก้ไขรายการแข่งขัน" },
         { status: 403 }
       );
     }
@@ -74,7 +74,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // ผู้ดูแลระบบเข้าถึงได้ทุกรายการ เจ้าหน้าที่เข้าถึงได้ทุกรายการ
+    if (session.role === "CLUB" && competition.clubId !== session.clubId) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์แก้ไขรายการแข่งขันของชมรมอื่น" },
+        { status: 403 }
+      );
+    }
+
+    // ผู้ดูแลระบบเข้าถึงได้ทุกรายการ เจ้าหน้าที่เข้าถึงได้ทุกรายการ ชมรมเข้าถึงได้เฉพาะของตนเอง
     const { name, sport, round, year, status } = body;
     const updateData: Record<string, unknown> = {};
 
@@ -112,7 +119,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const session = getSession(request);
 
-    if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
+    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์ลบรายการแข่งขัน" },
         { status: 403 }
@@ -133,7 +140,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // เจ้าหน้าที่และ Admin ลบได้ทุกรายการ
+    if (session.role === "CLUB" && competition.clubId !== session.clubId) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์ลบรายการแข่งขันของชมรมอื่น" },
+        { status: 403 }
+      );
+    }
+
+    // เจ้าหน้าที่และ Admin ลบได้ทุกรายการ ชมรมลบได้เฉพาะของตนเอง
     if (competition._count.applications > 0) {
       return NextResponse.json(
         { error: "ไม่สามารถลบได้ เนื่องจากมีใบสมัครแล้ว ให้ปิดรับสมัครแทน" },

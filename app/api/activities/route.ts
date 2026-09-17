@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/activities
@@ -8,9 +10,14 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
     const { searchParams } = new URL(request.url);
-    const clubId = searchParams.get("clubId");
     const status = searchParams.get("status");
+    let clubId = searchParams.get("clubId");
+
+    if (session?.role === "CLUB") {
+      clubId = session.id;
+    }
 
     const where: Record<string, unknown> = {};
 
@@ -45,18 +52,28 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { clubId, title, description, date, location, status } = body;
-
-    if (!clubId || !title || !date) {
+    const session = getSession(request as NextRequest);
+    if (!session || session.role !== "CLUB") {
       return NextResponse.json(
-        { error: "กรุณากรอกข้อมูลให้ครบถ้วน (clubId, title, date)" },
+        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะชมรม)" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { title, description, date, location, status } = body;
+
+    if (!title || !date) {
+      return NextResponse.json(
+        { error: "กรุณากรอกข้อมูลให้ครบถ้วน (title, date)" },
         { status: 400 }
       );
     }
 
+    // Find club by session id
     const club = await prisma.club.findUnique({
-      where: { id: clubId },
+      where: { id: session.id },
+      select: { id: true }
     });
 
     if (!club) {
@@ -65,6 +82,8 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
+
+    const clubId = club.id;
 
     const activity = await prisma.activity.create({
       data: {

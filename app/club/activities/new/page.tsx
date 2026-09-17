@@ -33,10 +33,25 @@ export default function NewActivityPage() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // TODO: ส่งข้อมูลไป API จริง
-      console.log("submit activity", { ...form, documents, images });
-      await new Promise((r) => setTimeout(r, 1000));
-      router.push("/club/activities");
+      const res = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          date: form.date,
+          location: form.location,
+          status: "planned"
+        })
+      });
+      if (res.ok) {
+        router.push("/club/activities");
+      } else {
+        alert("บันทึกไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
     } finally {
       setLoading(false);
     }

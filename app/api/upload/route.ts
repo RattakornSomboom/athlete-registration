@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getSession } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -25,6 +27,14 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session) {
+      return NextResponse.json(
+        { error: "กรุณาเข้าสู่ระบบก่อน" },
+        { status: 401 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const bucket = (formData.get("bucket") as string) || "athlete-docs";
@@ -117,6 +127,14 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session) {
+      return NextResponse.json(
+        { error: "กรุณาเข้าสู่ระบบก่อน" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { path, bucket = "athlete-docs" } = body;
 

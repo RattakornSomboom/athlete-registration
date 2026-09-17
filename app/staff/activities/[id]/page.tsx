@@ -1,68 +1,50 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
-
-const MOCK_ACTIVITIES: Record<string, {
-  id: string;
-  clubName: string;
-  title: string;
-  date: string;
-  location: string;
-  description: string;
-  participants: number;
-  documents: string[];
-  images: string[];
-  status: "pending" | "approved" | "rejected";
-  submittedBy: string;
-  submittedAt: string;
-  note: string;
-}> = {
-  "1": {
-    id: "1",
-    clubName: "ชมรมฟุตบอล",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 1",
-    date: "10 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลภายในชมรมเพื่อคัดเลือกนักกีฬาตัวแทน มีผู้เข้าร่วม 22 คน แบ่งเป็น 2 ทีม ทำการแข่งขัน 2 นัด",
-    participants: 22,
-    documents: ["เอกสารรับรอง_กิจกรรม1.pdf"],
-    images: ["รูปกิจกรรม1_1.jpg", "รูปกิจกรรม1_2.jpg", "รูปกิจกรรม1_3.jpg"],
-    status: "pending",
-    submittedBy: "ประธานชมรมฟุตบอล",
-    submittedAt: "17 พ.ค. 2568 10:30",
-    note: "กิจกรรมดำเนินการตามแผนที่วางไว้",
-  },
-  "2": {
-    id: "2",
-    clubName: "ชมรมบาสเกตบอล",
-    title: "การแข่งขันบาสเกตบอลภายในชมรม ครั้งที่ 1",
-    date: "15 มี.ค. 2568",
-    location: "โรงยิม มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันบาสเกตบอลภายในชมรม",
-    participants: 15,
-    documents: ["เอกสารรับรอง_บาส1.pdf"],
-    images: ["รูปบาส1.jpg"],
-    status: "approved",
-    submittedBy: "ประธานชมรมบาสเกตบอล",
-    submittedAt: "16 พ.ค. 2568 09:00",
-    note: "",
-  },
-};
-
-const STATUS_LABEL = {
-  pending: { label: "รอตรวจสอบ", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
-  rejected: { label: "ไม่ผ่าน", className: "bg-red-100 text-red-800" },
-};
+import { useState, useEffect } from "react";
 
 export default function StaffActivityDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [activity, setActivity] = useState(MOCK_ACTIVITIES[params.id as string]);
+  const id = params.id as string;
+  const [activity, setActivity] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/activities/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.activity) {
+          setActivity({
+            ...data.activity,
+            clubName: data.activity.club.name,
+            submittedBy: "ประธาน" + data.activity.club.name,
+            submittedAt: new Date(data.activity.createdAt).toLocaleDateString("th-TH"),
+            date: new Date(data.activity.date).toLocaleDateString("th-TH"),
+            participants: 0,
+            documents: [],
+            images: [],
+            note: ""
+          });
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">กำลังโหลด...</p>
+      </div>
+    );
+  }
 
   if (!activity) {
     return (
@@ -73,19 +55,41 @@ export default function StaffActivityDetailPage() {
   }
 
   const handleApprove = async () => {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setActivity((prev) => ({ ...prev, status: "approved" }));
-    setLoading(false);
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/activities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" })
+      });
+      if (res.ok) {
+        setActivity((prev: any) => ({ ...prev, status: "approved" }));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleReject = async () => {
     if (!rejectReason) return;
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setActivity((prev) => ({ ...prev, status: "rejected" }));
-    setShowRejectInput(false);
-    setLoading(false);
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/activities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected", rejectionReason: rejectReason })
+      });
+      if (res.ok) {
+        setActivity((prev: any) => ({ ...prev, status: "rejected", rejectionReason: rejectReason }));
+        setShowRejectInput(false);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -100,8 +104,8 @@ export default function StaffActivityDetailPage() {
           >
             ← ย้อนกลับ
           </button>
-          <span className={`text-sm font-medium px-3 py-1 rounded-full ${STATUS_LABEL[activity.status].className}`}>
-            {STATUS_LABEL[activity.status].label}
+          <span className={`text-sm font-medium px-3 py-1 rounded-full ${activity.status === 'approved' ? 'bg-green-100 text-green-800' : activity.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            {activity.status === 'approved' ? 'อนุมัติแล้ว' : activity.status === 'rejected' ? 'ไม่ผ่าน' : 'รอตรวจสอบ'}
           </span>
         </div>
 
@@ -147,13 +151,13 @@ export default function StaffActivityDetailPage() {
           <div className="border-t border-gray-100 pt-5">
             <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">เอกสารและรูปภาพ</h2>
             <div className="space-y-2">
-              {activity.documents.map((d, i) => (
+              {activity.documents.map((d: string, i: number) => (
                 <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
                   <span>📄</span>
                   <span>{d}</span>
                 </div>
               ))}
-              {activity.images.map((img, i) => (
+              {activity.images.map((img: string, i: number) => (
                 <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-700">
                   <span>🖼️</span>
                   <span>{img}</span>
@@ -190,10 +194,10 @@ export default function StaffActivityDetailPage() {
                     </button>
                     <button
                       onClick={handleReject}
-                      disabled={!rejectReason || loading}
+                      disabled={!rejectReason || actionLoading}
                       className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm font-medium transition-colors"
                     >
-                      {loading ? "กำลังบันทึก..." : "ยืนยันไม่อนุมัติ"}
+                      {actionLoading ? "กำลังบันทึก..." : "ยืนยันไม่อนุมัติ"}
                     </button>
                   </>
                 ) : (
@@ -206,10 +210,10 @@ export default function StaffActivityDetailPage() {
                     </button>
                     <button
                       onClick={handleApprove}
-                      disabled={loading}
+                      disabled={actionLoading}
                       className="flex-1 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium transition-colors"
                     >
-                      {loading ? "กำลังบันทึก..." : "อนุมัติกิจกรรม"}
+                      {actionLoading ? "กำลังบันทึก..." : "อนุมัติกิจกรรม"}
                     </button>
                   </>
                 )}

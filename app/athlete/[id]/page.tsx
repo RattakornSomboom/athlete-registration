@@ -33,6 +33,14 @@ type Application = {
   sportEntries: SportEntry[];
   competitionResults: CompetitionResult[];
   statusHistory: StatusHistory[];
+  photoFileUrl: string | null;
+  idCardFileUrl: string | null;
+  studentCardFileUrl: string | null;
+  studentCertFileUrl: string | null;
+  upAcademyFileUrl: string | null;
+  fitnessTestFileUrl: string | null;
+  noClubFileUrl: string | null;
+  supervisorName: string | null;
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -183,6 +191,76 @@ export default function AthleteDetailPage() {
                   </div>
                 </div>
               )}
+
+              {/* เอกสารแนบ */}
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3 pb-2 border-b border-gray-100">เอกสารแนบ</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {application.photoFileUrl && (
+                    <a href={application.photoFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">🖼️</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">รูปถ่าย</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.idCardFileUrl && (
+                    <a href={application.idCardFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">สำเนาบัตร ปชช.</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.studentCardFileUrl && (
+                    <a href={application.studentCardFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">สำเนาบัตรนิสิต</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.studentCertFileUrl && (
+                    <a href={application.studentCertFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">ใบรับรองนิสิต</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.upAcademyFileUrl && (
+                    <a href={application.upAcademyFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">UP Academy</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.fitnessTestFileUrl && (
+                    <a href={application.fitnessTestFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📊</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-gray-900">ผลทดสอบสมรรถภาพ</p>
+                        <p className="text-[10px] text-gray-500 truncate">ดูเอกสาร</p>
+                      </div>
+                    </a>
+                  )}
+                  {application.noClubFileUrl && (
+                    <a href={application.noClubFileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg p-2 transition-colors">
+                      <span className="text-xl">📄</span>
+                      <div className="flex-1 truncate">
+                        <p className="text-xs font-medium text-amber-900">หนังสือรับรอง (ไม่มีชมรม)</p>
+                        <p className="text-[10px] text-amber-700 truncate">{application.supervisorName || "ดูเอกสาร"}</p>
+                      </div>
+                    </a>
+                  )}
+                </div>
+              </div>
 
               {/* หมายเหตุ */}
               {application.note && (

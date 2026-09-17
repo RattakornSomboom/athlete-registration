@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     // ถ้าส่ง applicationIds มา ใช้เฉพาะ id เหล่านั้น
     // ถ้าไม่ส่ง → เลือกทุกใบที่ STAFF_APPROVED
-    const where = applicationIds?.length
+    const where: any = applicationIds?.length
       ? { id: { in: applicationIds as string[] }, status: "STAFF_APPROVED" }
       : { status: "STAFF_APPROVED" };
 

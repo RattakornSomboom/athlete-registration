@@ -37,6 +37,18 @@ enum CompetitionStatus {
   COMPLETED
 }
 
+enum ClubStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // =============================================
 // Models
 // =============================================
@@ -81,16 +93,21 @@ model AthleteProfile {
 }
 
 model Club {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  sport     String
-  email     String   @unique
-  password  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id             String     @id @default(cuid())
+  name           String     @unique
+  sport          String
+  email          String     @unique
+  password       String
+  isActive       Boolean    @default(true)
+  presidentName  String?
+  presidentPhone String?
+  advisors       Json?
+  status         ClubStatus @default(INACTIVE)
+  createdAt      DateTime   @default(now())
 
   competitions Competition[]
   activities   Activity[]
+  clubRequests ClubRequest[]
 }
 
 model Competition {
@@ -180,4 +197,40 @@ model Activity {
   status          String   @default("planned")
   rejectionReason String?
   createdAt       DateTime @default(now())
+}
+
+model ClubRequest {
+  id             String        @id @default(cuid())
+  clubId         String
+  club           Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title          String
+  reason         String
+  documentUrl    String
+  status         RequestStatus @default(PENDING)
+  rejectedReason String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model SportConfig {
+  id                   String   @id @default(cuid())
+  name                 String
+  category             String
+  maxAthletes          Int
+  isOpen               Boolean  @default(true)
+  positions            String[] 
+  requirements         String?
+  competitionType      String?  
+  qualifierNote        String?
+  reachedTop16LastYear Boolean?
+  top16Note            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
 }

@@ -21,107 +21,6 @@ type ClubAccount = {
   createdAt: string;
 };
 
-const MOCK_CLUBS: ClubAccount[] = [
-  { 
-    id: "1", clubName: "ชมรมวิ่ง ว่าย พาย ปั่น (กรีฑา ว่ายน้ำ)", sport: "กรีฑา ว่ายน้ำ", 
-    presidentName: "นางสาวภณิตา สุขโข", presidentPhone: "09 8753 9936", email: "phanita@up.ac.th", 
-    advisors: [
-      { name: "นายสัณห์ชัย หยีวิยม", phone: "0816809005" },
-      { name: "ดร.พัชรินทร์ ตั้งชัยสุริยา", phone: "0979636465" },
-      { name: "นางสาวจุมพิศตรา ผูกจิต", phone: "0895521917" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "2", clubName: "ชมรมบาสเกตบอล", sport: "บาสเกตบอล", 
-    presidentName: "นายจตุรเทพ อินทนนท์", presidentPhone: "09 5672 0118", email: "jaturothep@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ภญ.จันทิมา ชูรัศมี", phone: "0865912228" },
-      { name: "รศ.ดร.พยุงศักดิ์ ตันติไพบูลย์วงศ์", phone: "0847120880" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "3", clubName: "ชมรมฟุตบอล มหาวิทยาลัยพะเยา", sport: "ฟุตบอล", 
-    presidentName: "นายปราบปกป้อง ถาเเหล่ง", presidentPhone: "09 6145 5647", email: "prabpokpong@up.ac.th", 
-    advisors: [
-      { name: "ดร.พิเชษฐ์ ชัยเลิศ", phone: "0868252946" },
-      { name: "นายคะนอง ปิงเมือง", phone: "0869099087" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "4", clubName: "ชมรมวอลเลย์บอล", sport: "วอลเลย์บอล", 
-    presidentName: "นายอิทธิพัทธ์ กลิ่นทอง", presidentPhone: "09 4621 0026", email: "itthipat@up.ac.th", 
-    advisors: [
-      { name: "นายปัณณธร วุฒิปริยาธร", phone: "0621952839" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "5", clubName: "ชมรมเทควันโด มหาวิทยาลัยพะเยา TKB UP", sport: "เทควันโด", 
-    presidentName: "นางสาววรัญญา นาระกันทา", presidentPhone: "08 9430 8140", email: "waranya@up.ac.th", 
-    advisors: [
-      { name: "นายตฤณ ธุระพ่อค้า", phone: "0988195665" },
-      { name: "นายเพ็ชร พงษ์เฉย", phone: "0846130680" },
-      { name: "นางสาวพรทิพา นุโปจา", phone: "0904407416" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "6", clubName: "ชมรมมวยมหาวิทยาลัยพะเยา (มวยไทยสมัครเล่น)", sport: "มวยไทยสมัครเล่น", 
-    presidentName: "นายณัฐชนน ตาหล้า", presidentPhone: "08 2896 2373", email: "natchanon@up.ac.th", 
-    advisors: [
-      { name: "นายเกรียงไกร แถบคำ", phone: "0956865743" },
-      { name: "ดร.อทิติ วลัญฐ์เพียร", phone: "0849417721" },
-      { name: "ผศ.ดร. ธีรภัทร ศรีรัตนโชติ", phone: "0865902493" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "7", clubName: "ชมรมเปตอง มหาวิทยาลัยพะเยา", sport: "เปตอง", 
-    presidentName: "นางสาวภัทรวนันท์ เรือนคำ", presidentPhone: "0828962373", email: "phatrawanan@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.ธเนศ ทองเดชศรี", phone: "0865670396" },
-      { name: "นายพงศกร ศิริคำน้อย", phone: "0875445792" },
-      { name: "นางสาวลานนา หมื่นจันทร์", phone: "0831546007" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "8", clubName: "ชมรมปิงปองมหาวิทยาลัยพะเยา", sport: "เทเบิลเทนนิส", 
-    presidentName: "นายนพวิชญ์ เชิงสุขศิริกุล", presidentPhone: "08 6557 6810", email: "nopawit@up.ac.th", 
-    advisors: [
-      { name: "นายณัฐกร คำปวน", phone: "0847139284" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "9", clubName: "ชมรมแบดมินตัน มหาวิทยาลัยพะเยา", sport: "แบดมินตัน", 
-    presidentName: "นายธนทัศน์ ชาววังฆ้อง", presidentPhone: "09 7964 4093", email: "thanathat@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.อักษรากร คำมาสุข", phone: "0956982162" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "10", clubName: "ชมรมฟุตซอล มหาวิทยาลัยพะเยา", sport: "ฟุตซอล", 
-    presidentName: "นายณัฐภูมินทร์ เถาเปียง", presidentPhone: "09 3574 6467", email: "natthapoomin@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.กฤษดา ตามประดิษฐ์", phone: "0876295552" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "11", clubName: "ชมรมวู้ดบอล มหาวิทยาลัยพะเยา", sport: "วู้ดบอล", 
-    presidentName: "นายพีรเดช สินประเสริฐ", presidentPhone: "08 0003 7723", email: "peeradet@up.ac.th", 
-    advisors: [
-      { name: "นายสิทธิวิทย์ อิ่มปัญญา", phone: "0988108101" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  }
-];
-
 const STATUS_LABEL = {
   active: { label: "เปิดใช้งาน", className: "bg-green-100 text-green-700" },
   pending: { label: "รอการอนุมัติ", className: "bg-yellow-100 text-yellow-800" },
@@ -130,7 +29,7 @@ const STATUS_LABEL = {
 
 export default function AdminClubsPage() {
   const router = useRouter();
-  const [clubs, setClubs] = useState<ClubAccount[]>(MOCK_CLUBS);
+  const [clubs, setClubs] = useState<ClubAccount[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [newPresidentForm, setNewPresidentForm] = useState({ presidentName: "", presidentPhone: "", email: "" });
@@ -145,43 +44,69 @@ export default function AdminClubsPage() {
     password: ""
   });
 
-  // Merge ชมรมจาก DB เข้ากับ MOCK (เพื่อได้ id จริง)
-  useEffect(() => {
+  const fetchClubs = () => {
     fetch("/api/clubs")
       .then((r) => r.json())
       .then((data) => {
         if (data.clubs?.length > 0) {
-          const dbMap = new Map<string, { id: string; isActive: boolean; createdAt: string }>(
-            data.clubs.map((c: { email: string; id: string; isActive: boolean; createdAt: string }) => [c.email, c])
-          );
-          setClubs((prev) =>
-            prev.map((mock) => {
-              const db = dbMap.get(mock.email);
-              if (!db) return mock;
-              return { ...mock, id: db.id, status: db.isActive ? "active" as const : "inactive" as const, createdAt: new Date(db.createdAt).toLocaleDateString("th-TH") };
-            })
-          );
+          setClubs(data.clubs.map((c: any) => ({
+            id: c.id,
+            clubName: c.name,
+            sport: c.sport,
+            presidentName: c.presidentName || "-",
+            presidentPhone: c.presidentPhone || "-",
+            email: c.email,
+            advisors: c.advisors ? (typeof c.advisors === 'string' ? JSON.parse(c.advisors) : c.advisors) : [],
+            status: c.status?.toLowerCase() || (c.isActive ? "active" : "inactive"),
+            createdAt: new Date(c.createdAt).toLocaleDateString("th-TH")
+          })));
         }
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchClubs();
   }, []);
 
   const pendingCount = clubs.filter((c) => c.status === "pending").length;
 
-  const handleApprove = (id: string) => {
-    setClubs((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" as const } : c));
+  const handleApprove = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/clubs/${id}/approve`, { method: "PUT" });
+      if (res.ok) {
+        setClubs((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" as const } : c));
+      } else {
+        alert("อนุมัติไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleSetPresident = () => {
+  const handleSetPresident = async () => {
     if (!selectedClubId || !newPresidentForm.presidentName || !newPresidentForm.email) return;
-    setClubs((prev) => prev.map((c) =>
-      c.id === selectedClubId
-        ? { ...c, presidentName: newPresidentForm.presidentName, presidentPhone: newPresidentForm.presidentPhone, email: newPresidentForm.email, status: "pending" as const, createdAt: "วันนี้" }
-        : c
-    ));
-    setShowAddModal(false);
-    setSelectedClubId(null);
-    setNewPresidentForm({ presidentName: "", presidentPhone: "", email: "" });
+    try {
+      const res = await fetch(`/api/admin/clubs/${selectedClubId}/president`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPresidentForm)
+      });
+      if (res.ok) {
+        setClubs((prev) => prev.map((c) =>
+          c.id === selectedClubId
+            ? { ...c, presidentName: newPresidentForm.presidentName, presidentPhone: newPresidentForm.presidentPhone, email: newPresidentForm.email, status: "pending" as const, createdAt: "วันนี้" }
+            : c
+        ));
+        setShowAddModal(false);
+        setSelectedClubId(null);
+        setNewPresidentForm({ presidentName: "", presidentPhone: "", email: "" });
+      } else {
+        alert("บันทึกไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddNewClub = async () => {

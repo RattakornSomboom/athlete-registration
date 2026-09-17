@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -17,40 +17,32 @@ type Activity = {
   rejectedReason?: string;
 };
 
-const MOCK_ACTIVITIES: Activity[] = [
-  {
-    id: "1",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 1",
-    date: "10 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลภายในชมรมเพื่อคัดเลือกนักกีฬาตัวแทน มีผู้เข้าร่วม 22 คน",
-    participants: 22,
-    documents: ["เอกสารรับรอง_กิจกรรม1.pdf"],
-    images: ["รูปกิจกรรม1_1.jpg", "รูปกิจกรรม1_2.jpg"],
-    status: "approved",
-  },
-  {
-    id: "2",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 2",
-    date: "24 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลรอบชิงชนะเลิศภายในชมรม",
-    participants: 18,
-    documents: ["เอกสารรับรอง_กิจกรรม2.pdf"],
-    images: ["รูปกิจกรรม2_1.jpg"],
-    status: "pending",
-  },
-];
-
-const STATUS_LABEL = {
-  pending: { label: "รอตรวจสอบ", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
-  rejected: { label: "ไม่ผ่าน", className: "bg-red-100 text-red-800" },
-};
-
 export default function ClubActivitiesPage() {
   const router = useRouter();
-  const [activities] = useState<Activity[]>(MOCK_ACTIVITIES);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/activities")
+      .then(res => res.json())
+      .then(data => {
+        if (data.activities) {
+          const mapped = data.activities.map((a: any) => ({
+            ...a,
+            date: new Date(a.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }),
+            participants: 0,
+            documents: [],
+            images: []
+          }));
+          setActivities(mapped);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   const approvedCount = activities.filter((a) => a.status === "approved").length;
   const canSubmit = approvedCount >= 2;
@@ -112,8 +104,8 @@ export default function ClubActivitiesPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="font-medium text-gray-900">{a.title}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[a.status].className}`}>
-                      {STATUS_LABEL[a.status].label}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.status === 'approved' ? 'bg-green-100 text-green-800' : a.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {a.status === 'approved' ? 'อนุมัติแล้ว' : a.status === 'rejected' ? 'ไม่ผ่าน' : 'รอตรวจสอบ'}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500">{a.date} · {a.location}</p>

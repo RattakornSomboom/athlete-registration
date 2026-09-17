@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/applications?userId=...&status=...
@@ -7,6 +9,14 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session) {
+      return NextResponse.json(
+        { error: "กรุณาเข้าสู่ระบบก่อน" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const studentId = searchParams.get("studentId");
@@ -19,16 +29,20 @@ export async function GET(request: Request) {
       where.competitionId = competitionId;
     }
 
-    if (userId) {
-      where.userId = userId;
-    } else if (studentId) {
-      const user = await prisma.user.findUnique({
-        where: { studentId },
-      });
-      if (user) {
-        where.userId = user.id;
-      } else {
-        return NextResponse.json({ applications: [] });
+    if (session.role === "ATHLETE") {
+      where.userId = session.id;
+    } else {
+      if (userId) {
+        where.userId = userId;
+      } else if (studentId) {
+        const user = await prisma.user.findUnique({
+          where: { studentId },
+        });
+        if (user) {
+          where.userId = user.id;
+        } else {
+          return NextResponse.json({ applications: [] });
+        }
       }
     }
 
@@ -81,6 +95,14 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    const session = getSession(request as NextRequest);
+    if (!session || session.role !== "ATHLETE") {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะนักกีฬา)" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       studentId,
