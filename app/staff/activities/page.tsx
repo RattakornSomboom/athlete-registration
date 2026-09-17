@@ -69,20 +69,40 @@ export default function StaffActivitiesPage() {
   const pendingCount = activities.filter((a) => a.status === "pending").length;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-        <div className="flex items-start justify-between mb-6">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">ตรวจสอบกิจกรรมชมรม</h1>
-            <p className="text-gray-500 text-sm mt-1">รอตรวจสอบ {pendingCount} กิจกรรม</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              การตรวจสอบและอนุมัติกิจกรรมของชมรมกีฬา
+            </h1>
+            <p className="text-xs text-slate-500">
+              กิจกรรมรอการตรวจสอบและอนุมัติ {pendingCount} รายการ
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/staff/analytics")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              แดชบอร์ดวิเคราะห์ผล
+            </button>
+            <button
+              onClick={() => router.push("/staff/applications")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ใบสมัครนักกีฬา
+            </button>
             <button
               onClick={() => router.push("/staff/settings")}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              ⚙️ ตั้งค่าระบบ
+              ตั้งค่าระบบ
             </button>
             <LogoutButton />
           </div>

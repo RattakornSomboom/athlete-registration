@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type SportCategory = "mandatory" | "international" | "general" | "thai" | "demonstration" | "";
@@ -64,6 +65,7 @@ const INITIAL_SCHEDULE: QualifierSchedule = {
 };
 
 export default function StaffSettingsPage() {
+  const router = useRouter();
   const [sports, setSports] = useState<Sport[]>(INITIAL_SPORTS);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -138,40 +140,53 @@ export default function StaffSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">ตั้งค่าการรับสมัคร</h1>
-            <p className="text-gray-500 text-sm mt-1">จัดการชนิดกีฬาและเงื่อนไขการสมัคร</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              ตั้งค่าชนิดกีฬาและเงื่อนไขการรับสมัคร
+            </h1>
+            <p className="text-xs text-slate-500">
+              จัดการโควตานักกีฬา และคุณสมบัติตามระเบียบ กกมท. ครั้งที่ 52
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/staff/analytics")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              แดชบอร์ดวิเคราะห์ผล
+            </button>
             <button
               onClick={() => setShowAddForm(true)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer border border-slate-300"
             >
-              + เพิ่มกีฬา
+              + เพิ่มชนิดกีฬา
             </button>
             <button
               onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              {saved ? "บันทึกแล้ว ✓" : "บันทึก"}
+              {saved ? "บันทึกข้อมูลแล้ว" : "บันทึกการตั้งค่า"}
             </button>
             <LogoutButton />
           </div>
         </div>
 
         {/* Category summary */}
-        <div className="grid grid-cols-5 gap-2 mb-6">
+        <div className="grid grid-cols-5 gap-3">
           {(["mandatory", "international", "general", "thai", "demonstration"] as const).map((cat) => {
             const count = sports.filter((s) => s.category === cat).length;
             return (
-              <div key={cat} className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-                <p className="text-xl font-semibold text-gray-900">{count}</p>
-                <p className="text-gray-500 text-xs mt-1">{CATEGORY_LABEL[cat].label}</p>
+              <div key={cat} className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-xs">
+                <p className="text-xl font-bold text-slate-900">{count}</p>
+                <p className="text-slate-500 text-xs mt-1">{CATEGORY_LABEL[cat].label}</p>
               </div>
             );
           })}

@@ -25,7 +25,7 @@ const MOCK_COMPETITIONS: Competition[] = [
   { id: "4", sport: "บาสเกตบอล", eventName: "บาสเกตบอล 3x3", category: "กีฬาบังคับ", round: "final", totalApplicants: 6, pendingCount: 0, isOpen: true },
 ];
 
-const ROUND_LABEL = { qualifier: "รอบคัดเลือก", final: "รอบมหกรรม" };
+const ROUND_LABEL = { qualifier: "รอบคัดเลือกเขตภาคเหนือ", final: "รอบมหกรรม" };
 
 export default function ClubCompetitionsPage() {
   const router = useRouter();
@@ -34,26 +34,49 @@ export default function ClubCompetitionsPage() {
   const clubCompetitions = MOCK_COMPETITIONS.filter((c) => c.sport === MOCK_CLUB_SPORT);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-        <div className="flex items-start justify-between mb-6">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
-            <h1 className="text-2xl font-semibold text-gray-900">รายการแข่งขัน</h1>
-            <p className="text-gray-500 text-sm mt-1">ชมรม{MOCK_CLUB_SPORT} — กีฬามหาวิทยาลัยฯ ครั้งที่ 52</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              ระบบสารสนเทศชมรมกีฬา · กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              รายการแข่งขันและประเภทกีฬาที่รับผิดชอบ
+            </h1>
+            <p className="text-xs text-slate-500">
+              ชมรม{MOCK_CLUB_SPORT} — กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push("/club/activities")} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">📋 กิจกรรมชมรม</button>
-            <button onClick={() => router.push("/club/requests")} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">📝 คำร้องพิเศษ</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/club/review")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              จัดทำบัญชีรายชื่อส่งกองกิจ
+            </button>
+            <button
+              onClick={() => router.push("/club/activities")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
+            >
+              กิจกรรมชมรม
+            </button>
+            <button
+              onClick={() => router.push("/club/requests")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
+            >
+              คำร้องพิเศษ
+            </button>
             <LogoutButton />
           </div>
         </div>
 
         <div className="space-y-3">
           {clubCompetitions.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-              ยังไม่มีรายการแข่งขันสำหรับชมรมนี้
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs shadow-xs">
+              ยังไม่มีรายการแข่งขันสำหรับชมรมนี้ในระบบ
             </div>
           )}
           {clubCompetitions.map((c) => (
@@ -61,22 +84,34 @@ export default function ClubCompetitionsPage() {
               key={c.id}
               onClick={() => c.isOpen && router.push(`/club/competitions/${c.id}`)}
               disabled={!c.isOpen}
-              className={`w-full text-left bg-white rounded-xl border border-gray-200 shadow-sm p-5 transition-colors ${c.isOpen ? "hover:border-blue-300 hover:shadow-md cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+              className={`w-full text-left bg-white rounded-xl border border-slate-200 shadow-xs p-5 transition-all ${
+                c.isOpen ? "hover:border-slate-400 hover:shadow-xs cursor-pointer" : "opacity-50 cursor-not-allowed"
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-medium text-gray-900">{c.eventName}</h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{c.category}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">{ROUND_LABEL[c.round]}</span>
-                    {!c.isOpen && <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">ปิดรับสมัคร</span>}
+                    <h2 className="font-semibold text-slate-900 text-sm">{c.eventName}</h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                      {c.category}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                      {ROUND_LABEL[c.round]}
+                    </span>
+                    {!c.isOpen && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">
+                        ปิดรับสมัคร
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs text-slate-500">
                     ผู้สมัครทั้งหมด {c.totalApplicants} คน
-                    {c.pendingCount > 0 && <span className="text-yellow-600"> · รอพิจารณา {c.pendingCount} คน</span>}
+                    {c.pendingCount > 0 && <span className="text-slate-900 font-semibold"> · รอการพิจารณาคัดเลือก {c.pendingCount} คน</span>}
                   </p>
                 </div>
-                {c.isOpen && <span className="text-gray-400">→</span>}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 text-sm">→</span>
+                </div>
               </div>
             </button>
           ))}
