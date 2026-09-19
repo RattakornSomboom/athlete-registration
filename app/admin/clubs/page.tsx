@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type Advisor = {
@@ -184,7 +185,13 @@ export default function AdminClubsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton />
+          <LogoutButton />
+        </div>
 
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
@@ -205,13 +212,6 @@ export default function AdminClubsPage() {
             >
               + เพิ่มชมรมกีฬาใหม่
             </button>
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
-            </button>
-            <LogoutButton />
           </div>
         </div>
 
@@ -269,15 +269,20 @@ export default function AdminClubsPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   {club.status === "pending" && (
-                    <button onClick={() => handleApprove(club.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">อนุมัติ</button>
+                    <button
+                      onClick={() => handleApprove(club.id)}
+                      className="px-3 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      อนุมัติ
+                    </button>
                   )}
                   <button
                     onClick={() => { setSelectedClubId(club.id); setShowAddModal(true); }}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
                   >
-                    {club.status === "inactive" ? "กำหนดประธาน" : "เปลี่ยนประธาน"}
+                    {club.status === "inactive" ? "แต่งตั้งประธาน" : "เปลี่ยนตัวประธาน"}
                   </button>
                 </div>
               </div>
@@ -288,46 +293,75 @@ export default function AdminClubsPage() {
 
       {/* Modal กำหนด/เปลี่ยนประธาน */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">กำหนดประธานชมรม</h2>
-            <p className="text-gray-500 text-sm mb-4">
-              {clubs.find((c) => c.id === selectedClubId)?.clubName}
-            </p>
-
-            <div className="space-y-3">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-xl border border-slate-300 shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล ประธานชมรม</label>
+                <h2 className="text-sm font-bold text-slate-900">แต่งตั้งประธานชมรมกีฬา</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {clubs.find((c) => c.id === selectedClubId)?.clubName}
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowAddModal(false); setSelectedClubId(null); }}
+                className="text-slate-400 hover:text-slate-600 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ชื่อ - นามสกุล ประธานชมรม <span className="text-rose-600">*</span>
+                </label>
                 <input
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  placeholder="เช่น นายสมชาย ใจดี"
                   value={newPresidentForm.presidentName}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, presidentName: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
                 <input
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  placeholder="0XX-XXX-XXXX"
                   value={newPresidentForm.presidentPhone}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, presidentPhone: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email มหาวิทยาลัย</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  อีเมลมหาวิทยาลัย (@up.ac.th) <span className="text-rose-600">*</span>
+                </label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                   placeholder="xxxxxxxx@up.ac.th"
                   value={newPresidentForm.email}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, email: e.target.value }))}
                 />
               </div>
-              <p className="text-xs text-gray-400">หลังจากบันทึก ระบบจะส่ง status เป็น "รอการอนุมัติ" ให้ Admin ยืนยันอีกครั้งก่อนที่ประธานชมรมจะ login ได้</p>
+              <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2 rounded border border-slate-100">
+                เมื่อบันทึกแล้ว ระบบจะส่งสถานะเป็น "รอการอนุมัติ" ให้ผู้ดูแลระบบตรวจสอบอีกครั้งก่อนเปิดสิทธิ์การใช้งาน
+              </p>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => { setShowAddModal(false); setSelectedClubId(null); }} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ยกเลิก</button>
-              <button onClick={handleSetPresident} disabled={!newPresidentForm.presidentName || !newPresidentForm.email} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">บันทึก</button>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => { setShowAddModal(false); setSelectedClubId(null); }}
+                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleSetPresident}
+                disabled={!newPresidentForm.presidentName || !newPresidentForm.email}
+                className="px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                บันทึกข้อมูล
+              </button>
             </div>
           </div>
         </div>
@@ -335,68 +369,94 @@ export default function AdminClubsPage() {
 
       {/* Modal เพิ่มชมรมใหม่ */}
       {showAddNewClubModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">เพิ่มชมรมกีฬาใหม่</h2>
-            <p className="text-gray-500 text-sm mb-4">
-              กำหนดสิทธิ์ Username และ Password ให้กับประธานชมรมใหม่
-            </p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-xl border border-slate-300 shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">เพิ่มชมรมกีฬาใหม่และกำหนดบัญชีผู้ใช้</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  ขึ้นทะเบียนชมรมสังกัดมหาวิทยาลัยพะเยาและสร้างสิทธิ์เข้าใช้งานระบบ
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddNewClubModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm"
+              >
+                ✕
+              </button>
+            </div>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ชื่อชมรมกีฬา <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  placeholder="เช่น ชมรมฟุตซอล มหาวิทยาลัยพะเยา"
+                  value={newClubForm.clubName}
+                  onChange={(e) => setNewClubForm((p) => ({ ...p, clubName: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ชนิดกีฬาที่รับผิดชอบ <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  placeholder="เช่น ฟุตซอล"
+                  value={newClubForm.sport}
+                  onChange={(e) => setNewClubForm((p) => ({ ...p, sport: e.target.value }))}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อชมรม</label>
-                  <input
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="เช่น ชมรมฟุตซอล"
-                    value={newClubForm.clubName}
-                    onChange={(e) => setNewClubForm((p) => ({ ...p, clubName: e.target.value }))}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชนิดกีฬา</label>
-                  <input
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="เช่น ฟุตซอล"
-                    value={newClubForm.sport}
-                    onChange={(e) => setNewClubForm((p) => ({ ...p, sport: e.target.value }))}
-                  />
-                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล ประธาน</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    ชื่อ - นามสกุล ประธานชมรม <span className="text-rose-600">*</span>
+                  </label>
                   <input
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="ชื่อ - นามสกุล"
                     value={newClubForm.presidentName}
                     onChange={(e) => setNewClubForm((p) => ({ ...p, presidentName: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
                   <input
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="0XX-XXX-XXXX"
                     value={newClubForm.presidentPhone}
                     onChange={(e) => setNewClubForm((p) => ({ ...p, presidentPhone: e.target.value }))}
                   />
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-2">
-                <p className="text-sm font-medium text-blue-700 mb-3">ตั้งค่าบัญชีผู้ใช้ (สำหรับ Login)</p>
+              <div className="border-t border-slate-100 pt-3 mt-1">
+                <p className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wider">
+                  กำหนดบัญชีผู้ใช้งานสำหรับ Login (ประธานชมรม)
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Username <span className="text-rose-600">*</span>
+                    </label>
                     <input
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none"
                       placeholder="เช่น futsal_up"
                       value={newClubForm.username}
                       onChange={(e) => setNewClubForm((p) => ({ ...p, username: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Password <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="password"
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                       placeholder="••••••••"
                       value={newClubForm.password}
                       onChange={(e) => setNewClubForm((p) => ({ ...p, password: e.target.value }))}
@@ -406,14 +466,19 @@ export default function AdminClubsPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowAddNewClubModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ยกเลิก</button>
-              <button 
-                onClick={handleAddNewClub} 
-                disabled={!newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password} 
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setShowAddNewClubModal(false)}
+                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                บันทึกและสร้างชมรม
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleAddNewClub}
+                disabled={!newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password}
+                className="px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
+              >
+                บันทึกและขึ้นทะเบียนชมรม
               </button>
             </div>
           </div>

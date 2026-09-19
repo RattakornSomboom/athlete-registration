@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
-
 
 type Activity = {
   id: string;
@@ -46,9 +46,9 @@ const MOCK_ACTIVITIES: Activity[] = [
 ];
 
 const STATUS_LABEL = {
-  pending: { label: "รอตรวจสอบ", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
-  rejected: { label: "ไม่ผ่าน", className: "bg-red-100 text-red-800" },
+  pending: { label: "รอการตรวจสอบ", className: "bg-slate-100 text-slate-700 border-slate-200" },
+  approved: { label: "อนุมัติแล้ว", className: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+  rejected: { label: "ไม่อนุมัติ", className: "bg-rose-50 text-rose-800 border-rose-200" },
 };
 
 export default function StaffActivitiesPage() {
@@ -70,10 +70,16 @@ export default function StaffActivitiesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/staff/applications" />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
           <div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
@@ -104,76 +110,99 @@ export default function StaffActivitiesPage() {
             >
               ตั้งค่าระบบ
             </button>
-            <LogoutButton />
           </div>
         </div>
 
         <div className="space-y-4">
           {activities.map((a) => (
-            <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
+            <div key={a.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-3">
+              <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-medium text-gray-900">{a.title}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[a.status].className}`}>
+                    <h2 className="font-semibold text-slate-900 text-sm">{a.title}</h2>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${STATUS_LABEL[a.status].className}`}>
                       {STATUS_LABEL[a.status].label}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">{a.clubName} · {a.date} · {a.location}</p>
+                  <p className="text-xs text-slate-500">{a.clubName} · {a.date} · {a.location}</p>
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600 mb-3">{a.description}</p>
+              <p className="text-xs text-slate-600 leading-relaxed">{a.description}</p>
 
-              <div className="flex flex-wrap gap-4 text-xs text-gray-500 mb-4">
-                <span>👥 ผู้เข้าร่วม {a.participants} คน</span>
-                <span>📄 เอกสาร {a.documents.length} ไฟล์</span>
-                <span>🖼️ รูปภาพ {a.images.length} รูป</span>
+              <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                <span>ผู้เข้าร่วม {a.participants} คน</span>
+                <span>เอกสารประกอบ {a.documents.length} ฉบับ</span>
+                <span>ภาพถ่าย {a.images.length} ภาพ</span>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-1">
+              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-1 text-xs text-slate-700">
                 {a.documents.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>📄</span><span>{d}</span>
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-slate-400 font-mono">เอกสาร:</span>
+                    <span className="font-medium text-slate-900">{d}</span>
                   </div>
                 ))}
                 {a.images.map((img, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>🖼️</span><span>{img}</span>
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-slate-400 font-mono">ไฟล์ภาพ:</span>
+                    <span className="font-medium text-slate-900">{img}</span>
                   </div>
                 ))}
               </div>
 
               {showRejectInput === a.id && (
-                <div className="mb-3">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">ระบุเหตุผลที่ไม่อนุมัติ</label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-red-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                    placeholder="ระบุเหตุผลที่ไม่อนุมัติ..."
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="ระบุเหตุผล เช่น เอกสารไม่ครบถ้วน หรือไม่เป็นไปตามเกณฑ์โครงการ..."
                     value={rejectReason[a.id] || ""}
                     onChange={(e) => setRejectReason((prev) => ({ ...prev, [a.id]: e.target.value }))}
                   />
                 </div>
               )}
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-slate-100">
                 <button
                   onClick={() => router.push(`/staff/activities/${a.id}`)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+                  className="w-full sm:w-auto px-4 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
                 >
-                  ดูรายละเอียด →
+                  ดูรายละเอียดกิจกรรม →
                 </button>
 
                 {a.status === "pending" && (
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                     {showRejectInput === a.id ? (
                       <>
-                        <button onClick={() => setShowRejectInput(null)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                        <button onClick={() => handleReject(a.id)} disabled={!rejectReason[a.id]} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm transition-colors">ยืนยันไม่อนุมัติ</button>
+                        <button
+                          onClick={() => setShowRejectInput(null)}
+                          className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          ยกเลิก
+                        </button>
+                        <button
+                          onClick={() => handleReject(a.id)}
+                          disabled={!rejectReason[a.id]}
+                          className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          ยืนยันไม่อนุมัติ
+                        </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => setShowRejectInput(a.id)} className="flex-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่อนุมัติ</button>
-                        <button onClick={() => handleApprove(a.id)} className="flex-1 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">อนุมัติ</button>
+                        <button
+                          onClick={() => setShowRejectInput(a.id)}
+                          className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          ไม่อนุมัติ
+                        </button>
+                        <button
+                          onClick={() => handleApprove(a.id)}
+                          className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          อนุมัติกิจกรรม
+                        </button>
                       </>
                     )}
                   </div>

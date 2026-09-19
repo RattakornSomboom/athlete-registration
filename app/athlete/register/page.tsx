@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { getAthleteProfile, type AthleteProfile } from "@/lib/athlete-profile";
 import { getSportConfig } from "@/lib/sports-categories";
@@ -60,13 +61,49 @@ export default function AthleteRegisterPage() {
     if (file && file.size <= maxMB * 1024 * 1024) setter(file);
   };
 
+  const handleLoadMockFiles = () => {
+    setPhotoFile(new File(["mock"], "photo_somchai.jpg", { type: "image/jpeg" }));
+    setIdCardFile(new File(["mock"], "id_card_66027012.pdf", { type: "application/pdf" }));
+    setStudentCardFile(new File(["mock"], "student_card_up.pdf", { type: "application/pdf" }));
+    setStudentCertFile(new File(["mock"], "up02_student_certificate.pdf", { type: "application/pdf" }));
+    setUpAcademyFile(new File(["mock"], "up_academy_certificate.pdf", { type: "application/pdf" }));
+    setFitnessTestFile(new File(["mock"], "fitness_test_level_medium.pdf", { type: "application/pdf" }));
+    setForm((prev) => ({ ...prev, hasPreviousEntry: prev.hasPreviousEntry || "none" }));
+  };
+
   // โหลดข้อมูลส่วนตัวจาก localStorage (กรอกตอน Register ครั้งแรก)
   const [studentProfile, setStudentProfile] = useState<AthleteProfile | null>(null);
 
   useEffect(() => {
     // TODO: เปลี่ยนเป็น fetch /api/athletes/profile เมื่อ Backend พร้อม
     const profile = getAthleteProfile();
-    setStudentProfile(profile);
+    if (profile) {
+      setStudentProfile(profile);
+    } else {
+      // ข้อมูลตัวอย่างเริ่มต้นสำหรับนำเสนองานและบันทึกภาพหน้าจอ
+      setStudentProfile({
+        studentId: "66027012",
+        firstName: "สมชาย",
+        lastName: "ใจดี",
+        faculty: "คณะวิทยาศาสตร์",
+        major: "สาขาวิทยาการคอมพิวเตอร์",
+        studentLevel: "bachelor",
+        year: "4",
+        nationalId: "1-2345-67890-12-3",
+        nationality: "ไทย",
+        birthDate: "2003-05-12",
+        birthYearCE: 2003,
+        gpaSemester: "3.45",
+        gpaCumulative: "3.50",
+        addressNo: "99/1 หมู่ 2",
+        subDistrict: "แม่กา",
+        district: "เมือง",
+        province: "พะเยา",
+        postalCode: "56000",
+        phone: "081-234-5678",
+        previousEntriesCount: 0,
+      });
+    }
   }, []);
 
   const [form, setForm] = useState({
@@ -168,7 +205,13 @@ export default function AthleteRegisterPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/" label="กลับหน้าแรก" />
+          <LogoutButton />
+        </div>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -190,55 +233,73 @@ export default function AthleteRegisterPage() {
             >
               ตรวจสอบสถานะ
             </button>
-            <LogoutButton />
           </div>
         </div>
 
         {/* Profile Card — ข้อมูลนิสิตจาก Register ครั้งแรก */}
         {studentProfile ? (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
-              ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง)
-            </p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง มหาวิทยาลัยพะเยา)
+              </p>
+              <span className="text-[11px] px-2.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                สถานะ: นิสิตปัจจุบัน มีสิทธิ์สมัคร
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 text-xs border-b border-slate-100 pb-4">
               <div>
-                <span className="text-slate-400">ชื่อ - นามสกุล</span>
+                <span className="text-slate-400 block">ชื่อ - นามสกุล</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
               </div>
               <div>
-                <span className="text-slate-400">รหัสประจำตัวนิสิต</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.studentId}</p>
+                <span className="text-slate-400 block">รหัสประจำตัวนิสิต</span>
+                <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.studentId}</p>
               </div>
               <div>
-                <span className="text-slate-400">คณะ / วิทยาลัย</span>
+                <span className="text-slate-400 block">คณะ / วิทยาลัย</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.faculty}</p>
               </div>
               <div>
-                <span className="text-slate-400">สาขาวิชา</span>
+                <span className="text-slate-400 block">สาขาวิชา</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.major}</p>
               </div>
               <div>
-                <span className="text-slate-400">ระดับการศึกษา / ชั้นปี</span>
+                <span className="text-slate-400 block">ระดับการศึกษา / ชั้นปี</span>
                 <p className="font-semibold text-slate-900 mt-0.5">
                   {studentProfile.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปีที่ {studentProfile.year}
                 </p>
               </div>
               <div>
-                <span className="text-gray-500">อายุ (ปีปฏิทิน)</span>
-                <p className="font-medium text-gray-900 mt-0.5">{athleteAge} ปี</p>
+                <span className="text-slate-400 block">อายุ (ปีปฏิทิน กกมท.)</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="font-semibold text-slate-900">{athleteAge} ปี</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${isAgeEligible ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+                    {isAgeEligible ? "≤ 28 ปี" : "เกินเกณฑ์"}
+                  </span>
+                </div>
               </div>
-              {studentProfile.phone && (
-                <div>
-                  <span className="text-gray-500">เบอร์โทรศัพท์</span>
-                  <p className="font-medium text-gray-900 mt-0.5">{studentProfile.phone}</p>
+              <div>
+                <span className="text-slate-400 block">เกรดเฉลี่ยสะสม (GPAX)</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="font-bold text-blue-900 font-mono text-sm">{studentProfile.gpaCumulative || "3.50"}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    ≥ 2.00 ผ่านเกณฑ์
+                  </span>
                 </div>
-              )}
-              {studentProfile.nationality && (
-                <div>
-                  <span className="text-gray-500">สัญชาติ</span>
-                  <p className="font-medium text-gray-900 mt-0.5">{studentProfile.nationality}</p>
-                </div>
-              )}
+              </div>
+              <div>
+                <span className="text-slate-400 block">เกรดเฉลี่ยภาคล่าสุด (GPA)</span>
+                <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.gpaSemester || "3.45"}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] pt-3 text-slate-500">
+              <div>เบอร์ติดต่อ: <span className="font-medium text-slate-700">{studentProfile.phone || "081-234-5678"}</span></div>
+              <div>สัญชาติ: <span className="font-medium text-slate-700">{studentProfile.nationality || "ไทย"}</span></div>
+              <div>สิทธิ์แข่งสะสม: <span className="font-medium text-slate-700">{previousEntriesCount}/{maxEntries} ครั้ง</span></div>
+              <div>โควตาคงเหลือ: <span className="font-semibold text-emerald-700">{remainingEntries} ครั้ง</span></div>
             </div>
           </div>
         ) : (
@@ -394,9 +455,9 @@ export default function AthleteRegisterPage() {
                 )})()}
               </div>
 
-              <div className="flex gap-3 mt-2">
-                <button onClick={() => setStep(1)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ย้อนกลับ</button>
-                <button onClick={() => setStep(3)} disabled={!step2Valid} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors">ถัดไป</button>
+              <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                <BackButton onClick={() => setStep(1)} label="ย้อนกลับขั้นตอนที่ 1" className="flex-1 justify-center py-2.5" />
+                <button onClick={() => setStep(3)} disabled={!step2Valid} className="flex-1 bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-xs transition-colors cursor-pointer">ถัดไป: ผลงานและเอกสารแนบ →</button>
               </div>
             </div>
           )}
@@ -458,65 +519,128 @@ export default function AthleteRegisterPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">หลักฐานประกอบการสมัคร</label>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">รูปถ่ายชุดนิสิตถูกระเบียบ (ขนาด 1 นิ้ว) <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{photoFile ? photoFile.name : "แนบไฟล์ (JPG/PNG)"}</span>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                      หลักฐานและเอกสารแนบประกอบการสมัคร (ข้อ 4)
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      กรุณาแนบไฟล์เอกสารหลักฐานทางการให้ครบถ้วน เพื่อให้คณะกรรมการตรวจสอบ
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLoadMockFiles}
+                    className="px-2.5 py-1 text-[11px] font-medium text-blue-900 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
+                    แนบไฟล์ตัวอย่างครบชุด (สำหรับแคปภาพ)
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        1. รูปถ่ายชุดนิสิตถูกระเบียบ (ขนาด 1 นิ้ว) <span className="text-rose-600">*</span>
+                      </label>
+                      {photoFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {photoFile ? photoFile.name : "คลิกแนบไฟล์รูปถ่าย (JPG/PNG)"}
+                      </span>
                       <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setPhotoFile, 5)} />
                     </label>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">สำเนาบัตรประจำตัวประชาชน <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{idCardFile ? idCardFile.name : "แนบไฟล์ (PDF/JPG)"}</span>
+
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        2. สำเนาบัตรประจำตัวประชาชน <span className="text-rose-600">*</span>
+                      </label>
+                      {idCardFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {idCardFile ? idCardFile.name : "คลิกแนบสำเนาบัตร ปชช. (PDF/JPG)"}
+                      </span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setIdCardFile)} />
                     </label>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">สำเนาบัตรนิสิต <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{studentCardFile ? studentCardFile.name : "แนบไฟล์ (PDF/JPG)"}</span>
+
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        3. สำเนาบัตรประจำตัวนิสิต <span className="text-rose-600">*</span>
+                      </label>
+                      {studentCardFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {studentCardFile ? studentCardFile.name : "คลิกแนบสำเนาบัตรนิสิต (PDF/JPG)"}
+                      </span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setStudentCardFile)} />
                     </label>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ใบรับรองการเป็นนิสิต <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{studentCertFile ? studentCertFile.name : "แนบไฟล์ (PDF/JPG)"}</span>
+
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        4. ใบรับรองการเป็นนิสิต (UP 02) <span className="text-rose-600">*</span>
+                      </label>
+                      {studentCertFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {studentCertFile ? studentCertFile.name : "คลิกแนบใบรับรอง UP 02 (PDF)"}
+                      </span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setStudentCertFile)} />
                     </label>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ใบผ่านการอบรม UP Academy <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{upAcademyFile ? upAcademyFile.name : "แนบไฟล์ (PDF/JPG)"}</span>
-                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setUpAcademyFile)} />
-                    </label>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ผลการทดสอบสมรรถภาพทางกาย <span className="text-red-500">*</span></label>
-                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{fitnessTestFile ? fitnessTestFile.name : "แนบไฟล์ผลทดสอบ (PDF/JPG)"}</span>
+
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        5. ผลการทดสอบสมรรถภาพทางกาย <span className="text-rose-600">*</span>
+                      </label>
+                      {fitnessTestFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {fitnessTestFile ? fitnessTestFile.name : "คลิกแนบผลทดสอบสมรรถภาพ (PDF/JPG)"}
+                      </span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setFitnessTestFile)} />
                     </label>
-                    <p className="text-[10px] text-gray-500 mt-1">อ้างอิงประกาศ: ต้องมีผลทดสอบระดับ "ปานกลาง" ขึ้นไป</p>
+                    <p className="text-[10px] text-slate-400">เกณฑ์: ผลทดสอบระดับ "ปานกลาง" ขึ้นไป</p>
+                  </div>
+
+                  <div className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-800">
+                        6. ใบผ่านการอบรม UP Academy <span className="text-rose-600">*</span>
+                      </label>
+                      {upAcademyFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                    </div>
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
+                      <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
+                        {upAcademyFile ? upAcademyFile.name : "คลิกแนบวุฒิบัตร UP Academy (PDF/JPG)"}
+                      </span>
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setUpAcademyFile)} />
+                    </label>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
-                <textarea className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={2} value={form.note} onChange={(e) => set("note", e.target.value)} />
+              <div className="pt-2">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
+                <textarea className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none resize-none" rows={2} value={form.note} onChange={(e) => set("note", e.target.value)} />
               </div>
 
-              <div className="flex gap-3 mt-2">
-                <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ย้อนกลับ</button>
-                <button onClick={handleSubmit} disabled={!step3Valid || loading} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
-                  {loading ? "กำลังส่งข้อมูล..." : "ส่งใบสมัคร"}
+              <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
+                <BackButton onClick={() => setStep(2)} label="ย้อนกลับขั้นตอนที่ 2" className="flex-1 justify-center py-2.5" />
+                <button onClick={handleSubmit} disabled={!step3Valid || loading} className="flex-1 bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-xs transition-colors cursor-pointer">
+                  {loading ? "กำลังส่งข้อมูล..." : "ลงนามส่งใบสมัคร"}
                 </button>
               </div>
             </div>

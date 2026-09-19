@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type Athlete = {
@@ -21,6 +22,9 @@ const MOCK_ATHLETES: Athlete[] = [
   { id: "1", firstName: "สมชาย", lastName: "ใจดี", studentId: "66027012", faculty: "คณะวิทยาศาสตร์", sport: "ฟุตบอล", position: "กองหน้า", experience: "3-5 ปี", achievement: "แชมป์กีฬาเขต 2566", status: "pending" },
   { id: "2", firstName: "สมหญิง", lastName: "รักดี", studentId: "66027013", faculty: "คณะวิศวกรรมศาสตร์", sport: "ฟุตบอล", position: "กองกลาง", experience: "1-3 ปี", achievement: "-", status: "pending" },
   { id: "3", firstName: "มานะ", lastName: "สู้งาน", studentId: "65027001", faculty: "คณะบริหารธุรกิจและนิเทศศาสตร์", sport: "ฟุตบอล", position: "ผู้รักษาประตู", experience: "มากกว่า 5 ปี", achievement: "เหรียญทองกีฬาแห่งชาติ", status: "approved" },
+  { id: "4", firstName: "กิตติศักดิ์", lastName: "มั่นคง", studentId: "66028114", faculty: "คณะวิศวกรรมศาสตร์", sport: "ฟุตบอล", position: "กองกลาง", experience: "4 ปี", achievement: "รองชนะเลิศฟุตบอลถ้วย ก", status: "approved" },
+  { id: "5", firstName: "ณัฐพล", lastName: "ศรีกุล", studentId: "65039201", faculty: "คณะเทคโนโลยีสารสนเทศและการสื่อสาร", sport: "ฟุตบอล", position: "กองหลัง", experience: "2 ปี", achievement: "แชมป์เยาวชนระดับจังหวัด", status: "approved" },
+  { id: "6", firstName: "ภานุวัฒน์", lastName: "สุขสวัสดิ์", studentId: "67041022", faculty: "คณะวิทยาการจัดการ", sport: "ฟุตบอล", position: "ผู้รักษาประตู", experience: "3 ปี", achievement: "-", status: "pending" },
 ];
 
 export default function ClubAthletesPage() {
@@ -45,7 +49,13 @@ export default function ClubAthletesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -67,13 +77,30 @@ export default function ClubAthletesPage() {
             >
               จัดทำบัญชีรายชื่อส่งกองกิจ
             </button>
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
-            </button>
-            <LogoutButton />
+          </div>
+        </div>
+
+        {/* Summary KPI Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-xs text-slate-400 block">ผู้สมัครในสังกัดชมรม</span>
+            <span className="text-xl font-bold text-slate-900 mt-0.5 block">{athletes.length} คน</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-xs text-slate-400 block">ผ่านการคัดเลือกเบื้องต้น</span>
+            <span className="text-xl font-bold text-emerald-800 mt-0.5 block">
+              {athletes.filter((a) => a.status === "approved").length} คน
+            </span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-xs text-slate-400 block">รอการพิจารณาคัดเลือก</span>
+            <span className="text-xl font-bold text-blue-900 mt-0.5 block">{pendingCount} คน</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+            <span className="text-xs text-slate-400 block">ไม่ผ่านเกณฑ์</span>
+            <span className="text-xl font-bold text-slate-600 mt-0.5 block">
+              {athletes.filter((a) => a.status === "rejected").length} คน
+            </span>
           </div>
         </div>
 

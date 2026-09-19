@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import BackButton from "@/components/shared/BackButton";
 
 const MOCK_ACTIVITIES: Record<string, {
   id: string;
@@ -89,23 +90,18 @@ export default function StaffActivityDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
-          >
-            ← ย้อนกลับ
-          </button>
-          <span className={`text-sm font-medium px-3 py-1 rounded-full ${STATUS_LABEL[activity.status].className}`}>
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <BackButton href="/staff/activities" />
+          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded border ${STATUS_LABEL[activity.status].className}`}>
             {STATUS_LABEL[activity.status].label}
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-6">
 
           {/* ชื่อกิจกรรม */}
           <div>

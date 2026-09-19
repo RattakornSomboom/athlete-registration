@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 export default function NewActivityPage() {
@@ -46,7 +47,13 @@ export default function NewActivityPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/club/activities" />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -62,13 +69,6 @@ export default function NewActivityPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
-            </button>
-            <LogoutButton />
           </div>
         </div>
 

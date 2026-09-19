@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type ApplicationStatus = "pending" | "approved" | "rejected";
@@ -67,7 +68,13 @@ export default function AthleteStatusPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/" label="กลับหน้าแรก" />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -81,15 +88,6 @@ export default function AthleteStatusPage() {
             <p className="text-xs text-slate-500">
               การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/")}
-              className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 bg-white hover:bg-slate-50 transition-colors"
-            >
-              หน้าแรก
-            </button>
-            <LogoutButton />
           </div>
         </div>
 

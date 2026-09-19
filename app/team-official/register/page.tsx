@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type Position = "manager" | "coach" | "assistant_coach" | "other";
@@ -75,7 +76,13 @@ export default function TeamOfficialRegisterPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/" label="กลับหน้าแรก" />
+          <LogoutButton />
+        </div>
 
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
@@ -96,7 +103,6 @@ export default function TeamOfficialRegisterPage() {
             >
               ตรวจสอบสถานะ
             </button>
-            <LogoutButton />
           </div>
         </div>
 

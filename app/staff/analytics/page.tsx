@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 import {
   SPORTS_CATALOG,
@@ -67,6 +68,7 @@ export default function StaffAnalyticsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSport, setSelectedSport] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"current" | "calendar" | "history">("current");
+  const [facultyViewMode, setFacultyViewMode] = useState<"chart" | "table">("chart");
 
   // State สำหรับ Snapshots
   const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>([]);
@@ -159,7 +161,13 @@ export default function StaffAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/" label="กลับหน้าแรก" />
+          <LogoutButton />
+        </div>
 
         {/* 1. Header & Navigation (Formal University Theme) */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -203,7 +211,6 @@ export default function StaffAnalyticsPage() {
             >
               ตั้งค่าระบบ
             </button>
-            <LogoutButton />
           </div>
         </div>
 
@@ -539,56 +546,134 @@ export default function StaffAnalyticsPage() {
             {/* แถวชาร์ต 2: สถิติแยกตามคณะ & ความสอดคล้องระเบียบกีฬา */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-              {/* การกระจายตัวตามคณะ */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
-                <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+              {/* การกระจายตัวตามคณะ (ข้อ 13: แดชบอร์ดสถิติรายคณะ) */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
                   <div>
                     <h2 className="text-sm font-bold text-slate-900">
-                      สถิติการกระจายตัวของนักกีฬาตามคณะ/วิทยาลัย
+                      สถิติการกระจายตัวของนักกีฬาตามคณะ/วิทยาลัย (ข้อ 13: แดชบอร์ดสถิติรายคณะ)
                     </h2>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       จำนวนนักศึกษาที่สมัครและได้รับการคัดเลือกเป็นตัวแทนแยกตามคณะต้นสังกัด
                     </p>
                   </div>
-                  <span className="text-xs text-slate-400">เรียงตามจำนวนมากไปน้อย</span>
+                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                    <button
+                      onClick={() => setFacultyViewMode("chart")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                        facultyViewMode === "chart" ? "bg-white text-blue-900 shadow-2xs font-bold" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      แผนภูมิกราฟแท่ง
+                    </button>
+                    <button
+                      onClick={() => setFacultyViewMode("table")}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                        facultyViewMode === "table" ? "bg-white text-blue-900 shadow-2xs font-bold" : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      ตารางสถิติเชิงลึก
+                    </button>
+                  </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-500 font-semibold">
-                        <th className="py-2.5 px-3">คณะ / หน่วยงาน</th>
-                        <th className="py-2.5 px-3 text-center">ชาย</th>
-                        <th className="py-2.5 px-3 text-center">หญิง</th>
-                        <th className="py-2.5 px-3 text-center">สมัครรวม</th>
-                        <th className="py-2.5 px-3 text-center">ผ่านการคัดเลือก</th>
-                        <th className="py-2.5 px-3">สัดส่วนในสถาบัน</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {facultyData.map((f) => {
-                        const pct = metrics.totalApplicants > 0 ? Math.round((f.total / metrics.totalApplicants) * 100) : 0;
-                        return (
-                          <tr key={f.faculty} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="py-2.5 px-3 font-medium text-slate-900">{f.faculty}</td>
-                            <td className="py-2.5 px-3 text-center font-semibold text-slate-700">{f.male}</td>
-                            <td className="py-2.5 px-3 text-center font-semibold text-slate-700">{f.female}</td>
-                            <td className="py-2.5 px-3 text-center font-bold text-slate-900">{f.total} คน</td>
-                            <td className="py-2.5 px-3 text-center font-bold text-emerald-800">{f.approved} คน</td>
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                  <div className="bg-blue-900 h-full rounded-full" style={{ width: `${pct}%` }} />
-                                </div>
-                                <span className="text-slate-400 w-8 text-right text-[11px]">{pct}%</span>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                {/* Legend */}
+                <div className="flex items-center justify-between text-xs text-slate-500 pb-1">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-xs bg-blue-900 inline-block"></span>
+                      ผู้สมัครรวม (คน)
+                    </span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-xs bg-emerald-700 inline-block"></span>
+                      ผ่านการคัดเลือก (คน)
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">เรียงตามจำนวนผู้สมัคร</span>
                 </div>
+
+                {/* VIEW 1: กราฟแท่ง (Bar Chart) */}
+                {facultyViewMode === "chart" && (
+                  <div className="space-y-3.5 pt-1">
+                    {facultyData.map((f) => {
+                      const maxFacultyCount = Math.max(...facultyData.map((d) => d.total), 8);
+                      const totalWidthPct = (f.total / maxFacultyCount) * 100;
+                      const approvedWidthPct = (f.approved / maxFacultyCount) * 100;
+                      const approvalRate = f.total > 0 ? Math.round((f.approved / f.total) * 100) : 0;
+
+                      return (
+                        <div key={f.faculty} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-slate-800">{f.faculty}</span>
+                            <span className="text-slate-500 text-[11px]">
+                              สมัคร <strong className="text-blue-900 font-mono">{f.total}</strong> คน · ผ่านคัดเลือก <strong className="text-emerald-700 font-mono">{f.approved}</strong> คน ({approvalRate}%)
+                            </span>
+                          </div>
+
+                          {/* Dual comparative bar */}
+                          <div className="space-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            {/* Total Bar */}
+                            <div className="w-full bg-slate-200 h-2.5 rounded-xs overflow-hidden">
+                              <div
+                                className="bg-blue-900 h-full rounded-xs transition-all duration-300"
+                                style={{ width: `${totalWidthPct}%` }}
+                                title={`สมัครรวม: ${f.total} คน`}
+                              />
+                            </div>
+                            {/* Approved Bar */}
+                            <div className="w-full bg-slate-200 h-2.5 rounded-xs overflow-hidden">
+                              <div
+                                className="bg-emerald-700 h-full rounded-xs transition-all duration-300"
+                                style={{ width: `${approvedWidthPct}%` }}
+                                title={`ผ่านคัดเลือก: ${f.approved} คน`}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* VIEW 2: ตารางข้อมูลเชิงลึก (Table) */}
+                {facultyViewMode === "table" && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-500 font-semibold">
+                          <th className="py-2.5 px-3">คณะ / หน่วยงาน</th>
+                          <th className="py-2.5 px-3 text-center">ชาย</th>
+                          <th className="py-2.5 px-3 text-center">หญิง</th>
+                          <th className="py-2.5 px-3 text-center">สมัครรวม</th>
+                          <th className="py-2.5 px-3 text-center">ผ่านการคัดเลือก</th>
+                          <th className="py-2.5 px-3">สัดส่วนในสถาบัน</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {facultyData.map((f) => {
+                          const pct = metrics.totalApplicants > 0 ? Math.round((f.total / metrics.totalApplicants) * 100) : 0;
+                          return (
+                            <tr key={f.faculty} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-2.5 px-3 font-medium text-slate-900">{f.faculty}</td>
+                              <td className="py-2.5 px-3 text-center font-semibold text-slate-700">{f.male}</td>
+                              <td className="py-2.5 px-3 text-center font-semibold text-slate-700">{f.female}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-slate-900">{f.total} คน</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-emerald-800">{f.approved} คน</td>
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-blue-900 h-full rounded-full" style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="text-slate-400 w-8 text-right text-[11px]">{pct}%</span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {/* ความพร้อมตามเกณฑ์ระเบียบ กกมท. */}

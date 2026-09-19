@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type Competition = {
@@ -35,7 +36,13 @@ export default function ClubCompetitionsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/" label="กลับหน้าแรก" />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -69,7 +76,6 @@ export default function ClubCompetitionsPage() {
             >
               คำร้องพิเศษ
             </button>
-            <LogoutButton />
           </div>
         </div>
 

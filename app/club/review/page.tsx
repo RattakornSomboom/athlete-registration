@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 interface CandidateAthlete {
@@ -87,7 +88,13 @@ export default function ClubReviewPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/club/athletes" />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -101,15 +108,6 @@ export default function ClubReviewPage() {
             <p className="text-xs text-slate-500">
               {SPORT_QUOTA.clubName} — {SPORT_QUOTA.sportName}
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 bg-white hover:bg-slate-50 transition-colors"
-            >
-              ย้อนกลับ
-            </button>
-            <LogoutButton />
           </div>
         </div>
 
@@ -228,31 +226,68 @@ export default function ClubReviewPage() {
             </table>
           </div>
 
-          {/* Submission and Official Certification Box */}
-          <div className="p-6 bg-slate-50 border-t border-slate-200 space-y-4">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                id="certify"
-                checked={certifyChecked}
-                onChange={(e) => setCertifyChecked(e.target.checked)}
-                className="mt-0.5 rounded border-slate-300 text-blue-900 focus:ring-blue-800"
-              />
-              <label htmlFor="certify" className="text-xs text-slate-700 leading-relaxed cursor-pointer">
-                ข้าพเจ้าในฐานะประธานชมรม/ผู้รับผิดชอบ ขอรับรองว่านักกีฬาที่มีรายชื่อข้างต้น
-                ผ่านการคัดเลือกและทดสอบสมรรถภาพตามเกณฑ์ของชมรมเรียบร้อยแล้ว
-                และมีคุณสมบัติตามข้อบังคับของคณะกรรมการบริหารกีฬามหาวิทยาลัยแห่งประเทศไทย (กกมท.)
-              </label>
+          {/* Submission and Official Certification Box (ข้อ 8: ส่วนลงนามรับรอง) */}
+          <div className="p-6 bg-slate-50 border-t border-slate-200 space-y-5">
+            <div className="border-b border-slate-200 pb-3">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                หนังสือรับรองและลงนามส่งบัญชีรายชื่อนักกีฬาตัวแทนสถาบัน (ข้อ 8)
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                ตามข้อบังคับคณะกรรมการบริหารกีฬามหาวิทยาลัยแห่งประเทศไทย (กกมท.) ว่าด้วยการจัดการแข่งขัน ครั้งที่ 52
+              </p>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="certify"
+                  checked={certifyChecked}
+                  onChange={(e) => setCertifyChecked(e.target.checked)}
+                  className="mt-1 rounded border-slate-300 text-blue-900 focus:ring-blue-800 cursor-pointer"
+                />
+                <label htmlFor="certify" className="text-xs text-slate-700 leading-relaxed cursor-pointer">
+                  ข้าพเจ้าในฐานะประธานชมรมกีฬา/ผู้รับผิดชอบ ขอรับรองว่านักกีฬาตามบัญชีรายชื่อข้างต้น
+                  ได้ผ่านกระบวนการคัดเลือกและทดสอบสมรรถภาพทางกายตามเกณฑ์มาตรฐานของมหาวิทยาลัยพะเยาเรียบร้อยแล้ว
+                  มีคุณสมบัติถูกต้องครบถ้วนตามระเบียบ กกมท. ข้อบังคับฉบับที่ 52 ทุกประการ
+                </label>
+              </div>
+
+              {/* Digital Signature Card */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 text-xs">
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70 space-y-1">
+                  <span className="text-[11px] text-slate-400 block font-medium">ผู้ลงนามรับรองบัญชีรายชื่อ:</span>
+                  <p className="font-bold text-slate-900">นายสมชาย ใจดี</p>
+                  <p className="text-[11px] text-slate-500">ประธานชมรมฟุตบอล มหาวิทยาลัยพะเยา</p>
+                  <div className="pt-2 flex items-center gap-2 text-[10px] text-emerald-800 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    ยืนยันตัวตนผ่านระบบสารสนเทศมหาวิทยาลัยพะเยา
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/70 space-y-1">
+                  <span className="text-[11px] text-slate-400 block font-medium">สรุปยอดนักกีฬาที่เสนอขึ้นทะเบียน:</span>
+                  <p className="text-slate-800 font-medium">
+                    นักกีฬาตัวจริง: <strong className="text-blue-900">{mainSquadCount}</strong> คน / สำรอง: <strong className="text-emerald-800">{reserveSquadCount}</strong> คน
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    รวมเสนอชื่อทั้งสิ้น: <strong className="text-slate-900">{mainSquadCount + reserveSquadCount}</strong> คน (โควตาสูงสุด {SPORT_QUOTA.maxMainQuota + SPORT_QUOTA.maxReserveQuota} คน)
+                  </p>
+                  <p className="text-[10px] text-slate-400 pt-1">
+                    วันที่ส่งมอบเอกสาร: 15 มีนาคม 2568
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
               <span className="text-xs text-slate-500">
-                นักกีฬาที่เสนอชื่อ: ตัวจริง {mainSquadCount} คน · ตัวสำรอง {reserveSquadCount} คน
+                สถานะการลงนาม: {certifyChecked ? "รับรองข้อมูลแล้ว พร้อมส่งกองกิจการนิสิต" : "กรุณาทำเครื่องหมายรับรองข้อมูล"}
               </span>
               <button
                 onClick={handleSubmit}
                 disabled={!certifyChecked || isSubmitting || (mainSquadCount === 0 && reserveSquadCount === 0)}
-                className="bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-medium px-6 py-2.5 rounded-lg transition-colors cursor-pointer"
+                className="w-full sm:w-auto bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-medium px-6 py-2.5 rounded-lg transition-colors cursor-pointer shadow-xs"
               >
                 {isSubmitting ? "กำลังนำส่งข้อมูล..." : "ลงนามส่งบัญชีรายชื่อให้กองกิจการนิสิต"}
               </button>

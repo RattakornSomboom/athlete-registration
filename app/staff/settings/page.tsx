@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 
 type SportCategory = "mandatory" | "international" | "general" | "thai" | "demonstration" | "";
@@ -21,11 +22,11 @@ type Sport = {
 };
 
 const CATEGORY_LABEL: Record<string, { label: string; className: string }> = {
-  mandatory: { label: "กีฬาบังคับ", className: "bg-red-100 text-red-700" },
-  international: { label: "กีฬาเลือกสากล", className: "bg-blue-100 text-blue-700" },
-  general: { label: "กีฬาเลือกทั่วไป", className: "bg-purple-100 text-purple-700" },
-  thai: { label: "กีฬาไทย", className: "bg-amber-100 text-amber-700" },
-  demonstration: { label: "กีฬาสาธิต", className: "bg-gray-100 text-gray-600" },
+  mandatory: { label: "กีฬาบังคับ", className: "bg-rose-50 text-rose-800 border-rose-200" },
+  international: { label: "กีฬาเลือกสากล", className: "bg-blue-50 text-blue-900 border-blue-200" },
+  general: { label: "กีฬาเลือกทั่วไป", className: "bg-purple-50 text-purple-900 border-purple-200" },
+  thai: { label: "กีฬาไทย", className: "bg-amber-50 text-amber-900 border-amber-200" },
+  demonstration: { label: "กีฬาสาธิต", className: "bg-slate-100 text-slate-700 border-slate-200" },
 };
 
 const CATEGORY_REQUIREMENT: Record<string, string> = {
@@ -56,12 +57,12 @@ type QualifierSchedule = {
 };
 
 const INITIAL_SCHEDULE: QualifierSchedule = {
-  region: "ภาคเหนือ",
+  region: "เขตภาคเหนือ",
   hostUniversity: "มหาวิทยาลัยราชภัฏนครสวรรค์",
   startDate: "2026-10-24",
   endDate: "2026-10-29",
   location: "มหาวิทยาลัยราชภัฏนครสวรรค์",
-  note: "กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 รอบคัดเลือกเขตภาคเหนือ",
+  note: "การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 รอบคัดเลือกเขตภาคเหนือ",
 };
 
 export default function StaffSettingsPage() {
@@ -106,19 +107,12 @@ export default function StaffSettingsPage() {
   const toggleOpen = (id: string) =>
     setSports((prev) => prev.map((s) => s.id === id ? { ...s, isOpen: !s.isOpen } : s));
 
-  const deleteSport = (id: string) =>
-    setSports((prev) => prev.filter((s) => s.id !== id));
-
-  const handleAddSport = () => {
-    if (!newSport.name || !newSport.category) return;
-    setSports((prev) => [...prev, { ...newSport, id: generateId() }]);
-    setNewSport({ name: "", category: "", maxAthletes: 10, isOpen: true, positions: [], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" });
-    setPositionInput("");
-    setShowAddForm(false);
+  const deleteSport = (id: string) => {
+    if (confirm("ยืนยันการลบชนิดกีฬานี้ออกจากระบบ?")) {
+      setSports((prev) => prev.filter((s) => s.id !== id));
+      if (editingId === id) setEditingId(null);
+    }
   };
-
-  const handleEdit = (id: string, field: keyof Sport, value: unknown) =>
-    setSports((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s));
 
   const addPosition = () => {
     if (!positionInput.trim()) return;
@@ -128,23 +122,48 @@ export default function StaffSettingsPage() {
 
   const addEditPosition = (id: string) => {
     if (!editPositionInput.trim()) return;
-    handleEdit(id, "positions", [...(sports.find((s) => s.id === id)?.positions || []), editPositionInput.trim()]);
+    setSports((prev) => prev.map((s) => s.id === id ? { ...s, positions: [...s.positions, editPositionInput.trim()] } : s));
     setEditPositionInput("");
   };
 
-  const handleSave = async () => {
-    console.log("save sports", sports);
-    console.log("save schedule", schedule);
+  const handleAddSport = () => {
+    if (!newSport.name.trim() || !newSport.category) return;
+    setSports((prev) => [...prev, { ...newSport, id: generateId() }]);
+    setNewSport({
+      name: "",
+      category: "",
+      maxAthletes: 10,
+      isOpen: true,
+      positions: [],
+      requirements: "",
+      competitionType: "",
+      qualifierNote: "",
+      reachedTop16LastYear: null,
+      top16Note: "",
+    });
+    setShowAddForm(false);
+  };
+
+  const handleEdit = (id: string, field: keyof Sport, value: unknown) =>
+    setSports((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s));
+
+  const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton href="/staff/applications" />
+          <LogoutButton />
+        </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
           <div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
@@ -173,18 +192,17 @@ export default function StaffSettingsPage() {
               onClick={handleSave}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              {saved ? "บันทึกข้อมูลแล้ว" : "บันทึกการตั้งค่า"}
+              {saved ? "บันทึกข้อมูลแล้ว ✓" : "บันทึกการตั้งค่า"}
             </button>
-            <LogoutButton />
           </div>
         </div>
 
         {/* Category summary */}
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {(["mandatory", "international", "general", "thai", "demonstration"] as const).map((cat) => {
             const count = sports.filter((s) => s.category === cat).length;
             return (
-              <div key={cat} className="bg-white rounded-xl border border-slate-200 p-3 text-center shadow-xs">
+              <div key={cat} className="bg-white rounded-xl border border-slate-200 p-3.5 text-center shadow-xs">
                 <p className="text-xl font-bold text-slate-900">{count}</p>
                 <p className="text-slate-500 text-xs mt-1">{CATEGORY_LABEL[cat].label}</p>
               </div>
@@ -193,57 +211,60 @@ export default function StaffSettingsPage() {
         </div>
 
         {/* Qualifier schedule */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-gray-900">กำหนดการแข่งขันรอบคัดเลือก</h2>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">กำหนดการแข่งขันรอบคัดเลือกเขตภาคเหนือ</h2>
+              <p className="text-[11px] text-slate-500">ข้อมูลสถานที่และช่วงวันแข่งขันตามประกาศ กกมท.</p>
+            </div>
             <button
               onClick={() => setEditingSchedule(!editingSchedule)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs hover:bg-slate-50 transition-colors cursor-pointer font-medium"
             >
-              {editingSchedule ? "ปิด" : "แก้ไข"}
+              {editingSchedule ? "ปิดการแก้ไข" : "แก้ไขกำหนดการ"}
             </button>
           </div>
 
           {!editingSchedule ? (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <div>
-                <span className="text-gray-500">เขตการแข่งขัน</span>
-                <p className="font-medium text-gray-900 mt-0.5">{schedule.region}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="text-slate-400 block">เขตการแข่งขัน</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{schedule.region}</p>
               </div>
-              <div>
-                <span className="text-gray-500">มหาวิทยาลัยเจ้าภาพ</span>
-                <p className="font-medium text-gray-900 mt-0.5">{schedule.hostUniversity}</p>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="text-slate-400 block">มหาวิทยาลัยเจ้าภาพ</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{schedule.hostUniversity}</p>
               </div>
-              <div>
-                <span className="text-gray-500">วันที่แข่งขัน</span>
-                <p className="font-medium text-gray-900 mt-0.5">{formatDateRange(schedule.startDate, schedule.endDate)}</p>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="text-slate-400 block">ช่วงวันแข่งขัน</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{formatDateRange(schedule.startDate, schedule.endDate)}</p>
               </div>
-              <div>
-                <span className="text-gray-500">สถานที่</span>
-                <p className="font-medium text-gray-900 mt-0.5">{schedule.location}</p>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="text-slate-400 block">สถานที่จัดการแข่งขัน</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{schedule.location}</p>
               </div>
               {schedule.note && (
-                <div className="col-span-2">
-                  <span className="text-gray-500">หมายเหตุ</span>
-                  <p className="font-medium text-gray-900 mt-0.5">{schedule.note}</p>
+                <div className="sm:col-span-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <span className="text-slate-400 block">หมายเหตุ</span>
+                  <p className="font-medium text-slate-900 mt-0.5">{schedule.note}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">เขตการแข่งขัน</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">เขตการแข่งขัน</label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     value={schedule.region}
                     onChange={(e) => setSchedule((p) => ({ ...p, region: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">มหาวิทยาลัยเจ้าภาพ</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">มหาวิทยาลัยเจ้าภาพ</label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     value={schedule.hostUniversity}
                     onChange={(e) => setSchedule((p) => ({ ...p, hostUniversity: e.target.value }))}
                   />
@@ -252,19 +273,19 @@ export default function StaffSettingsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">วันที่เริ่มแข่งขัน</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่เริ่มแข่งขัน</label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     value={schedule.startDate}
                     onChange={(e) => setSchedule((p) => ({ ...p, startDate: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">วันที่สิ้นสุดแข่งขัน</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่สิ้นสุดแข่งขัน</label>
                   <input
                     type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     value={schedule.endDate}
                     onChange={(e) => setSchedule((p) => ({ ...p, endDate: e.target.value }))}
                   />
@@ -272,74 +293,81 @@ export default function StaffSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">สถานที่จัดการแข่งขัน</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">สถานที่จัดการแข่งขัน</label>
                 <input
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                   value={schedule.location}
                   onChange={(e) => setSchedule((p) => ({ ...p, location: e.target.value }))}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">หมายเหตุ</label>
                 <input
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="เช่น กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 รอบคัดเลือกเขตภาคเหนือ"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                   value={schedule.note}
                   onChange={(e) => setSchedule((p) => ({ ...p, note: e.target.value }))}
                 />
               </div>
 
-              <button
-                onClick={() => setEditingSchedule(false)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-              >
-                บันทึกกำหนดการ
-              </button>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setEditingSchedule(false)}
+                  className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                >
+                  บันทึกกำหนดการแข่งขัน
+                </button>
+              </div>
             </div>
           )}
         </div>
-        
+
         {/* Add Sport Form */}
         {showAddForm && (
-          <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-6 mb-4">
-            <h2 className="text-sm font-medium text-gray-900 mb-4">เพิ่มชนิดกีฬาใหม่</h2>
-            <div className="space-y-3">
-
+          <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-6 space-y-4">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">หมวดกีฬา</label>
+                <h2 className="text-sm font-bold text-slate-900">เพิ่มชนิดกีฬาและเงื่อนไขการรับสมัครใหม่</h2>
+                <p className="text-[11px] text-slate-500">กำหนดโควตาและประเภทการแข่งขันตามข้อบังคับ กกมท.</p>
+              </div>
+              <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่ชนิดกีฬา <span className="text-rose-600">*</span></label>
                 <select
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                   value={newSport.category}
                   onChange={(e) => setNewSport((p) => ({ ...p, category: e.target.value as SportCategory }))}
                 >
-                  <option value="">เลือกหมวดกีฬา</option>
-                  <option value="mandatory">กีฬาบังคับ</option>
-                  <option value="international">กีฬาเลือกสากล</option>
-                  <option value="general">กีฬาเลือกทั่วไป</option>
-                  <option value="thai">กีฬาไทย</option>
-                  <option value="demonstration">กีฬาสาธิต</option>
+                  <option value="">-- เลือกหมวดหมู่กีฬาตามระเบียบ --</option>
+                  <option value="mandatory">กีฬาบังคับ (ข้อ 9.1)</option>
+                  <option value="international">กีฬาเลือกสากล (ข้อ 9.2)</option>
+                  <option value="general">กีฬาเลือกทั่วไป (ข้อ 9.3)</option>
+                  <option value="thai">กีฬาไทย (ข้อ 9.4)</option>
+                  <option value="demonstration">กีฬาสาธิต (ข้อ 9.6)</option>
                 </select>
                 {newSport.category && (
-                  <p className="text-xs text-gray-400 mt-1">{CATEGORY_REQUIREMENT[newSport.category]}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">{CATEGORY_REQUIREMENT[newSport.category]}</p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">ชื่อกีฬา</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อชนิดกีฬา <span className="text-rose-600">*</span></label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="เช่น กรีฑา"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="เช่น กรีฑา, เทนนิส"
                     value={newSport.name}
                     onChange={(e) => setNewSport((p) => ({ ...p, name: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">จำนวนรับสูงสุด</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">โควตานักกีฬาสูงสุด (คน) <span className="text-rose-600">*</span></label>
                   <input
                     type="number"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     value={newSport.maxAthletes}
                     onChange={(e) => setNewSport((p) => ({ ...p, maxAthletes: Number(e.target.value) }))}
                   />
@@ -347,39 +375,37 @@ export default function StaffSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">ประเภทการแข่งขัน</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ประเภทการแข่งขัน</label>
                 <select
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                   value={newSport.competitionType}
                   onChange={(e) => setNewSport((p) => ({ ...p, competitionType: e.target.value as Sport["competitionType"] }))}
                 >
-                  <option value="">เลือกประเภท</option>
-                  <option value="qualifier">มีรอบคัดเลือก (ต้องเป็นตัวแทนภาคก่อน)</option>
-                  <option value="final_only">มีเฉพาะรอบมหกรรม (ต้องเคยผ่านรอบ 16 ทีม)</option>
+                  <option value="">เลือกประเภทการแข่งขัน</option>
+                  <option value="qualifier">มีรอบคัดเลือก (ต้องเป็นตัวแทนเขตภาคเหนือก่อน)</option>
+                  <option value="final_only">มีเฉพาะรอบมหกรรม (ต้องเคยผ่านเข้ารอบ 16 ทีม)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขศักยภาพ (ถ้ามี)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขศักยภาพ / คุณสมบัติพิเศษ</label>
                 <input
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="เช่น ต้องเป็นตัวแทนภาคเหนือ"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  placeholder="เช่น ต้องมีผลงานระดับจังหวัดขึ้นไป"
                   value={newSport.qualifierNote}
                   onChange={(e) => setNewSport((p) => ({ ...p, qualifierNote: e.target.value }))}
                 />
               </div>
 
               {newSport.competitionType === "final_only" && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
-                  <label className="block text-xs font-medium text-orange-800">
-                    ผลการแข่งขันปีที่ผ่านมา (กีฬามหาวิทยาลัยฯ ครั้งก่อน)
-                  </label>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-slate-800">ผลการแข่งขันปีที่ผ่านมา (ตามประกาศข้อ 8(2))</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: true }))}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        newSport.reachedTop16LastYear === true ? "bg-green-600 text-white border-green-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                        newSport.reachedTop16LastYear === true ? "bg-emerald-800 text-white border-emerald-800 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
                       }`}
                     >
                       ผ่านเข้ารอบ 16 ทีม
@@ -387,45 +413,45 @@ export default function StaffSettingsPage() {
                     <button
                       type="button"
                       onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: false }))}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                        newSport.reachedTop16LastYear === false ? "bg-red-600 text-white border-red-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                        newSport.reachedTop16LastYear === false ? "bg-rose-700 text-white border-rose-700 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
                       }`}
                     >
                       ไม่ผ่านเข้ารอบ
                     </button>
                   </div>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    placeholder="หมายเหตุ เช่น ผ่านเข้ารอบ 16 ทีม ครั้งที่ 48"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="หมายเหตุ เช่น ผ่านเข้ารอบ 16 ทีม กีฬามหาวิทยาลัยฯ ครั้งที่ 51"
                     value={newSport.top16Note}
                     onChange={(e) => setNewSport((p) => ({ ...p, top16Note: e.target.value }))}
                   />
                   {newSport.reachedTop16LastYear === false && (
-                    <p className="text-xs text-red-600">
-                      ⚠️ ตามประกาศข้อ 8(2) กีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขันปีนี้ เนื่องจากไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา
+                    <p className="text-[11px] text-rose-700 font-medium">
+                      หมายเหตุ: ตามประกาศข้อ 8(2) ชนิดกีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขัน เนื่องจากไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา
                     </p>
                   )}
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">ตำแหน่ง / ประเภท</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">ตำแหน่ง / ประเภทการแข่งขันย่อย</label>
                 <div className="flex gap-2">
                   <input
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="เช่น กองหน้า"
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                    placeholder="เช่น กองหน้า หรือ รุ่นน้ำหนักไม่เกิน 60 กก."
                     value={positionInput}
                     onChange={(e) => setPositionInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addPosition()}
                   />
-                  <button onClick={addPosition} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors">เพิ่ม</button>
+                  <button onClick={addPosition} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer">เพิ่มตำแหน่ง</button>
                 </div>
                 {newSport.positions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     {newSport.positions.map((p, i) => (
-                      <span key={i} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">
+                      <span key={i} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs px-2.5 py-0.5 rounded border border-slate-200">
                         {p}
-                        <button onClick={() => setNewSport((prev) => ({ ...prev, positions: prev.positions.filter((_, idx) => idx !== i) }))} className="text-blue-400 hover:text-blue-700">✕</button>
+                        <button onClick={() => setNewSport((prev) => ({ ...prev, positions: prev.positions.filter((_, idx) => idx !== i) }))} className="text-slate-400 hover:text-slate-700">✕</button>
                       </span>
                     ))}
                   </div>
@@ -433,19 +459,19 @@ export default function StaffSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขการสมัคร</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขการรับสมัครเพิ่มเติม</label>
                 <textarea
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none resize-none"
                   rows={2}
-                  placeholder="เงื่อนไขหรือข้อกำหนดพิเศษ"
+                  placeholder="ระบุข้อกำหนดหรือเงื่อนไขพิเศษ"
                   value={newSport.requirements}
                   onChange={(e) => setNewSport((p) => ({ ...p, requirements: e.target.value }))}
                 />
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setShowAddForm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors">ยกเลิก</button>
-                <button onClick={handleAddSport} disabled={!newSport.name || !newSport.category} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-medium py-2 rounded-lg transition-colors">เพิ่มกีฬา</button>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg transition-colors cursor-pointer">ยกเลิก</button>
+                <button onClick={handleAddSport} disabled={!newSport.name || !newSport.category} className="bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium px-5 py-2 rounded-lg transition-colors cursor-pointer">บันทึกชนิดกีฬา</button>
               </div>
             </div>
           </div>
@@ -454,35 +480,43 @@ export default function StaffSettingsPage() {
         {/* Sport Cards */}
         <div className="space-y-3">
           {sports.map((sport) => (
-            <div key={sport.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h2 className="font-medium text-gray-900">{sport.name}</h2>
+            <div key={sport.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-bold text-slate-900 text-sm">{sport.name}</h2>
                   {sport.category && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_LABEL[sport.category].className}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${CATEGORY_LABEL[sport.category].className}`}>
                       {CATEGORY_LABEL[sport.category].label}
                     </span>
                   )}
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sport.isOpen ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${
+                    sport.isOpen
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
+                  }`}>
                     {sport.isOpen ? "เปิดรับสมัคร" : "ปิดรับสมัคร"}
                   </span>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => toggleOpen(sport.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${sport.isOpen ? "border border-gray-200 text-gray-600 hover:bg-gray-50" : "bg-green-600 hover:bg-green-700 text-white"}`}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                      sport.isOpen
+                        ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
+                        : "bg-blue-900 text-white hover:bg-blue-800"
+                    }`}
                   >
-                    {sport.isOpen ? "ปิดรับ" : "เปิดรับ"}
+                    {sport.isOpen ? "ปิดรับสมัคร" : "เปิดรับสมัคร"}
                   </button>
                   <button
                     onClick={() => setEditingId(editingId === sport.id ? null : sport.id)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+                    className="px-2.5 py-1 rounded border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     {editingId === sport.id ? "ปิด" : "แก้ไข"}
                   </button>
                   <button
                     onClick={() => deleteSport(sport.id)}
-                    className="px-3 py-1.5 rounded-lg border border-red-200 text-red-500 text-xs hover:bg-red-50 transition-colors"
+                    className="px-2.5 py-1 rounded border border-rose-300 text-rose-700 text-xs font-medium hover:bg-rose-50 transition-colors cursor-pointer"
                   >
                     ลบ
                   </button>
@@ -491,46 +525,50 @@ export default function StaffSettingsPage() {
 
               {/* Info */}
               {editingId !== sport.id && (
-                <div className="text-sm text-gray-500 space-y-1">
-                  <p>จำนวนรับสูงสุด: <span className="text-gray-900 font-medium">{sport.maxAthletes} คน</span></p>
+                <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100">
+                  <p>โควตานักกีฬาสูงสุด: <strong className="text-slate-900">{sport.maxAthletes} คน</strong></p>
                   {sport.competitionType && (
                     <p className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sport.competitionType === "qualifier" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
-                        {sport.competitionType === "qualifier" ? "มีรอบคัดเลือก" : "เฉพาะรอบมหกรรม"}
+                      <span className={`text-[10px] px-2 py-0.2 rounded border font-medium ${
+                        sport.competitionType === "qualifier"
+                          ? "bg-blue-50 text-blue-900 border-blue-200"
+                          : "bg-amber-50 text-amber-900 border-amber-200"
+                      }`}>
+                        {sport.competitionType === "qualifier" ? "มีรอบคัดเลือกเขตภาคเหนือ" : "ส่งเฉพาะรอบมหกรรม"}
                       </span>
-                      {sport.qualifierNote && <span className="text-xs text-gray-400">{sport.qualifierNote}</span>}
+                      {sport.qualifierNote && <span className="text-slate-400">{sport.qualifierNote}</span>}
                     </p>
                   )}
                   {sport.competitionType === "final_only" && sport.reachedTop16LastYear !== null && (
-                    <p className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sport.reachedTop16LastYear ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                        {sport.reachedTop16LastYear ? "✓ ผ่านเข้ารอบ 16 ทีมปีที่แล้ว" : "✕ ไม่ผ่านเข้ารอบปีที่แล้ว"}
+                    <p className="text-[11px] mt-1">
+                      <span className={sport.reachedTop16LastYear ? "text-emerald-700 font-medium" : "text-rose-700 font-medium"}>
+                        {sport.reachedTop16LastYear ? "✓ ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา" : "✕ ไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา"}
                       </span>
-                      {sport.top16Note && <span className="text-xs text-gray-400">{sport.top16Note}</span>}
+                      {sport.top16Note && <span className="text-slate-400 ml-2">({sport.top16Note})</span>}
                     </p>
                   )}
                   {sport.positions.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="flex flex-wrap gap-1 mt-1.5">
                       {sport.positions.map((p, i) => (
-                        <span key={i} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{p}</span>
+                        <span key={i} className="bg-slate-100 text-slate-700 text-[11px] px-2 py-0.2 rounded border border-slate-200">{p}</span>
                       ))}
                     </div>
                   )}
-                  {sport.requirements && <p className="text-xs text-gray-400 mt-1">เงื่อนไข: {sport.requirements}</p>}
+                  {sport.requirements && <p className="text-[11px] text-slate-400 mt-1">เงื่อนไข: {sport.requirements}</p>}
                 </div>
               )}
 
               {/* Edit Form */}
               {editingId === sport.id && (
-                <div className="space-y-3 pt-3 border-t border-gray-100">
+                <div className="space-y-3 pt-3 border-t border-slate-100 text-xs">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">หมวดกีฬา</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่ชนิดกีฬา</label>
                     <select
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                       value={sport.category}
                       onChange={(e) => handleEdit(sport.id, "category", e.target.value)}
                     >
-                      <option value="">เลือกหมวดกีฬา</option>
+                      <option value="">เลือกหมวดหมู่กีฬา</option>
                       <option value="mandatory">กีฬาบังคับ</option>
                       <option value="international">กีฬาเลือกสากล</option>
                       <option value="general">กีฬาเลือกทั่วไป</option>
@@ -541,18 +579,18 @@ export default function StaffSettingsPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">ชื่อกีฬา</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อชนิดกีฬา</label>
                       <input
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                         value={sport.name}
                         onChange={(e) => handleEdit(sport.id, "name", e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">จำนวนรับสูงสุด</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">โควตานักกีฬาสูงสุด</label>
                       <input
                         type="number"
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                         value={sport.maxAthletes}
                         onChange={(e) => handleEdit(sport.id, "maxAthletes", Number(e.target.value))}
                       />
@@ -561,21 +599,21 @@ export default function StaffSettingsPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">ประเภทการแข่งขัน</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">ประเภทการแข่งขัน</label>
                       <select
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                         value={sport.competitionType}
                         onChange={(e) => handleEdit(sport.id, "competitionType", e.target.value)}
                       >
                         <option value="">เลือกประเภท</option>
-                        <option value="qualifier">มีรอบคัดเลือก</option>
+                        <option value="qualifier">มีรอบคัดเลือกเขตภาคเหนือ</option>
                         <option value="final_only">เฉพาะรอบมหกรรม</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขศักยภาพ</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขศักยภาพ</label>
                       <input
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                         value={sport.qualifierNote}
                         onChange={(e) => handleEdit(sport.id, "qualifierNote", e.target.value)}
                       />
@@ -583,14 +621,14 @@ export default function StaffSettingsPage() {
                   </div>
 
                   {sport.competitionType === "final_only" && (
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-medium text-orange-800">ผลการแข่งขันปีที่ผ่านมา</label>
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+                      <label className="block text-xs font-semibold text-slate-800">ผลการแข่งขันปีที่ผ่านมา</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
                           onClick={() => handleEdit(sport.id, "reachedTop16LastYear", true)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                            sport.reachedTop16LastYear === true ? "bg-green-600 text-white border-green-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                            sport.reachedTop16LastYear === true ? "bg-emerald-800 text-white border-emerald-800 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
                           }`}
                         >
                           ผ่านเข้ารอบ 16 ทีม
@@ -598,45 +636,40 @@ export default function StaffSettingsPage() {
                         <button
                           type="button"
                           onClick={() => handleEdit(sport.id, "reachedTop16LastYear", false)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                            sport.reachedTop16LastYear === false ? "bg-red-600 text-white border-red-600" : "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white"
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                            sport.reachedTop16LastYear === false ? "bg-rose-700 text-white border-rose-700 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
                           }`}
                         >
                           ไม่ผ่านเข้ารอบ
                         </button>
                       </div>
                       <input
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                         placeholder="หมายเหตุ"
                         value={sport.top16Note}
                         onChange={(e) => handleEdit(sport.id, "top16Note", e.target.value)}
                       />
-                      {sport.reachedTop16LastYear === false && (
-                        <p className="text-xs text-red-600">
-                          ⚠️ กีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขันปีนี้ ตามประกาศข้อ 8(2)
-                        </p>
-                      )}
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ตำแหน่ง / ประเภท</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">ตำแหน่ง / ประเภท</label>
                     <div className="flex gap-2">
                       <input
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                         placeholder="เพิ่มตำแหน่ง"
                         value={editPositionInput}
                         onChange={(e) => setEditPositionInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addEditPosition(sport.id)}
                       />
-                      <button onClick={() => addEditPosition(sport.id)} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors">เพิ่ม</button>
+                      <button onClick={() => addEditPosition(sport.id)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer">เพิ่ม</button>
                     </div>
                     {sport.positions.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-1.5 mt-2">
                         {sport.positions.map((p, i) => (
-                          <span key={i} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">
+                          <span key={i} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-[11px] px-2.5 py-0.5 rounded border border-slate-200">
                             {p}
-                            <button onClick={() => handleEdit(sport.id, "positions", sport.positions.filter((_, idx) => idx !== i))} className="text-blue-400 hover:text-blue-700">✕</button>
+                            <button onClick={() => handleEdit(sport.id, "positions", sport.positions.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-slate-700">✕</button>
                           </span>
                         ))}
                       </div>
@@ -644,9 +677,9 @@ export default function StaffSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">เงื่อนไขการสมัคร</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขการรับสมัคร</label>
                     <textarea
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none resize-none"
                       rows={2}
                       value={sport.requirements}
                       onChange={(e) => handleEdit(sport.id, "requirements", e.target.value)}
