@@ -21,7 +21,6 @@ export async function GET() {
         createdAt: true,
         _count: {
           select: {
-            competitions: true,
             activities: true,
           },
         },
@@ -47,8 +46,8 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
-    if (!session || session.role !== "ADMIN") {
+    const session = await getSession(request as NextRequest);
+    if (!session || (session.role !== "ADMIN" && session.role !== "SUPERADMIN")) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" },
         { status: 403 }

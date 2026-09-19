@@ -13,10 +13,10 @@ import { signToken } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const username = body.username.trim().toLowerCase();
+    const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
     const { password } = body;
 
-    if (!username || !password) {
+    if (!username || typeof password !== "string" || !password) {
       return NextResponse.json(
         { error: "กรุณากรอก username และรหัสผ่าน" },
         { status: 400 }
@@ -27,8 +27,8 @@ export async function POST(request: Request) {
     const isEmail = username.includes("@");
     const studentId = isEmail ? username.replace("@up.ac.th", "") : username;
 
-    const user = await prisma.user.findUnique({
-      where: { studentId },
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ studentId }, ...(isEmail ? [{ email: { equals: username, mode: "insensitive" as const } }] : [])] },
       include: { profile: true },
     });
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       const token = signToken({
         id: user.id,
         role: user.role,
-        studentId: user.studentId,
+        studentId: user.studentId ?? undefined,
       });
 
       const { password: _, ...safeUser } = user;
@@ -77,11 +77,18 @@ export async function POST(request: Request) {
 
     // ─── ลองค้นหาใน Club table (ประธานชมรม login ด้วย email) ───
     if (isEmail || username.includes("@")) {
-      const club = await prisma.club.findUnique({
-        where: { email: username },
+      const club = await prisma.club.findFirst({
+        where: { email: { equals: username, mode: "insensitive" } },
       });
 
       if (club) {
+        if (!club.isActive) {
+          return NextResponse.json(
+            { error: "บัญชีชมรมของคุณถูกระงับการใช้งาน กรุณาติดต่อเจ้าหน้าที่" },
+            { status: 403 }
+          );
+        }
+
         const isValid = await bcrypt.compare(password, club.password);
         if (!isValid) {
           return NextResponse.json(

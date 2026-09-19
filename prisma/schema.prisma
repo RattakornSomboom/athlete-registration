@@ -15,6 +15,8 @@ enum Role {
   CLUB
   STAFF
   ADMIN
+  SUPERADMIN
+  TEAM_OFFICIAL
 }
 
 enum StudentLevel {
@@ -55,7 +57,7 @@ enum RequestStatus {
 
 model User {
   id        String   @id @default(cuid())
-  studentId String   @unique
+  studentId String?  @unique
   email     String   @unique
   password  String
   role      Role     @default(ATHLETE)
@@ -64,6 +66,8 @@ model User {
 
   profile      AthleteProfile?
   applications Application[]
+  officialApplications OfficialApplication[]
+  snapshots AnalyticsSnapshot[]
 }
 
 model AthleteProfile {
@@ -88,6 +92,17 @@ model AthleteProfile {
   postalCode    String
   phone         String
   photoUrl      String?
+  
+  // ประวัติการแข่งขัน (เพิ่มเติมจากไฟล์ CSV)
+  hasParticipated          Boolean  @default(false)
+  firstSport               String?
+  participateCountBachelor Int?
+  participateCountMaster   Int?
+  participateCountPhd      Int?
+  lastParticipateYear      String?
+  isNationalTeam           Boolean  @default(false)
+  pastCompetitions         Json?
+
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
@@ -105,23 +120,69 @@ model Club {
   status         ClubStatus @default(INACTIVE)
   createdAt      DateTime   @default(now())
 
-  competitions Competition[]
   activities   Activity[]
   clubRequests ClubRequest[]
+  coaches      Coach[]
+  trainingPrograms TrainingProgram[]
+  rosters ClubRoster[]
+  officialApplications OfficialApplication[]
 }
 
 model Competition {
   id        String            @id @default(cuid())
-  clubId    String
-  club      Club              @relation(fields: [clubId], references: [id], onDelete: Cascade)
   name      String
-  sport     String
+  sport     String?           // Deprecated, use SportQuota instead
   round     String
   year      Int
+  deadline  DateTime?
   status    CompetitionStatus @default(OPEN)
   createdAt DateTime          @default(now())
 
   applications Application[]
+  quotas       SportQuota[]
+  rosters ClubRoster[]
+  officialApplications OfficialApplication[]
+}
+
+model SportQuota {
+  id            String      @id @default(cuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sport         String
+  maxStarters   Int
+  maxSubstitutes Int
+  ageLimit      Int?
+}
+
+model Coach {
+  id        String   @id @default(cuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+model TrainingProgram {
+  id        String           @id @default(cuid())
+  clubId    String
+  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  goal      String
+  schedule  String?
+  createdAt DateTime         @default(now())
+  
+  reports   TrainingReport[]
+}
+
+model TrainingReport {
+  id          String          @id @default(cuid())
+  programId   String
+  program     TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  date        DateTime
+  progress    String
+  issues      String?
+  photoUrl    String?
+  createdAt   DateTime        @default(now())
 }
 
 model Application {
@@ -156,7 +217,11 @@ model Application {
   statusHistory      StatusHistory[]
   sportEntries       SportEntry[]
   competitionResults CompetitionResult[]
+  rosterItem RosterItem?
+
+  @@unique([userId, competitionId, sport])
 }
+
 
 model SportEntry {
   id            String      @id @default(cuid())
@@ -233,4 +298,112 @@ model SystemSetting {
   key       String   @unique
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+enum RosterStatus {
+  DRAFT
+  SUBMITTED
+  RETURNED
+}
+
+enum OfficialStatus {
+  DRAFT
+  SUBMITTED
+  CLUB_APPROVED
+  STAFF_APPROVED
+  CLUB_REJECTED
+  STAFF_REJECTED
+}
+
+model PrivateDocument {
+  id String @id @default(cuid())
+  ownerId String
+  ownerRole Role
+  purpose String
+  path String @unique
+  name String
+  mimeType String
+  size Int
+  state String @default("READY")
+  retained Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([ownerId, ownerRole])
+}
+
+model ClubRoster {
+  id String @id @default(cuid())
+  clubId String
+  club Club @relation(fields: [clubId], references: [id])
+  competitionId String
+  competition Competition @relation(fields: [competitionId], references: [id])
+  status RosterStatus @default(DRAFT)
+  version Int @default(0)
+  documentId String?
+  submittedBy String?
+  submittedAt DateTime?
+  updatedAt DateTime @updatedAt
+  items RosterItem[]
+  events RosterEvent[]
+  @@unique([clubId, competitionId])
+}
+
+model RosterItem {
+  id String @id @default(cuid())
+  rosterId String
+  roster ClubRoster @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  applicationId String @unique
+  application Application @relation(fields: [applicationId], references: [id])
+  squadType String
+}
+
+model RosterEvent {
+  id String @id @default(cuid())
+  rosterId String
+  roster ClubRoster @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  action String
+  actorId String
+  reason String?
+  payload Json
+  createdAt DateTime @default(now())
+}
+
+model OfficialApplication {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  clubId String
+  club Club @relation(fields: [clubId], references: [id])
+  competitionId String
+  competition Competition @relation(fields: [competitionId], references: [id])
+  profile Json
+  documents Json
+  status OfficialStatus @default(DRAFT)
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events OfficialEvent[]
+  @@unique([userId, competitionId])
+}
+
+model OfficialEvent {
+  id String @id @default(cuid())
+  applicationId String
+  application OfficialApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action String
+  actorId String
+  reason String?
+  payload Json
+  createdAt DateTime @default(now())
+}
+
+model AnalyticsSnapshot {
+  id String @id @default(cuid())
+  title String
+  notes String
+  authorId String
+  author User @relation(fields: [authorId], references: [id])
+  filters Json
+  data Json
+  schemaVersion Int @default(1)
+  createdAt DateTime @default(now())
 }

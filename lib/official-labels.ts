@@ -1,0 +1,4 @@
+export const officialLabels:Record<string,string>={firstName:"ชื่อ",lastName:"นามสกุล",nationalId:"เลขบัตรประชาชน 13 หลัก",nationality:"สัญชาติ",birthDate:"วันเกิด",addressNo:"บ้านเลขที่ / หมู่ / ถนน",subDistrict:"ตำบล",district:"อำเภอ",province:"จังหวัด",postalCode:"รหัสไปรษณีย์",phone:"โทรศัพท์",email:"อีเมลติดต่อ",workplace:"ที่ทำงาน",workPosition:"ตำแหน่งงาน",previousCount:"จำนวนครั้งที่เคยเข้าร่วม",appliedPosition:"ตำแหน่งที่สมัคร",appliedPositionOther:"ระบุตำแหน่งอื่น ๆ"};
+export const documentLabels:Record<string,string>={plan:"เอกสารแผนงาน (บังคับ)",idCard:"บัตรประจำตัว (บังคับ)",photo:"รูปถ่าย (ไม่บังคับ)",nameChange:"เอกสารเปลี่ยนชื่อ (ไม่บังคับ)"};
+export const positionLabels:Record<string,string>={manager:"ผู้จัดการทีม",coach:"ผู้ฝึกสอน",assistant_coach:"ผู้ช่วยผู้ฝึกสอน",other:"อื่น ๆ"};
+

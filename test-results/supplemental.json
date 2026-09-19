@@ -1,0 +1,94 @@
+[
+  {
+    "name": "supplement athlete login",
+    "method": "POST",
+    "url": "/api/auth/login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "supplement staff login",
+    "method": "POST",
+    "url": "/api/auth/login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "save full athlete profile",
+    "method": "PUT",
+    "url": "/api/athletes/profile",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "create disposable competition for CRUD",
+    "method": "POST",
+    "url": "/api/competitions",
+    "status": 201,
+    "expected": 201,
+    "pass": true
+  },
+  {
+    "name": "staff edit competition",
+    "method": "PATCH",
+    "url": "/api/competitions/cmu71cse9001cu4c70lb77h5e",
+    "status": 500,
+    "expected": 200,
+    "pass": false
+  },
+  {
+    "name": "create application for edit test",
+    "method": "POST",
+    "url": "/api/applications",
+    "status": 201,
+    "expected": 201,
+    "pass": true
+  },
+  {
+    "name": "athlete edit own submitted application",
+    "method": "PUT",
+    "url": "/api/applications/cmu71cta5001du4c7zpp0lrbh",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "edited note persisted",
+    "pass": true
+  },
+  {
+    "name": "reject competition deletion with applications",
+    "method": "DELETE",
+    "url": "/api/competitions/cmu71cse9001cu4c70lb77h5e",
+    "status": 400,
+    "expected": 400,
+    "pass": true
+  },
+  {
+    "name": "athlete cancel own submitted application",
+    "method": "DELETE",
+    "url": "/api/applications/cmu71cta5001du4c7zpp0lrbh",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "staff delete empty competition",
+    "method": "DELETE",
+    "url": "/api/competitions/cmu71cse9001cu4c70lb77h5e",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "name": "read settings",
+    "method": "GET",
+    "url": "/api/staff/settings",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  }
+]

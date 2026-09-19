@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -16,9 +16,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const competition = await prisma.competition.findUnique({
       where: { id },
       include: {
-        club: {
-          select: { id: true, name: true, sport: true },
-        },
+        quotas: true,
         _count: {
           select: { applications: true },
         },
@@ -44,15 +42,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 /**
  * PATCH /api/competitions/[id]
- * อัปเดตรายการแข่งขัน เช่น ปิดรับสมัคร (เฉพาะชมรมเจ้าของ)
+ * อัปเดตรายการแข่งขัน เช่น ปิดรับสมัคร
  *
  * Body: { name?, sport?, round?, year?, status? }
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = getSession(request);
+    const session = await getSession(request);
 
-    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
+    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์ในการแก้ไขรายการแข่งขัน" },
         { status: 403 }
@@ -62,9 +60,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    // ตรวจสอบว่าชมรมเป็นเจ้าของรายการแข่งขันนี้
     const competition = await prisma.competition.findUnique({
       where: { id },
+      include: { quotas: true },
     });
 
     if (!competition) {
@@ -74,14 +72,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (session.role === "CLUB" && competition.clubId !== session.clubId) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์แก้ไขรายการแข่งขันของชมรมอื่น" },
-        { status: 403 }
-      );
+    // For CLUB: only allow editing competitions whose sport matches the club's sport
+    if (session.role === "CLUB") {
+      if (!session.clubId) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+      if (!club) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const hasMatchingSport = competition.quotas.some((q) => q.sport === club.sport);
+      if (!hasMatchingSport) {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์แก้ไขรายการแข่งขันนี้" },
+          { status: 403 }
+        );
+      }
     }
 
-    // ผู้ดูแลระบบเข้าถึงได้ทุกรายการ เจ้าหน้าที่เข้าถึงได้ทุกรายการ ชมรมเข้าถึงได้เฉพาะของตนเอง
     const { name, sport, round, year, status } = body;
     const updateData: Record<string, unknown> = {};
 
@@ -95,9 +103,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       where: { id },
       data: updateData,
       include: {
-        club: {
-          select: { id: true, name: true, sport: true },
-        },
+        quotas: true,
       },
     });
 
@@ -113,13 +119,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/competitions/[id]
- * ลบรายการแข่งขัน (เฉพาะชมรมเจ้าของหรือ Admin)
+ * ลบรายการแข่งขัน (เฉพาะชมรมที่เกี่ยวข้องหรือ Admin)
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = getSession(request);
+    const session = await getSession(request);
 
-    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
+    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์ลบรายการแข่งขัน" },
         { status: 403 }
@@ -130,7 +136,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const competition = await prisma.competition.findUnique({
       where: { id },
-      include: { _count: { select: { applications: true } } },
+      include: {
+        quotas: true,
+        _count: { select: { applications: true } },
+      },
     });
 
     if (!competition) {
@@ -140,14 +149,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (session.role === "CLUB" && competition.clubId !== session.clubId) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์ลบรายการแข่งขันของชมรมอื่น" },
-        { status: 403 }
-      );
+    // For CLUB: only allow deleting competitions whose sport matches the club's sport
+    if (session.role === "CLUB") {
+      if (!session.clubId) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+      if (!club) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const hasMatchingSport = competition.quotas.some((q) => q.sport === club.sport);
+      if (!hasMatchingSport) {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์ลบรายการแข่งขันนี้" },
+          { status: 403 }
+        );
+      }
     }
 
-    // เจ้าหน้าที่และ Admin ลบได้ทุกรายการ ชมรมลบได้เฉพาะของตนเอง
     if (competition._count.applications > 0) {
       return NextResponse.json(
         { error: "ไม่สามารถลบได้ เนื่องจากมีใบสมัครแล้ว ให้ปิดรับสมัครแทน" },

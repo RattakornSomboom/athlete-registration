@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -12,7 +12,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  */
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(_request as NextRequest);
+    const session = await getSession(_request as NextRequest);
     if (!session) {
       return NextResponse.json(
         { error: "กรุณาเข้าสู่ระบบก่อน" },
@@ -26,10 +26,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
       where: { id },
       include: {
         user: {
-          include: { profile: true },
+          select: {
+            id: true,
+            studentId: true,
+            email: true,
+            role: true,
+            profile: true,
+          },
         },
         competition: {
-          include: { club: true },
+          include: { quotas: true },
         },
         statusHistory: {
           orderBy: { createdAt: "asc" },
@@ -48,10 +54,19 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     // Check authorization
     let isAuthorized = false;
-    if (session.role === "STAFF" || session.role === "ADMIN") {
+    if (session.role === "STAFF" || session.role === "ADMIN" || session.role === "SUPERADMIN") {
       isAuthorized = true;
-    } else if (session.role === "CLUB" && application.competition.clubId === session.clubId) {
-      isAuthorized = true;
+    } else if (session.role === "CLUB") {
+      // Club can access if the competition has a sport quota matching their sport
+      if (session.clubId) {
+        const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+        if (club) {
+          const hasMatchingSport = application.competition.quotas.some(
+            (q) => q.sport === club.sport
+          );
+          isAuthorized = hasMatchingSport;
+        }
+      }
     } else if (session.role === "ATHLETE" && application.userId === session.id) {
       isAuthorized = true;
     }
@@ -77,12 +92,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
  * PATCH /api/applications/[id]
  * อัปเดตสถานะใบสมัคร (ชมรมอนุมัติ/ปฏิเสธ, เจ้าหน้าที่อนุมัติ/ปฏิเสธ)
  *
- * Body: { status: string, label: string, by: string }
+ * Body: { status: string, label: string, by: string, squadType?: string }
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
-    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
+    const session = await getSession(request as NextRequest);
+    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง" },
         { status: 403 }
@@ -98,6 +113,33 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         { error: "กรุณาระบุ status, label, และ by" },
         { status: 400 }
       );
+    }
+
+    // For CLUB role: verify they manage this sport
+    if (session.role === "CLUB") {
+      if (!session.clubId) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+      if (!club) {
+        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+      }
+      const app = await prisma.application.findUnique({
+        where: { id },
+        include: { competition: { include: { quotas: true } } },
+      });
+      if (!app) {
+        return NextResponse.json({ error: "ไม่พบใบสมัคร" }, { status: 404 });
+      }
+      const hasMatchingSport = app.competition.quotas.some(
+        (q) => q.sport === club.sport
+      );
+      if (!hasMatchingSport) {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์อนุมัติใบสมัครประเภทกีฬานี้" },
+          { status: 403 }
+        );
+      }
     }
 
     const application = await prisma.application.update({
@@ -139,7 +181,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || !["ATHLETE", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์ลบใบสมัคร" },
@@ -227,7 +269,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || !session.id || session.role !== "ATHLETE") {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (สำหรับนักกีฬาเท่านั้น)" },
@@ -263,16 +305,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    
+
     // ดึงเฉพาะฟิลด์ที่สามารถแก้ไขได้ (ยกเว้นสถานะและข้อมูลสำคัญที่เกี่ยวกับชมรม)
-    const { 
-        sport, category, division, squadType, note, 
-        photoFileUrl, idCardFileUrl, studentCardFileUrl, studentCertFileUrl, 
-        upAcademyFileUrl, fitnessTestFileUrl, noClubFileUrl, supervisorName, supervisorPosition,
-        sportEntries, competitionResults 
+    const {
+      sport, category, division, squadType, note,
+      photoFileUrl, idCardFileUrl, studentCardFileUrl, studentCertFileUrl,
+      upAcademyFileUrl, fitnessTestFileUrl, noClubFileUrl, supervisorName, supervisorPosition,
+      sportEntries, competitionResults,
     } = body;
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (sport !== undefined) updateData.sport = sport;
     if (category !== undefined) updateData.category = category;
     if (division !== undefined) updateData.division = division;
@@ -290,25 +332,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // ถ้ามีการส่ง sportEntries หรือ competitionResults ใหม่มา จะลบของเก่าแล้วสร้างใหม่ทั้งหมด
     if (sportEntries !== undefined) {
-        updateData.sportEntries = {
-            deleteMany: {},
-            create: sportEntries.map((entry: any) => ({
-                sport: entry.sport,
-                category: entry.category,
-                division: entry.division || null,
-            })),
-        };
+      updateData.sportEntries = {
+        deleteMany: {},
+        create: sportEntries.map((entry: { sport: string; category: string; division?: string }) => ({
+          sport: entry.sport,
+          category: entry.category,
+          division: entry.division || null,
+        })),
+      };
     }
 
     if (competitionResults !== undefined) {
-        updateData.competitionResults = {
-            deleteMany: {},
-            create: competitionResults.map((result: any) => ({
-                competitionName: result.competitionName,
-                year: result.year,
-                result: result.result,
-            })),
-        };
+      updateData.competitionResults = {
+        deleteMany: {},
+        create: competitionResults.map((result: { competitionName: string; year: string; result: string }) => ({
+          competitionName: result.competitionName,
+          year: result.year,
+          result: result.result,
+        })),
+      };
     }
 
     const updatedApp = await prisma.application.update({
@@ -317,7 +359,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       include: {
         sportEntries: true,
         competitionResults: true,
-      }
+      },
     });
 
     return NextResponse.json({

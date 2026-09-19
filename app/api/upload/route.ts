@@ -27,7 +27,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 export async function POST(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session) {
       return NextResponse.json(
         { error: "กรุณาเข้าสู่ระบบก่อน" },
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session) {
       return NextResponse.json(
         { error: "กรุณาเข้าสู่ระบบก่อน" },
@@ -143,6 +143,44 @@ export async function DELETE(request: Request) {
         { error: "กรุณาระบุ path ของไฟล์ที่ต้องการลบ" },
         { status: 400 }
       );
+    }
+
+    // Ownership check: ATHLETEs can only delete their own files
+    // File path format: uploads/{timestamp}_{sanitizedName}_{randomSuffix}.{ext}
+    // We scope ATHLETE to only the athlete-docs bucket and verify via application ownership
+    if (session.role === "ATHLETE") {
+      // ATHLETE may only delete from athlete-docs bucket
+      if (bucket !== "athlete-docs") {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์ลบไฟล์จาก bucket นี้" },
+          { status: 403 }
+        );
+      }
+      // Verify the file path is referenced by one of this athlete's own applications
+      const { prisma } = await import("@/lib/prisma");
+      const publicUrl = path.startsWith("http")
+        ? path
+        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+      const ownsFile = await prisma.application.findFirst({
+        where: {
+          userId: session.id,
+          OR: [
+            { photoFileUrl: publicUrl },
+            { idCardFileUrl: publicUrl },
+            { studentCardFileUrl: publicUrl },
+            { studentCertFileUrl: publicUrl },
+            { upAcademyFileUrl: publicUrl },
+            { fitnessTestFileUrl: publicUrl },
+            { noClubFileUrl: publicUrl },
+          ],
+        },
+      });
+      if (!ownsFile) {
+        return NextResponse.json(
+          { error: "ไม่มีสิทธิ์ลบไฟล์ของผู้อื่น" },
+          { status: 403 }
+        );
+      }
     }
 
     const { error: deleteError } = await supabaseAdmin.storage

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "analytics counts one supplied applicant",
+    "pass": false,
+    "actual": 0
+  },
+  {
+    "name": "saved snapshot can be retrieved",
+    "pass": false,
+    "actual": 0
+  },
+  {
+    "name": "fitness ฟุตบอล ",
+    "pass": true,
+    "actual": 1
+  },
+  {
+    "name": "fitness กรีฑา ลาน กระโดด",
+    "pass": true,
+    "actual": 8
+  },
+  {
+    "name": "fitness กรีฑา ลาน ทุ่ม",
+    "pass": true,
+    "actual": 6
+  },
+  {
+    "name": "fitness กีฬาทางน้ำ ระยะไกล",
+    "pass": true,
+    "actual": 9
+  },
+  {
+    "name": "fitness ไม่มีกีฬานี้ ",
+    "pass": true,
+    "actual": null
+  }
+]

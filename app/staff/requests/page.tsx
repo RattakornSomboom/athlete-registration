@@ -15,6 +15,12 @@ type SpecialRequest = {
   status: "pending" | "approved" | "rejected";
 };
 
+const STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  pending: { label: "รอพิจารณา", className: "bg-yellow-100 text-yellow-800" },
+  approved: { label: "อนุมัติแล้ว", className: "bg-green-100 text-green-800" },
+  rejected: { label: "ไม่อนุมัติ", className: "bg-red-100 text-red-800" },
+};
+
 export default function StaffRequestsPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<SpecialRequest[]>([]);
@@ -81,7 +87,7 @@ export default function StaffRequestsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/staff/settings")}
-              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
               ⚙️ ตั้งค่าระบบ
             </button>
@@ -99,8 +105,8 @@ export default function StaffRequestsPage() {
             <div key={r.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <h2 className="font-medium text-gray-900">{r.title}</h2>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === 'approved' ? 'bg-green-100 text-green-800' : r.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                  {r.status === 'approved' ? 'อนุมัติแล้ว' : r.status === 'rejected' ? 'ไม่อนุมัติ' : 'รอพิจารณา'}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[r.status]?.className || "bg-gray-100 text-gray-800"}`}>
+                  {STATUS_LABEL[r.status]?.label || r.status}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{r.clubName}</span>
               </div>
@@ -131,15 +137,15 @@ export default function StaffRequestsPage() {
                 <div className="flex gap-2">
                   {showRejectInput === r.id ? (
                     <>
-                      <button onClick={() => setShowRejectInput(null)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                      <button onClick={() => handleAction(r.id, "rejected")} disabled={!rejectReason[r.id] || actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm transition-colors">
+                      <button onClick={() => setShowRejectInput(null)} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors cursor-pointer">ยกเลิก</button>
+                      <button onClick={() => handleAction(r.id, "rejected")} disabled={!rejectReason[r.id] || actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white text-sm transition-colors cursor-pointer">
                         {actionLoading === r.id ? "กำลังบันทึก..." : "ยืนยันไม่อนุมัติ"}
                       </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => setShowRejectInput(r.id)} className="flex-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors">ไม่อนุมัติ</button>
-                      <button onClick={() => handleAction(r.id, "approved")} disabled={actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm transition-colors">
+                      <button onClick={() => setShowRejectInput(r.id)} className="flex-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm hover:bg-red-50 transition-colors cursor-pointer">ไม่อนุมัติ</button>
+                      <button onClick={() => handleAction(r.id, "approved")} disabled={actionLoading === r.id} className="flex-1 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm transition-colors cursor-pointer">
                         {actionLoading === r.id ? "กำลังบันทึก..." : "อนุมัติ"}
                       </button>
                     </>

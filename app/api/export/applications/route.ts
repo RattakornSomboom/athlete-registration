@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -10,8 +10,8 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
-    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
+    const session = await getSession(request as NextRequest);
+    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง" },
         { status: 403 }
@@ -30,25 +30,37 @@ export async function GET(request: Request) {
     if (sport) where.sport = sport;
     if (competitionId) {
       where.competitionId = competitionId;
-    } else {
-        // ถ้าเป็น Club ต้องเห็นเฉพาะของตัวเองเสมอ
-        const clubId = session.role === "CLUB" ? session.clubId : clubIdParam;
-        if (clubId) {
-            where.competition = { clubId };
-        }
+    } else if (session.role === "CLUB" && session.clubId) {
+      // CLUB can only export their own sport's applications
+      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+      if (club) {
+        where.sport = club.sport;
+      }
+    } else if (clubIdParam && ["STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
+      // Staff/Admin can filter by clubId
+      const club = await prisma.club.findUnique({ where: { id: clubIdParam } });
+      if (club) {
+        where.sport = club.sport;
+      }
     }
 
     const applications = await prisma.application.findMany({
       where,
       include: {
         user: {
-          include: { profile: true },
+          select: {
+            id: true,
+            studentId: true,
+            email: true,
+            profile: true,
+          },
         },
         competition: {
-          include: {
-            club: {
-              select: { name: true, sport: true },
-            },
+          select: {
+            id: true,
+            name: true,
+            round: true,
+            year: true,
           },
         },
       },
@@ -65,7 +77,6 @@ export async function GET(request: Request) {
       "Major",
       "Phone",
       "Competition",
-      "Club",
       "Sport",
       "Category",
       "Status",
@@ -84,7 +95,6 @@ export async function GET(request: Request) {
         profile?.major || "",
         profile?.phone || "",
         app.competition.name,
-        app.competition.club.name,
         app.sport,
         app.category,
         app.status,

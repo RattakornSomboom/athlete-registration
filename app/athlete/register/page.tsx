@@ -76,7 +76,6 @@ export default function AthleteRegisterPage() {
         const data = await res.json();
         const p = data.profile;
 
-        // แปลงข้อมูลจาก DB ให้ตรงกับ type ที่ UI ใช้
         const birthDateStr = p.birthDate
           ? new Date(p.birthDate).toISOString().split("T")[0]
           : "";
@@ -117,6 +116,17 @@ export default function AthleteRegisterPage() {
     fetchProfile();
   }, []);
 
+  type OpenCompetition = { id: string; name: string; sport: string; round: string; year: number; club: { name: string } };
+  const [openCompetitions, setOpenCompetitions] = useState<OpenCompetition[]>([]);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/competitions?status=OPEN")
+      .then((r) => r.json())
+      .then((data) => setOpenCompetitions(data.competitions ?? []))
+      .catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     round: "" as "qualifier" | "final" | "",
     hasPreviousEntry: "" as "none" | "has" | "",
@@ -136,18 +146,6 @@ export default function AthleteRegisterPage() {
 
   const [competitions, setCompetitions] = useState<CompetitionResult[]>([]);
   const [newComp, setNewComp] = useState({ competitionName: "", year: "", result: "" });
-
-  // รายการแข่งขันที่เปิดรับสมัคร (ดึงจาก API)
-  type OpenCompetition = { id: string; name: string; sport: string; round: string; year: number; club: { name: string } };
-  const [openCompetitions, setOpenCompetitions] = useState<OpenCompetition[]>([]);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
-
-  useEffect(() => {
-    fetch("/api/competitions?status=OPEN")
-      .then((r) => r.json())
-      .then((data) => setOpenCompetitions(data.competitions ?? []))
-      .catch(() => {});
-  }, []);
 
   const set = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -293,43 +291,60 @@ export default function AthleteRegisterPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-5xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">ใบสมัครนักกีฬา</h1>
-            <p className="text-gray-500 text-sm mt-1">กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              แบบคำขอขึ้นทะเบียนและสมัครเข้ารับการคัดเลือกนักกีฬาตัวแทนสถาบัน
+            </h1>
+            <p className="text-xs text-slate-500">
+              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
+            </p>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/athlete/status")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ตรวจสอบสถานะ
+            </button>
+            <LogoutButton />
+          </div>
         </div>
 
         {/* Profile Card — ข้อมูลนิสิตจาก Register ครั้งแรก */}
         {studentProfile ? (
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
-            <p className="text-xs font-medium text-blue-500 uppercase tracking-wide mb-3">ข้อมูลนิสิต (จากการลงทะเบียนครั้งแรก)</p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง)
+            </p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
               <div>
-                <span className="text-gray-500">ชื่อ-นามสกุล</span>
-                <p className="font-medium text-gray-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
+                <span className="text-slate-400">ชื่อ - นามสกุล</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
               </div>
               <div>
-                <span className="text-gray-500">รหัสนิสิต</span>
-                <p className="font-medium text-gray-900 mt-0.5">{studentProfile.studentId}</p>
+                <span className="text-slate-400">รหัสประจำตัวนิสิต</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.studentId}</p>
               </div>
               <div>
-                <span className="text-gray-500">คณะ</span>
-                <p className="font-medium text-gray-900 mt-0.5">{studentProfile.faculty}</p>
+                <span className="text-slate-400">คณะ / วิทยาลัย</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.faculty}</p>
               </div>
               <div>
-                <span className="text-gray-500">สาขา</span>
-                <p className="font-medium text-gray-900 mt-0.5">{studentProfile.major}</p>
+                <span className="text-slate-400">สาขาวิชา</span>
+                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.major}</p>
               </div>
               <div>
-                <span className="text-gray-500">ระดับ/ชั้นปี</span>
-                <p className="font-medium text-gray-900 mt-0.5">
-                  {studentProfile.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปี {studentProfile.year}
+                <span className="text-slate-400">ระดับการศึกษา / ชั้นปี</span>
+                <p className="font-semibold text-slate-900 mt-0.5">
+                  {studentProfile.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปีที่ {studentProfile.year}
                 </p>
               </div>
               <div>
@@ -378,36 +393,42 @@ export default function AthleteRegisterPage() {
         )}
 
         {/* Step indicator — 3 ขั้นตอน */}
-        <div className="flex items-center gap-2 mb-8 flex-wrap">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between flex-wrap gap-2">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${step >= s ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"}`}>{s}</div>
-              <span className={`text-sm ${step >= s ? "text-gray-900 font-medium" : "text-gray-400"}`}>
-                {s === 1 ? "ชมรม/รอบแข่งขัน" : s === 2 ? "ชนิดกีฬา" : "ผลงาน"}
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-blue-900 text-white" : "bg-slate-200 text-slate-500"}`}>{s}</div>
+              <span className={`text-xs ${step >= s ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+                {s === 1 ? "1. ชมรมและรอบการแข่งขัน" : s === 2 ? "2. ชนิดกีฬาและรายการ" : "3. ผลงานและเอกสารแนบ"}
               </span>
-              {s < 3 && <div className={`w-8 h-0.5 ${step > s ? "bg-blue-600" : "bg-gray-200"}`} />}
+              {s < 3 && <div className={`w-12 h-0.5 ${step > s ? "bg-blue-900" : "bg-slate-200"}`} />}
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
 
           {/* เลือกรายการแข่งขัน */}
-          {step === 1 && openCompetitions.length > 0 && (
+          {step === 1 && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">รายการแข่งขันที่เปิดรับสมัคร</label>
-              <select
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                value={selectedCompetitionId}
-                onChange={(e) => setSelectedCompetitionId(e.target.value)}
-              >
-                <option value="">-- เลือกรายการแข่งขัน --</option>
-                {openCompetitions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.sport} · {c.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {c.year} BE)
-                  </option>
-                ))}
-              </select>
+              {openCompetitions.length > 0 ? (
+                <select
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  value={selectedCompetitionId}
+                  onChange={(e) => setSelectedCompetitionId(e.target.value)}
+                >
+                  <option value="">-- เลือกรายการแข่งขัน --</option>
+                  {openCompetitions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.sport} · {c.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {c.year} BE)
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="bg-amber-50 text-amber-700 p-3 rounded-lg border border-amber-200 text-sm">
+                  ไม่มีรายการแข่งขันที่เปิดรับสมัครในขณะนี้ กรุณารอประธานชมรมประกาศรับสมัคร หรือติดต่อชมรมกีฬา
+                </div>
+              )}
             </div>
           )}
 
@@ -470,7 +491,7 @@ export default function AthleteRegisterPage() {
 
               <button
                 onClick={() => setStep(2)}
-                disabled={!step1Valid || !isAgeEligible || !isEntryCountEligible}
+                disabled={!step1Valid || !isAgeEligible || !isEntryCountEligible || !selectedCompetitionId}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
               >
                 ถัดไป

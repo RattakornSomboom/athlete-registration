@@ -6,27 +6,21 @@ import { getSession } from "@/lib/auth";
 /**
  * GET /api/competitions
  * ดูรายการแข่งขันทั้งหมด
- * Query: ?sport=... &status=... &clubId=...
+ * Query: ?status=...
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sport = searchParams.get("sport");
     const status = searchParams.get("status");
-    const clubId = searchParams.get("clubId");
 
     const where: Record<string, unknown> = {};
 
-    if (sport) where.sport = sport;
     if (status) where.status = status.toUpperCase();
-    if (clubId) where.clubId = clubId;
 
     const competitions = await prisma.competition.findMany({
       where,
       include: {
-        club: {
-          select: { id: true, name: true, sport: true },
-        },
+        quotas: true,
         _count: {
           select: { applications: true },
         },
@@ -46,51 +40,50 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/competitions
- * เจ้าหน้าที่/Admin สร้างรายการแข่งขัน และมอบหมายให้ชมรม
+ * เจ้าหน้าที่/Admin สร้างโปรแกรมการแข่งขันประจำปี
  *
- * Body: { name, sport, round, year, clubId }
+ * Body: { name, round, year, deadline, quotas: [{ sport, maxStarters, maxSubstitutes, ageLimit }] }
  * Returns: competition object
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = getSession(request);
+    const session = await getSession(request);
 
-    if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
+    if (!session || (session.role !== "STAFF" && session.role !== "ADMIN" && session.role !== "SUPERADMIN")) {
       return NextResponse.json(
-        { error: "เฉพาะเจ้าหน้าที่หรือผู้ดูแลระบบเท่านั้นที่สามารถสร้างรายการแข่งขันได้" },
+        { error: "เฉพาะเจ้าหน้าที่หรือผู้ดูแลระบบเท่านั้นที่สามารถสร้างโปรแกรมการแข่งขันได้" },
         { status: 403 }
       );
     }
 
     const body = await request.json();
-    const { name, sport, round, year, clubId } = body;
+    const { name, round, year, deadline, quotas } = body;
 
-    if (!name || !sport || !round || !year || !clubId) {
+    if (!name || !round || !year) {
       return NextResponse.json(
-        { error: "กรุณากรอกข้อมูลให้ครบถ้วน (name, sport, round, year, clubId)" },
+        { error: "กรุณากรอกข้อมูลให้ครบถ้วน (name, round, year)" },
         { status: 400 }
       );
     }
 
-    // ตรวจสอบว่าชมรมนั้นมีอยู่จริง
-    const club = await prisma.club.findUnique({ where: { id: clubId } });
-    if (!club) {
-      return NextResponse.json({ error: "ไม่พบชมรมที่ระบุ" }, { status: 404 });
-    }
-
     const competition = await prisma.competition.create({
       data: {
-        clubId,
         name,
-        sport,
         round,
         year: parseInt(year),
+        deadline: deadline ? new Date(deadline) : null,
         status: "OPEN",
+        quotas: quotas && quotas.length > 0 ? {
+          create: quotas.map((q: any) => ({
+            sport: q.sport,
+            maxStarters: parseInt(q.maxStarters || "0"),
+            maxSubstitutes: parseInt(q.maxSubstitutes || "0"),
+            ageLimit: q.ageLimit ? parseInt(q.ageLimit) : null
+          }))
+        } : undefined
       },
       include: {
-        club: {
-          select: { id: true, name: true, sport: true },
-        },
+        quotas: true,
       },
     });
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import LogoutButton from "@/components/shared/LogoutButton";
 
 export default function NewRequestPage() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function NewRequestPage() {
     setLoading(true);
     try {
       console.log("submit request", { ...form, document: document?.name });
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 800));
       router.push("/club/requests");
     } finally {
       setLoading(false);
@@ -35,79 +36,111 @@ export default function NewRequestPage() {
   const isValid = form.title && form.reason && form.advisorName && document;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-5xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
 
-        <div className="mb-6">
-          <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-3 flex items-center gap-1">
-            ← ย้อนกลับ
-          </button>
-          <h1 className="text-2xl font-semibold text-gray-900">ยื่นคำร้องกรณีพิเศษ</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            สำหรับเหตุจำเป็นนอกเหนือจากหลักเกณฑ์ปกติ ต้องผ่านอาจารย์ที่ปรึกษาชมรมเสนอเรื่องไปยังกองกิจการนิสิต
-          </p>
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+          <div>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              ระบบสารสนเทศชมรมกีฬา · กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              แบบคำร้องขออนุมัติกรณีพิเศษ
+            </h1>
+            <p className="text-xs text-slate-500">
+              สำหรับเสนอเรื่องต่ออาจารย์ที่ปรึกษาชมรมและคณะกรรมการฝ่ายกีฬา กองกิจการนิสิต
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.back()}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ย้อนกลับ
+            </button>
+            <LogoutButton />
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+        {/* Form Container */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-5">
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">เรื่องที่ขอร้องขอ</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              หัวข้อเรื่องที่ขออนุมัติ <span className="text-rose-600">*</span>
+            </label>
             <input
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="เช่น ขอผ่อนผันเกณฑ์ผลงานการแข่งขัน"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+              placeholder="เช่น ขอผ่อนผันเกณฑ์ผลงานการแข่งขัน, ขอเปลี่ยนตัวนักกีฬาเนื่องจากบาดเจ็บ"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">เหตุผล / รายละเอียดคำร้อง</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              รายละเอียดเหตุผลและความจำเป็น <span className="text-rose-600">*</span>
+            </label>
             <textarea
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               rows={4}
-              placeholder="อธิบายเหตุผลความจำเป็นโดยละเอียด..."
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none leading-relaxed"
+              placeholder="ระบุข้อเท็จจริง เหตุผลความจำเป็น และผลกระทบต่อทีมหากไม่ได้รับการผ่อนผัน..."
               value={form.reason}
               onChange={(e) => set("reason", e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">ชื่ออาจารย์ที่ปรึกษาชมรม</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              อาจารย์ที่ปรึกษาชมรมผู้ให้ความเห็นชอบ <span className="text-rose-600">*</span>
+            </label>
             <input
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="เช่น อาจารย์สมศักดิ์ ดีใจ"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+              placeholder="ระบุชื่อ-นามสกุล และตำแหน่งทางวิชาการของอาจารย์ที่ปรึกษา"
               value={form.advisorName}
               onChange={(e) => set("advisorName", e.target.value)}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">หนังสือร้องขอ (ลงนามโดยอาจารย์ที่ปรึกษา)</label>
-            <p className="text-xs text-gray-400 mb-2">รองรับ PDF — ไม่เกิน 10MB</p>
-            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-              <span className="text-xl mb-1">📄</span>
-              <span className="text-sm text-gray-500">คลิกเพื่อแนบหนังสือร้องขอ</span>
-              <input type="file" accept=".pdf" className="hidden" onChange={handleFile} />
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              เอกสารประกอบคำร้อง (หนังสือรับรอง / ใบรับรองแพทย์ / ผลการแข่งขัน) <span className="text-rose-600">*</span>
             </label>
-            {document && (
-              <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm mt-2">
-                <div className="flex items-center gap-2">
-                  <span>📄</span>
-                  <span className="truncate text-gray-700">{document.name}</span>
-                </div>
-                <button onClick={() => setDocument(null)} className="text-red-400 hover:text-red-600">✕</button>
-              </div>
-            )}
+            <div className="border-2 border-dashed border-slate-300 rounded-lg p-5 text-center hover:border-blue-900 hover:bg-slate-50/50 transition-colors">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                id="doc-upload"
+                className="hidden"
+                onChange={handleFile}
+              />
+              <label htmlFor="doc-upload" className="cursor-pointer block">
+                <span className="text-xs font-semibold text-blue-900 block">
+                  {document ? document.name : "คลิกเพื่อเลือกไฟล์เอกสารแนบ"}
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  รองรับไฟล์ PDF, JPG, PNG ขนาดไม่เกิน 10 MB
+                </span>
+              </label>
+            </div>
           </div>
 
-          <button
-            onClick={handleSubmit}
-            disabled={!isValid || loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
-          >
-            {loading ? "กำลังส่งคำร้อง..." : "ยื่นคำร้อง"}
-          </button>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">
+              * กรุณาตรวจสอบความถูกต้องของข้อมูลก่อนลงนามส่งคำร้อง
+            </span>
+            <button
+              onClick={handleSubmit}
+              disabled={!isValid || loading}
+              className="bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-medium px-6 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              {loading ? "กำลังนำส่งคำร้อง..." : "ลงนามส่งคำร้องไปยังกองกิจการนิสิต"}
+            </button>
+          </div>
+
         </div>
+
       </div>
     </div>
   );

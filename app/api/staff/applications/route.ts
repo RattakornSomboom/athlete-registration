@@ -10,7 +10,7 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || !["STAFF", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะเจ้าหน้าที่)" },
@@ -31,7 +31,11 @@ export async function GET(request: Request) {
     if (competitionId) {
       where.competitionId = competitionId;
     } else if (clubId) {
-      where.competition = { clubId };
+      // Filter by sport that matches the club's sport
+      const club = await prisma.club.findUnique({ where: { id: clubId } });
+      if (club) {
+        where.sport = club.sport;
+      }
     }
 
     const applications = await prisma.application.findMany({
@@ -41,11 +45,7 @@ export async function GET(request: Request) {
           include: { profile: true },
         },
         competition: {
-          include: {
-            club: {
-              select: { id: true, name: true, sport: true },
-            },
-          },
+          include: { quotas: true },
         },
         statusHistory: {
           orderBy: { createdAt: "asc" },
@@ -55,6 +55,7 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
+
 
     // สรุปสถิติ
     const stats = {

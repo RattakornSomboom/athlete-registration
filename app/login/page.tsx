@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UP_FACULTIES } from "@/lib/up-faculties";
+
 const validatePassword = (password: string) => {
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
@@ -113,7 +114,9 @@ export default function LoginPage() {
       } else if (role === "club") {
         localStorage.setItem("current_club_id", data.club.id);
         localStorage.setItem("club", JSON.stringify(data.club));
-        router.push("/club/competitions");
+        router.push("/club/athletes");
+      } else if (role === "team_official") {
+        router.push("/team-official/status");
       } else if (role === "staff") {
         router.push("/staff/applications");
       } else if (role === "admin") {
@@ -127,7 +130,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
 
   // Register Step 1 — ตรวจ account แล้วไป Step 2
   const handleRegisterAccount = (e: React.FormEvent) => {
@@ -205,32 +207,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className={`bg-white rounded-2xl shadow-sm border border-gray-200 w-full p-8 ${registerStep === "profile" ? "max-w-2xl" : "max-w-md"}`}>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
+      <div className={`bg-white rounded-xl shadow-xs border border-slate-200 w-full p-8 ${registerStep === "profile" ? "max-w-2xl" : "max-w-md"}`}>
 
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-2xl font-bold">UP</span>
+          <div className="w-12 h-12 bg-blue-900 text-white rounded-lg flex items-center justify-center mx-auto mb-3 font-bold text-lg border border-blue-800">
+            UP
           </div>
-          <h1 className="text-2xl font-semibold text-gray-900">ระบบลงทะเบียนนักกีฬา</h1>
-          <p className="text-gray-500 text-sm mt-1">กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52</p>
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest block">
+            มหาวิทยาลัยพะเยา · กองกิจการนิสิต
+          </span>
+          <h1 className="text-lg font-bold text-slate-900 mt-1">ระบบสารสนเทศการคัดเลือกนักกีฬา</h1>
+          <p className="text-xs text-slate-500 mt-0.5">กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52</p>
         </div>
 
         {/* Tab — ซ่อนตอนอยู่ใน profile step */}
         {registerStep !== "profile" && (
-          <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+          <div className="flex rounded-lg bg-slate-100 p-1 mb-6 border border-slate-200">
             <button
               type="button"
               onClick={() => { setMode("login"); setError(""); setRegisterStep("account"); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === "login" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${mode === "login" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"}`}
             >
               เข้าสู่ระบบ
             </button>
             <button
               type="button"
               onClick={() => { setMode("register"); setError(""); setRegisterStep("account"); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${mode === "register" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${mode === "register" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"}`}
             >
               ลงทะเบียน (ครั้งแรก)
             </button>
@@ -241,20 +246,20 @@ export default function LoginPage() {
         {mode === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username ทางการ)</label>
               <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm((p) => ({ ...p, username: e.target.value }))}
-                placeholder="xxxxxxxx@up.ac.th"
+                placeholder="66xxxxxx@up.ac.th"
                 required
                 autoComplete="off"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -263,82 +268,119 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none pr-10"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]">
                   {showPassword ? "ซ่อน" : "แสดง"}
                 </button>
               </div>
             </div>
 
-            {successMessage && <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2.5 rounded-lg">{successMessage}</div>}
-            {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-lg">{error}</div>}
+            {successMessage && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs px-3 py-2 rounded-lg">{successMessage}</div>}
+            {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2 rounded-lg">{error}</div>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white font-medium py-2.5 rounded-lg text-xs transition-colors cursor-pointer"
             >
-              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              {loading ? "กำลังตรวจสอบสิทธิ์..." : "เข้าสู่ระบบ"}
             </button>
 
-            <p className="text-center text-xs text-gray-400">
-              ยังไม่มีบัญชี?{" "}
-              <button type="button" onClick={() => setMode("register")} className="text-blue-600 hover:underline">ลงทะเบียนครั้งแรก</button>
+            <p className="text-center text-xs text-slate-500">
+              ยังไม่มีบัญชีในระบบ?{" "}
+              <button type="button" onClick={() => setMode("register")} className="text-blue-900 font-semibold hover:underline">ลงทะเบียนครั้งแรก</button>
             </p>
+
+            {/* ทางลัดเข้าสู่ระบบตามบทบาทสำหรับทดสอบ */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
+                ทางลัดเข้าสู่ระบบตามกลุ่มผู้ใช้งาน (Quick Access)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => router.push("/athlete/status")}
+                  className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
+                >
+                  นิสิต / นักกีฬา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/club/athletes")}
+                  className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
+                >
+                  ประธานชมรมกีฬา
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/team-official/status")}
+                  className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
+                >
+                  เจ้าหน้าที่ทีม / โค้ช
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/staff/analytics")}
+                  className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded text-[11px] font-semibold transition-colors text-center cursor-pointer"
+                >
+                  เจ้าหน้าที่กองกิจการนิสิต
+                </button>
+              </div>
+            </div>
           </form>
         )}
 
         {/* ===== REGISTER STEP 1: กรอก Account ===== */}
         {mode === "register" && registerStep === "account" && (
           <form onSubmit={handleRegisterAccount} className="space-y-4">
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
-              กรอกรหัสนิสิตเพื่อสร้าง Username สำหรับเข้าสู่ระบบในครั้งถัดไป
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700">
+              กรอกรหัสประจำตัวนิสิต 8 หลัก เพื่อสร้างบัญชีผู้ใช้งานระบบสารสนเทศ
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">รหัสประจำตัวนิสิต (8 หลัก)</label>
               <input
                 type="text"
                 value={registerForm.studentId}
                 onChange={(e) => setRegisterForm((p) => ({ ...p, studentId: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
-                placeholder="xxxxxxxx"
+                placeholder="66xxxxxx"
                 required
                 maxLength={8}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
               />
               {registerForm.studentId.length === 8 && (
-                <p className="text-xs text-gray-500 mt-1">Username ของคุณคือ <span className="font-medium text-blue-600">{username}</span></p>
+                <p className="text-[11px] text-slate-500 mt-1">Username ทางการของคุณคือ <span className="font-semibold text-blue-900">{username}</span></p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ตั้งรหัสผ่าน</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">กำหนดรหัสผ่าน</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={registerForm.password}
                   onChange={(e) => setRegisterForm((p) => ({ ...p, password: e.target.value }))}
-                  placeholder="ตั้งรหัสผ่าน"
+                  placeholder="กำหนดรหัสผ่านความปลอดภัยสูง"
                   required
                   autoComplete="new-password"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none pr-12"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]">
                   {showPassword ? "ซ่อน" : "แสดง"}
                 </button>
               </div>
 
               {/* Password checklist */}
               {registerForm.password.length > 0 && (
-                <div className="mt-2 grid grid-cols-2 gap-1">
+                <div className="mt-2 grid grid-cols-2 gap-1 p-2 bg-slate-50 border border-slate-200 rounded-md">
                   {[
                     { ok: passwordCheck.hasUpper, label: "A-Z อย่างน้อย 1 ตัว" },
                     { ok: passwordCheck.hasLower, label: "a-z อย่างน้อย 1 ตัว" },
                     { ok: passwordCheck.hasNumber, label: "0-9 อย่างน้อย 1 ตัว" },
                     { ok: passwordCheck.hasSpecial, label: "อักษรพิเศษอย่างน้อย 1 ตัว" },
                   ].map((item) => (
-                    <p key={item.label} className={`text-xs flex items-center gap-1 ${item.ok ? "text-green-600" : "text-gray-400"}`}>
+                    <p key={item.label} className={`text-[10px] flex items-center gap-1 ${item.ok ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
                       <span>{item.ok ? "✓" : "○"}</span> {item.label}
                     </p>
                   ))}
@@ -347,45 +389,45 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่าน</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">ยืนยันรหัสผ่านอีกครั้ง</label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={registerForm.confirmPassword}
                   onChange={(e) => setRegisterForm((p) => ({ ...p, confirmPassword: e.target.value }))}
-                  placeholder="ยืนยันรหัสผ่าน"
+                  placeholder="กรอกรหัสผ่านเดิมซ้ำอีกครั้ง"
                   required
                   autoComplete="new-password"
-                  className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10 ${registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword
-                    ? "border-red-300 focus:ring-red-400"
-                    : "border-gray-300"
+                  className={`w-full px-3 py-2 rounded-lg border text-xs focus:ring-2 focus:ring-blue-900 outline-none pr-12 ${registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword
+                    ? "border-rose-300 focus:ring-rose-400"
+                    : "border-slate-300"
                     }`}
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]">
                   {showConfirmPassword ? "ซ่อน" : "แสดง"}
                 </button>
               </div>
               {registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
-                <p className="text-xs text-red-500 mt-1">รหัสผ่านไม่ตรงกัน</p>
+                <p className="text-[11px] text-rose-600 mt-1">รหัสผ่านไม่ตรงกัน</p>
               )}
               {registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword && (
-                <p className="text-xs text-green-600 mt-1">✓ รหัสผ่านตรงกัน</p>
+                <p className="text-[11px] text-emerald-700 font-medium mt-1">✓ รหัสผ่านตรงกันเรียบร้อย</p>
               )}
             </div>
 
-            {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-lg">{error}</div>}
+            {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2 rounded-lg">{error}</div>}
 
             <button
               type="submit"
               disabled={!passwordCheck.valid || registerForm.password !== registerForm.confirmPassword || registerForm.studentId.length !== 8}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg text-xs transition-colors cursor-pointer"
             >
-              ถัดไป: กรอกข้อมูลส่วนตัว →
+              ถัดไป: บันทึกข้อมูลประวัตินิสิต →
             </button>
 
-            <p className="text-center text-xs text-gray-400">
-              มีบัญชีอยู่แล้ว?{" "}
-              <button type="button" onClick={() => setMode("login")} className="text-blue-600 hover:underline">เข้าสู่ระบบ</button>
+            <p className="text-center text-xs text-slate-500">
+              มีบัญชีในระบบอยู่แล้ว?{" "}
+              <button type="button" onClick={() => setMode("login")} className="text-blue-900 font-semibold hover:underline">เข้าสู่ระบบ</button>
             </p>
           </form>
         )}
@@ -395,39 +437,38 @@ export default function LoginPage() {
           <form onSubmit={handleRegisterProfile} className="space-y-4">
 
             {/* Header step 2 */}
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-2">
+              <div>
+                <p className="text-sm font-bold text-slate-900">บันทึกข้อมูลประวัตินิสิต (ขั้นตอนที่ 2)</p>
+                <p className="text-[11px] text-slate-500">ข้อมูลนี้จะถูกบันทึกเป็นฐานข้อมูลประวัตินักกีฬาทางการของสถาบัน</p>
+              </div>
               <button
                 type="button"
                 onClick={() => { setRegisterStep("account"); setError(""); }}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-xs text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 py-1 rounded cursor-pointer"
               >
                 ← ย้อนกลับ
               </button>
-              <div>
-                <p className="text-sm font-medium text-gray-900">กรอกข้อมูลส่วนตัว</p>
-                <p className="text-xs text-gray-500">ข้อมูลนี้จะถูกบันทึกและใช้ในการสมัครแข่งขัน</p>
-              </div>
             </div>
 
             {/* Mini step indicator */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-xs font-medium text-white">✓</div>
-                <span className="text-xs text-gray-400">ตั้งรหัสผ่าน</span>
+            <div className="flex items-center gap-2 mb-4 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-bold text-white">✓</div>
+                <span className="text-slate-500 font-medium">1. กำหนดรหัสผ่าน</span>
               </div>
-              <div className="w-6 h-0.5 bg-blue-600" />
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-medium text-white">2</div>
-                <span className="text-xs text-gray-900 font-medium">ข้อมูลส่วนตัว</span>
+              <div className="w-6 h-0.5 bg-blue-900" />
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full bg-blue-900 flex items-center justify-center text-[10px] font-bold text-white">2</div>
+                <span className="text-slate-900 font-bold">2. บันทึกข้อมูลประวัตินิสิต</span>
               </div>
             </div>
 
             {/* รูปถ่าย */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">รูปถ่ายชุดนิสิต (ขนาด 1 นิ้ว)</p>
-              <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                <span className="text-2xl mb-1">📷</span>
-                <span className="text-xs text-gray-500 text-center px-2">{photo ? photo.name : "แนบรูปถ่าย"}</span>
+              <p className="text-xs font-semibold text-slate-700 mb-1.5">รูปถ่ายหน้าตรงชุดนิสิต (ขนาด 1 นิ้ว สำหรับทำบัตรประจำตัว)</p>
+              <label className="flex flex-col items-center justify-center w-28 h-28 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-slate-50 transition-colors">
+                <span className="text-xs text-slate-500 text-center px-2">{photo ? photo.name : "คลิกแนบรูปถ่าย"}</span>
                 <input
                   type="file"
                   accept=".jpg,.jpeg,.png"
@@ -441,47 +482,47 @@ export default function LoginPage() {
             </div>
 
             {/* ข้อมูลนิสิต */}
-            <p className="text-sm font-medium text-gray-700 pt-2">ข้อมูลนิสิต</p>
+            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 uppercase tracking-wider">ข้อมูลส่วนตัวและสถานภาพการศึกษา</p>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="" value={profileForm.firstName} onChange={(e) => setProfile("firstName", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">ชื่อจริง</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" placeholder="ชื่อจริง" value={profileForm.firstName} onChange={(e) => setProfile("firstName", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">นามสกุล</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="" value={profileForm.lastName} onChange={(e) => setProfile("lastName", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">นามสกุล</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" placeholder="นามสกุล" value={profileForm.lastName} onChange={(e) => setProfile("lastName", e.target.value)} />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">รหัสนิสิต</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">รหัสประจำตัวนิสิต</label>
               <input
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-100 bg-gray-50 text-sm text-gray-500 cursor-not-allowed"
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-500 font-mono cursor-not-allowed"
                 value={registerForm.studentId}
                 disabled
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">คณะ</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">คณะ / วิทยาลัย</label>
               <select
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                 value={profileForm.faculty}
                 onChange={(e) => { setProfile("faculty", e.target.value); setProfile("major", ""); }}
               >
-                <option value="">-- กรุณาเลือกคณะ --</option>
+                <option value="">-- กรุณาเลือกคณะต้นสังกัด --</option>
                 {UP_FACULTIES.map((f) => (
                   <option key={f.name} value={f.name}>{f.name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">สาขา</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">สาขาวิชา</label>
                 <select
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                   value={profileForm.major}
                   onChange={(e) => setProfile("major", e.target.value)}
                   disabled={!profileForm.faculty}
@@ -493,100 +534,100 @@ export default function LoginPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ระดับการศึกษา</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">ระดับการศึกษา</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setProfile("studentLevel", "bachelor")} className={`px-2 py-2.5 rounded-lg text-xs font-medium border transition-colors ${profileForm.studentLevel === "bachelor" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>ปริญญาตรี</button>
-                  <button type="button" onClick={() => setProfile("studentLevel", "graduate")} className={`px-2 py-2.5 rounded-lg text-xs font-medium border transition-colors ${profileForm.studentLevel === "graduate" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>บัณฑิตศึกษา</button>
+                  <button type="button" onClick={() => setProfile("studentLevel", "bachelor")} className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${profileForm.studentLevel === "bachelor" ? "bg-blue-900 text-white border-blue-900 font-bold" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}>ปริญญาตรี</button>
+                  <button type="button" onClick={() => setProfile("studentLevel", "graduate")} className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${profileForm.studentLevel === "graduate" ? "bg-blue-900 text-white border-blue-900 font-bold" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}>บัณฑิตศึกษา</button>
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ชั้นปี</label>
+              <label className="block text-xs font-medium text-slate-700 mb-1">ชั้นปีปัจจุบัน</label>
               <select
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
                 value={profileForm.year}
                 onChange={(e) => setProfile("year", e.target.value)}
               >
                 <option value="">เลือกชั้นปี</option>
                 {["1", "2", "3", "4", "5", "6"].map((y) => (
-                  <option key={y} value={y}>ปี {y}</option>
+                  <option key={y} value={y}>ปีที่ {y}</option>
                 ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประจำตัวประชาชน</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="X-XXXX-XXXXX-XX-X" value={profileForm.nationalId} onChange={(e) => setProfile("nationalId", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">เลขบัตรประจำตัวประชาชน</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" placeholder="X-XXXX-XXXXX-XX-X" value={profileForm.nationalId} onChange={(e) => setProfile("nationalId", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">สัญชาติ</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.nationality} onChange={(e) => setProfile("nationality", e.target.value)} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">วันเดือนปีเกิด</label>
-                <input type="date" className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.birthDate} onChange={(e) => setProfile("birthDate", e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0XX-XXX-XXXX" value={profileForm.phone} onChange={(e) => setProfile("phone", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">สัญชาติ</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.nationality} onChange={(e) => setProfile("nationality", e.target.value)} />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เกรดเฉลี่ย (ภาคล่าสุด)</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น X.XX" value={profileForm.gpaSemester} onChange={(e) => setProfile("gpaSemester", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">วันเดือนปีเกิด</label>
+                <input type="date" className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.birthDate} onChange={(e) => setProfile("birthDate", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">เกรดเฉลี่ยสะสม</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น X.XX" value={profileForm.gpaCumulative} onChange={(e) => setProfile("gpaCumulative", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" placeholder="0XX-XXX-XXXX" value={profileForm.phone} onChange={(e) => setProfile("phone", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">เกรดเฉลี่ย (ภาคล่าสุด)</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" placeholder="เช่น 3.25" value={profileForm.gpaSemester} onChange={(e) => setProfile("gpaSemester", e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">เกรดเฉลี่ยสะสม (GPAX)</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" placeholder="เช่น 3.40" value={profileForm.gpaCumulative} onChange={(e) => setProfile("gpaCumulative", e.target.value)} />
               </div>
             </div>
 
             {/* ที่อยู่ */}
-            <p className="text-sm font-medium text-gray-700 pt-2">ที่อยู่ปัจจุบัน</p>
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 uppercase tracking-wider">ที่อยู่ตามทะเบียนบ้าน/ที่อยู่ปัจจุบัน</p>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.addressNo} onChange={(e) => setProfile("addressNo", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">บ้านเลขที่ / หมู่</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.addressNo} onChange={(e) => setProfile("addressNo", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.subDistrict} onChange={(e) => setProfile("subDistrict", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">ตำบล / แขวง</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.subDistrict} onChange={(e) => setProfile("subDistrict", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.district} onChange={(e) => setProfile("district", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">อำเภอ / เขต</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.district} onChange={(e) => setProfile("district", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.province} onChange={(e) => setProfile("province", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">จังหวัด</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.province} onChange={(e) => setProfile("province", e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">รหัสไปรษณีย์</label>
-                <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={profileForm.postalCode} onChange={(e) => setProfile("postalCode", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">รหัสไปรษณีย์</label>
+                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.postalCode} onChange={(e) => setProfile("postalCode", e.target.value)} />
               </div>
             </div>
 
-            {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-2.5 rounded-lg">{error}</div>}
+            {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2 rounded-lg">{error}</div>}
 
             <button
               type="submit"
               disabled={loading || !profileValid}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
+              className="w-full bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg text-xs transition-colors cursor-pointer"
             >
-              {loading ? "กำลังบันทึก..." : "บันทึกและเข้าสู่ระบบ"}
+              {loading ? "กำลังบันทึกข้อมูลเข้าฐานข้อมูล..." : "บันทึกประวัติและเข้าสู่ระบบ"}
             </button>
           </form>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          หากมีปัญหาการเข้าใช้งาน กรุณาติดต่องานกิจการนิสิต
+        <p className="text-center text-[11px] text-slate-400 mt-6 border-t border-slate-100 pt-3">
+          หากพบปัญหาการเข้าใช้งานระบบ กรุณาติดต่องานกีฬา กองกิจการนิสิต มหาวิทยาลัยพะเยา
         </p>
       </div>
     </div>

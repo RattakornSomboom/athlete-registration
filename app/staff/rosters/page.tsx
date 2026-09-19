@@ -1,0 +1,14 @@
+"use client";
+import { useEffect,useState } from "react";
+import Link from "next/link";
+import { Page,Notice,History,PrivateFile,buttonClass,fieldClass } from "@/components/shared/Phase4UI";
+import { requestJson,errorMessage,type HistoryEvent } from "@/lib/phase4-client";
+type Roster = {id:string;version:number;status:string;documentId:string|null;club:{name:string;sport:string};competition:{name:string};events:HistoryEvent[];items:{id:string;squadType:string;application:{id:string;status:string;user:{studentId:string;profile:{firstName:string;lastName:string}|null}}}[]};
+export default function Rosters() {
+  const [rows,setRows]=useState<Roster[]>([]);const [message,setMessage]=useState("");const [busy,setBusy]=useState(true);const [reason,setReason]=useState<Record<string,string>>({});
+  async function load(){setBusy(true);try{const d=await requestJson<{rosters:Roster[]}>("/api/staff/rosters");setRows(d.rosters);}catch(e){setMessage(errorMessage(e));}finally{setBusy(false);}}
+  useEffect(()=>{let active=true;requestJson<{rosters:Roster[]}>("/api/staff/rosters").then(d=>{if(active)setRows(d.rosters);}).catch(e=>{if(active)setMessage(errorMessage(e));}).finally(()=>{if(active)setBusy(false);});return()=>{active=false;};},[]);
+  async function sendBack(r:Roster){setBusy(true);setMessage("");try{await requestJson("/api/staff/rosters",{id:r.id,version:r.version,reason:reason[r.id]});await load();setMessage("ส่งคืนบัญชีและรีเซ็ตผลเพื่อพิจารณาใหม่แล้ว");}catch(e){setMessage(errorMessage(e));}finally{setBusy(false);}}
+  return <Page title="ตรวจบัญชีชมรม"><Notice text={message}/><button className={buttonClass} disabled={busy} onClick={()=>void load()}>โหลดข้อมูลล่าสุด</button>{busy && <p>กำลังโหลด…</p>}{!busy&&!rows.length&&<p>ยังไม่มีบัญชีชมรม</p>}{rows.map(r=><section key={r.id} className="space-y-3 rounded-xl border bg-white p-5"><h2 className="text-lg font-bold">{r.club.name} · {r.competition.name}</h2><p>{r.club.sport} · {r.status} · รุ่น {r.version}</p>{r.documentId&&<PrivateFile id={r.documentId}/>}<ul>{r.items.map(i=><li key={i.id}><Link className="text-purple-700 underline" href={"/staff/applications/"+i.application.id}>{i.application.user.profile?.firstName} {i.application.user.profile?.lastName} ({i.application.user.studentId})</Link> · {i.squadType==="main"?"ตัวจริง":"สำรอง"} · {i.application.status}</li>)}</ul>{r.status==="SUBMITTED"&&!r.items.some(i=>i.application.status==="FINAL_SELECTED")&&<div className="flex flex-wrap gap-2"><input aria-label={"เหตุผลส่งคืน "+r.club.name} placeholder="เหตุผลที่ส่งคืน (บังคับ)" className={fieldClass} value={reason[r.id]??""} onChange={e=>setReason({...reason,[r.id]:e.target.value})}/><button className={buttonClass} disabled={busy||!reason[r.id]?.trim()} onClick={()=>void sendBack(r)}>ส่งคืนให้ชมรมแก้ไข</button></div>}<History events={r.events}/></section>)}</Page>;
+}
+

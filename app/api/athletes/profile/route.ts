@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session) {
       return NextResponse.json(
         { error: "กรุณาเข้าสู่ระบบก่อน" },
@@ -67,7 +67,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { studentId, ...profileData } = body;
 
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || session.studentId !== studentId) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์แก้ไขข้อมูลของผู้อื่น" },

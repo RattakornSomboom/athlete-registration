@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || !["STAFF", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง" },

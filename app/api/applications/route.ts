@@ -1,50 +1,28 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
 /**
- * GET /api/applications?userId=...&status=...
- * ดูรายการใบสมัคร (filter ด้วย userId หรือ status ได้)
+ * GET /api/applications
+ * ดูรายการใบสมัครของตัวเอง (เฉพาะนักกีฬา)
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
-    if (!session) {
+    const session = await getSession(request as NextRequest);
+    if (!session || session.role !== "ATHLETE") {
       return NextResponse.json(
-        { error: "กรุณาเข้าสู่ระบบก่อน" },
-        { status: 401 }
+        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะนักกีฬา)" },
+        { status: 403 }
       );
     }
 
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const studentId = searchParams.get("studentId");
     const status = searchParams.get("status");
-    const competitionId = searchParams.get("competitionId");
 
-    const where: Record<string, unknown> = {};
-
-    if (competitionId) {
-      where.competitionId = competitionId;
-    }
-
-    if (session.role === "ATHLETE") {
-      where.userId = session.id;
-    } else {
-      if (userId) {
-        where.userId = userId;
-      } else if (studentId) {
-        const user = await prisma.user.findUnique({
-          where: { studentId },
-        });
-        if (user) {
-          where.userId = user.id;
-        } else {
-          return NextResponse.json({ applications: [] });
-        }
-      }
-    }
+    const where: Record<string, unknown> = {
+      userId: session.id,
+    };
 
     if (status) {
       where.status = status.toUpperCase();
@@ -57,7 +35,7 @@ export async function GET(request: Request) {
           include: { profile: true },
         },
         competition: {
-          include: { club: true },
+          include: { quotas: true },
         },
         statusHistory: {
           orderBy: { createdAt: "asc" },
@@ -80,23 +58,12 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/applications
- * ส่งใบสมัครลงแข่ง
- *
- * Body: {
- *   studentId: string,
- *   competitionId: string,
- *   sport: string,
- *   category: string,
- *   division?: string,
- *   note?: string,
- *   sportEntries?: Array<{ sport, category, division? }>,
- *   competitionResults?: Array<{ competitionName, year, result }>
- * }
+ * ส่งใบสมัครเข้าร่วมการแข่งขัน (เฉพาะนักกีฬา)
  */
 export async function POST(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
-    if (!session || session.role !== "ATHLETE") {
+    const session = await getSession(request as NextRequest);
+    if (!session || (session.role !== "ATHLETE" && session.role !== "SUPERADMIN")) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะนักกีฬา)" },
         { status: 403 }
@@ -122,16 +89,30 @@ export async function POST(request: Request) {
       noClubFileUrl,
       supervisorName,
       supervisorPosition,
-      round,
       previousBachelorCount,
       previousGraduateCount,
-      previousLastYear,
     } = body;
 
     if (!studentId || !competitionId || !sport || !category) {
       return NextResponse.json(
         { error: "กรุณากรอกข้อมูลให้ครบถ้วน" },
         { status: 400 }
+      );
+    }
+    
+    // Mandatory document check (not empty strings)
+    if (!photoFileUrl?.trim() || !idCardFileUrl?.trim() || !studentCardFileUrl?.trim() || !studentCertFileUrl?.trim() || !upAcademyFileUrl?.trim() || !fitnessTestFileUrl?.trim()) {
+      return NextResponse.json(
+        { error: "กรุณาแนบเอกสารบังคับให้ครบถ้วน" },
+        { status: 400 }
+      );
+    }
+
+    // Prevent spoofing: ATHLETE can only submit for themselves
+    if (session.role === "ATHLETE" && session.studentId && studentId !== session.studentId) {
+      return NextResponse.json(
+        { error: "ไม่มีสิทธิ์ส่งใบสมัครแทนผู้อื่น" },
+        { status: 403 }
       );
     }
 
@@ -147,13 +128,47 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate Competition Status & Deadline
+    const competition = await prisma.competition.findUnique({ where: { id: competitionId } });
+    if (!competition) {
+      return NextResponse.json({ error: "ไม่พบการแข่งขัน" }, { status: 404 });
+    }
+    if (competition.status === "CLOSED") {
+      return NextResponse.json({ error: "รายการแข่งขันนี้ปิดรับสมัครแล้ว" }, { status: 400 });
+    }
+    if (competition.deadline && new Date(competition.deadline) < new Date()) {
+      return NextResponse.json({ error: "หมดเขตรับสมัครแล้ว" }, { status: 400 });
+    }
+
+    // Duplicate Check
+    const existingApp = await prisma.application.findUnique({
+      where: {
+        userId_competitionId_sport: {
+          userId: user.id,
+          competitionId,
+          sport
+        }
+      }
+    });
+    
+    if (existingApp) {
+      return NextResponse.json({ error: "ท่านได้ส่งใบสมัครสำหรับชนิดกีฬานี้ในรายการแข่งขันนี้ไปแล้ว" }, { status: 409 });
+    }
+
     // ─── การตรวจสอบสิทธิ์ (Validation) ───
     const CURRENT_YEAR_CE = 2026;
     const birthYearCE = user.profile.birthDate.getFullYear();
     const athleteAge = CURRENT_YEAR_CE - birthYearCE;
-    if (athleteAge > 28) {
+    
+    // Check if Staff set a custom age limit for this sport
+    const quota = await prisma.sportQuota.findFirst({
+      where: { competitionId, sport }
+    });
+    const maxAge = quota?.ageLimit || 28;
+
+    if (athleteAge > maxAge) {
       return NextResponse.json(
-        { error: `ไม่อนุญาตให้สมัคร เนื่องจากอายุเกิน 28 ปี (อายุ ${athleteAge} ปี)` },
+        { error: `ไม่อนุญาตให้สมัคร เนื่องจากอายุเกิน ${maxAge} ปี (อายุ ${athleteAge} ปี)` },
         { status: 400 }
       );
     }
@@ -179,12 +194,12 @@ export async function POST(request: Request) {
         division: division || null,
         note: note || null,
         status: "SUBMITTED",
-        photoFileUrl: photoFileUrl || "",
-        idCardFileUrl: idCardFileUrl || "",
-        studentCardFileUrl: studentCardFileUrl || "",
-        studentCertFileUrl: studentCertFileUrl || "",
-        upAcademyFileUrl: upAcademyFileUrl || "",
-        fitnessTestFileUrl: fitnessTestFileUrl || "",
+        photoFileUrl: photoFileUrl,
+        idCardFileUrl: idCardFileUrl,
+        studentCardFileUrl: studentCardFileUrl,
+        studentCertFileUrl: studentCertFileUrl,
+        upAcademyFileUrl: upAcademyFileUrl,
+        fitnessTestFileUrl: fitnessTestFileUrl,
         noClubFileUrl: noClubFileUrl || null,
         supervisorName: supervisorName || null,
         supervisorPosition: supervisorPosition || null,

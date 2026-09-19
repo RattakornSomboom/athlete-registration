@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = getSession(request);
+    const session = await getSession(request);
 
     if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

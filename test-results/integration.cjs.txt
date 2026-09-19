@@ -1,0 +1,200 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+require('dotenv').config({ quiet: true });
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000 });
+const db = new PrismaClient({ adapter: new PrismaPg(pool) });
+const tag = `QA_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+const password = crypto.randomBytes(18).toString('hex');
+const out = { tag, started: new Date().toISOString(), cases: [], cleanup: {} };
+const owned = { userIds: [], studentIds: [], clubIds: [], competitionIds: [], uploads: [] };
+function record(name, pass, detail = {}) {
+  const r = { name, pass, ...detail }; out.cases.push(r);
+  fs.writeFileSync('test-results/integration.json', JSON.stringify(out, null, 2));
+  console.log(JSON.stringify(r));
+}
+async function request(name, method, url, cookie, body, expected, assertion) {
+  try {
+    const form = body instanceof FormData;
+    const r = await fetch(`http://localhost:3100${url}`, {
+      method, redirect: 'manual', signal: AbortSignal.timeout(30000),
+      headers: { ...(cookie ? { cookie } : {}), ...(body && !form ? { 'content-type': 'application/json' } : {}) },
+      body: body === undefined ? undefined : form ? body : JSON.stringify(body),
+    });
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = null; }
+    const cookies = r.headers.getSetCookie().map(s => s.split(';')[0]).join('; ');
+    const allowed = Array.isArray(expected) ? expected : [expected];
+    record(name, allowed.includes(r.status) && (!assertion || assertion(data, r)), { method, url, status: r.status, expected: allowed });
+    return { data, status: r.status, cookie: cookies, headers: r.headers };
+  } catch (e) { record(name, false, { method, url, error: e.name }); return {}; }
+}
+async function login(name, username) {
+  return (await request(name, 'POST', '/api/auth/login', null, { username, password }, 200, d => !!d.role && !d.user?.password && !d.club?.password)).cookie;
+}
+async function nextStudent() {
+  for (;;) { const id = String(99000000 + crypto.randomInt(999999)); if (!await db.user.findUnique({ where: { studentId: id } })) { owned.studentIds.push(id); return id; } }
+}
+async function seedRole(role) {
+  const studentId = await nextStudent();
+  const u = await db.user.create({ data: { studentId, email: `${tag}_${role}@example.invalid`, role, password: await bcrypt.hash(password, 10) } });
+  owned.userIds.push(u.id); return { ...u, cookie: await login(`login ${role}`, studentId) };
+}
+function walk(dir) { return fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]); }
+async function main() {
+  // No genuine accounts or credentials are copied to the result file.
+  const admin = await seedRole('ADMIN'); const staff = await seedRole('STAFF');
+  const athletes = [];
+  for (let i = 0; i < 2; i++) {
+    const studentId = await nextStudent();
+    const profile = { firstName: tag, lastName: `Athlete${i}`, faculty: 'QA Faculty', major: 'QA Major', studentLevel: 'bachelor', year: '1', nationalId: '0000000000000', birthDate: '2005-01-01', addressNo: '0', subDistrict: 'QA', district: 'QA', province: 'QA', postalCode: '00000', phone: '0000000000', gpaCumulative: '3.00' };
+    const created = await request(`register athlete ${i}`, 'POST', '/api/auth/register', null, { studentId, password, profile }, 201, d => !d.user?.password);
+    if (!created.data?.user?.id) throw new Error('FixtureRegistrationFailed');
+    owned.userIds.push(created.data.user.id);
+    athletes.push({ studentId, id: created.data.user.id, cookie: await login(`login athlete ${i}`, studentId) });
+  }
+  const [a, b] = athletes;
+  await request('register duplicate', 'POST', '/api/auth/register', null, { studentId: a.studentId, password }, 409);
+  await request('register invalid student ID', 'POST', '/api/auth/register', null, { studentId: 'bad', password }, 400);
+  await request('login empty payload validation', 'POST', '/api/auth/login', null, {}, 400);
+  await request('login numeric username validation', 'POST', '/api/auth/login', null, { username: 12, password }, 400);
+  await request('login wrong password', 'POST', '/api/auth/login', null, { username: a.studentId, password: 'wrong-password' }, 401);
+  await request('get own session', 'GET', '/api/auth/me', a.cookie, undefined, 200, d => d.user?.id === a.id && !d.user?.password);
+  await request('reject invalid JWT', 'GET', '/api/auth/me', 'token=invalid', undefined, 401);
+  await request('read own profile', 'GET', `/api/athletes/profile?studentId=${a.studentId}`, a.cookie, undefined, 200);
+  await request('reject other athlete profile', 'GET', `/api/athletes/profile?studentId=${b.studentId}`, a.cookie, undefined, 403);
+  await request('update own profile', 'PUT', '/api/athletes/profile', a.cookie, { studentId: a.studentId, phone: '0000000001' }, 200, d => d.profile?.phone === '0000000001');
+  await request('reject update other athlete profile', 'PUT', '/api/athletes/profile', a.cookie, { studentId: b.studentId, phone: '0000000002' }, 403);
+  const clubs = [];
+  for (let i = 0; i < 2; i++) {
+    const email = `${tag}_club${i}@example.invalid`.toLowerCase();
+    const c = await request(`create club ${i}`, 'POST', '/api/clubs', admin.cookie, { name: `${tag}_club${i}`, sport: `${tag}_sport${i}`, email, password }, 201);
+    if (!c.data?.club?.id) throw new Error('FixtureClubFailed');
+    owned.clubIds.push(c.data.club.id);
+    clubs.push({ ...c.data.club, cookie: await login(`login club ${i}`, email) });
+  }
+  const [c, otherClub] = clubs;
+  await request('admin approve test club', 'PUT', `/api/admin/clubs/${c.id}/approve`, admin.cookie, {}, 200);
+  await request('admin set test club president', 'PUT', `/api/admin/clubs/${c.id}/president`, admin.cookie, { presidentName: tag, presidentPhone: '0000000000', email: c.email }, 200);
+  await request('club update own profile', 'PUT', `/api/clubs/${c.id}`, c.cookie, { name: `${tag}_club_updated` }, 200);
+  await request('club cannot update another club', 'PUT', `/api/clubs/${otherClub.id}`, c.cookie, { name: `${tag}_forbidden` }, 403);
+  const competition = await request('staff create competition', 'POST', '/api/competitions', staff.cookie, { name: tag, round: 'QA', year: 2026, deadline: '2027-01-01', quotas: [{ sport: c.sport, maxStarters: 2, maxSubstitutes: 1, ageLimit: 28 }] }, 201);
+  if (!competition.data?.competition?.id) throw new Error('FixtureCompetitionFailed');
+  const competitionId = competition.data.competition.id; owned.competitionIds.push(competitionId);
+  await request('list competitions', 'GET', '/api/competitions', a.cookie, undefined, 200);
+  await request('competition detail', 'GET', `/api/competitions/${competitionId}`, a.cookie, undefined, 200);
+  await request('club competitions', 'GET', `/api/clubs/${c.id}/competitions`, c.cookie, undefined, 200);
+  const applicationBody = { studentId: a.studentId, competitionId, sport: c.sport, category: 'QA', photoFileUrl: '', idCardFileUrl: '', studentCardFileUrl: '', studentCertFileUrl: '', upAcademyFileUrl: '', fitnessTestFileUrl: '' };
+  const application = await request('submit application', 'POST', '/api/applications', a.cookie, applicationBody, 201);
+  const applicationId = application.data?.application?.id;
+  await request('application listing athlete', 'GET', '/api/applications', a.cookie, undefined, 200);
+  await request('application listing staff', 'GET', '/api/staff/applications', staff.cookie, undefined, 200);
+  if (applicationId) {
+    await request('application detail owner', 'GET', `/api/applications/${applicationId}`, a.cookie, undefined, 200);
+    await request('application detail other athlete denied', 'GET', `/api/applications/${applicationId}`, b.cookie, undefined, 403);
+    await request('other athlete cannot delete application', 'DELETE', `/api/applications/${applicationId}`, b.cookie, undefined, 403);
+    await request('other club cannot approve application', 'PATCH', `/api/applications/${applicationId}`, otherClub.cookie, { status: 'CLUB_APPROVED', label: 'QA', by: tag }, 403);
+    await request('own club approve application', 'PATCH', `/api/applications/${applicationId}`, c.cookie, { status: 'CLUB_APPROVED', label: 'QA', by: tag }, 200);
+    await request('staff approve application', 'PATCH', `/api/applications/${applicationId}`, staff.cookie, { status: 'STAFF_APPROVED', label: 'QA', by: tag }, 200);
+    await request('announce only test application', 'POST', '/api/staff/applications/announce', staff.cookie, { applicationIds: [applicationId] }, 200, d => d.count === 1);
+    record('announced status persisted', (await db.application.findUnique({ where: { id: applicationId } }))?.status === 'FINAL_SELECTED');
+  }
+  await request('reject application on behalf of other athlete', 'POST', '/api/applications', a.cookie, { ...applicationBody, studentId: b.studentId }, 403);
+  await request('reject duplicate application', 'POST', '/api/applications', a.cookie, applicationBody, [400, 409]);
+  await request('reject maximum participation count', 'POST', '/api/applications', a.cookie, { ...applicationBody, previousBachelorCount: '5' }, 400);
+  await db.athleteProfile.update({ where: { userId: a.id }, data: { birthDate: new Date('1980-01-01') } });
+  await request('reject over-age athlete', 'POST', '/api/applications', a.cookie, applicationBody, 400);
+  await db.athleteProfile.update({ where: { userId: a.id }, data: { birthDate: new Date('2005-01-01') } });
+  await db.competition.update({ where: { id: competitionId }, data: { status: 'CLOSED', deadline: new Date('2020-01-01') } });
+  await request('reject closed/expired competition application', 'POST', '/api/applications', b.cookie, { ...applicationBody, studentId: b.studentId }, [400, 403]);
+  await request('club athletes authenticated', 'GET', `/api/clubs/${c.id}/athletes`, c.cookie, undefined, 200, d => !d.athletes?.some(x => x.user?.password));
+  await request('club athlete data requires authentication', 'GET', `/api/clubs/${c.id}/athletes`, null, undefined, [401, 403]);
+  await request('export applications XLSX', 'GET', `/api/export/applications?competitionId=${competitionId}`, staff.cookie, undefined, 200, (_, r) => (r.headers.get('content-type') || '').includes('spreadsheet'));
+  await request('dashboard statistics', 'GET', '/api/stats/dashboard', staff.cookie, undefined, 200);
+  const activity = await request('club create activity', 'POST', '/api/activities', c.cookie, { title: tag, date: '2026-10-01', description: 'QA disposable' }, 201);
+  if (activity.data?.activity?.id) await request('staff approve activity', 'PATCH', `/api/activities/${activity.data.activity.id}`, staff.cookie, { status: 'approved' }, 200);
+  const req = await request('club submit request', 'POST', '/api/clubs/requests', c.cookie, { title: tag, reason: 'QA disposable', documentUrl: 'https://example.invalid/qa.pdf' }, 201);
+  if (req.data?.request?.id) await request('staff approve club request', 'PUT', `/api/staff/requests/${req.data.request.id}`, staff.cookie, { status: 'APPROVED' }, 200);
+  await request('club list requests', 'GET', '/api/clubs/requests', c.cookie, undefined, 200);
+  await request('staff list requests', 'GET', '/api/staff/requests', staff.cookie, undefined, 200);
+  await request('club add coach', 'POST', '/api/club/training', c.cookie, { action: 'ADD_COACH', name: tag, phone: '0000000000' }, 200);
+  const program = await request('club create training program', 'POST', '/api/club/training', c.cookie, { action: 'CREATE_PROGRAM', goal: tag, schedule: 'QA' }, 200);
+  if (program.data?.program?.id) {
+    const body = { action: 'ADD_REPORT', programId: program.data.program.id, date: '2026-09-18', progress: tag };
+    await request('club add own training report', 'POST', '/api/club/training', c.cookie, body, 200);
+    await request('other club cannot add training report', 'POST', '/api/club/training', otherClub.cookie, body, 403);
+  }
+  await request('club list training', 'GET', '/api/club/training', c.cookie, undefined, 200);
+  await request('admin list users', 'GET', '/api/admin/users', admin.cookie, undefined, 200);
+  await request('athlete cannot list users', 'GET', '/api/admin/users', a.cookie, undefined, 403);
+  await request('settings reject anonymous empty update', 'POST', '/api/staff/settings', null, {}, [401, 403]);
+  const importStudentId = await nextStudent();
+  await request('student import requires authentication', 'POST', '/api/staff/import', null, { students: [{ studentId: importStudentId, firstName: tag, lastName: 'ImportedQA' }] }, [401, 403]);
+  record('anonymous import must not create user', !await db.user.findUnique({ where: { studentId: importStudentId } }));
+  const bad = new FormData(); bad.set('file', new Blob(['qa'], { type: 'text/plain' }), 'qa.txt');
+  await request('reject disallowed upload type', 'POST', '/api/upload', a.cookie, bad, 400);
+  const oversized = new FormData(); oversized.set('file', new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'application/pdf' }), 'large.pdf');
+  await request('reject oversized upload', 'POST', '/api/upload', a.cookie, oversized, 400);
+  const form = new FormData(); form.set('file', new Blob(['%PDF-1.4\n% QA disposable file\n%%EOF'], { type: 'application/pdf' }), 'qa.pdf'); form.set('folder', tag);
+  const upload = await request('upload test PDF', 'POST', '/api/upload', a.cookie, form, 201);
+  if (upload.data?.path) {
+    owned.uploads.push({ path: upload.data.path, bucket: upload.data.bucket });
+    await request('other athlete cannot delete uploaded file', 'DELETE', '/api/upload', b.cookie, owned.uploads[0], 403);
+    await request('owner can delete uploaded file', 'DELETE', '/api/upload', a.cookie, owned.uploads[0], 200);
+  }
+  await request('reject wrong old password', 'PUT', '/api/auth/password', a.cookie, { oldPassword: 'wrong', newPassword: password }, 400);
+  const newPassword = crypto.randomBytes(18).toString('hex');
+  await request('change test user password', 'PUT', '/api/auth/password', a.cookie, { oldPassword: password, newPassword }, 200);
+  await request('new password login works', 'POST', '/api/auth/login', null, { username: a.studentId, password: newPassword }, 200);
+  await request('old password no longer works', 'POST', '/api/auth/login', null, { username: a.studentId, password }, 401);
+  await request('admin disable test club', 'DELETE', `/api/clubs/${otherClub.id}`, admin.cookie, undefined, 200);
+  await request('disabled club must not login', 'POST', '/api/auth/login', null, { username: otherClub.email, password }, [401,403]);
+  await request('disabled club existing session rejected', 'GET', '/api/club/training', otherClub.cookie, undefined, [401,403]);
+  await request('staff cannot enter admin API', 'GET', '/api/admin/users', staff.cookie, undefined, 403);
+  await request('fake role cookie must not unlock staff page', 'GET', '/staff/applications', 'role=staff', undefined, 307);
+  await request('logout clears cookie', 'POST', '/api/auth/logout', a.cookie, {}, 200, (_, r) => (r.headers.get('set-cookie') || '').includes('Max-Age=0'));
+  // Route inventory: every declared method receives a request without session.
+  // Skip public mutations already tested above and settings GET which may create a global default.
+  for (const file of walk('app/api').filter(f => f.endsWith('route.ts'))) {
+    const url = '/' + file.replaceAll('\\', '/').replace(/^app\//, '').replace(/\/route\.ts$/, '').replace(/\[[^/]+\]/g, 'qa-nonexistent-id');
+    for (const m of fs.readFileSync(file, 'utf8').matchAll(/export async function (GET|POST|PUT|PATCH|DELETE)\(/g)) {
+      const method = m[1];
+      if (url === '/api/auth/dev-login' || ['/api/auth/login','/api/auth/register','/api/auth/logout','/api/staff/import','/api/staff/settings'].includes(url)) continue;
+      const publicGet = method === 'GET' && ['/api/clubs','/api/competitions','/api/activities'].includes(url);
+      const publicDetail = method === 'GET' && ['/api/activities/qa-nonexistent-id','/api/competitions/qa-nonexistent-id','/api/clubs/qa-nonexistent-id/competitions'].includes(url);
+      await request(`anonymous ${method} ${url}`, method, url, null, method === 'GET' ? undefined : {}, publicGet ? 200 : publicDetail ? [200,404] : [401,403]);
+    }
+  }
+  const pageFiles = walk('app').filter(f => f.endsWith('page.tsx'));
+  for (const file of pageFiles) {
+    const url = '/' + file.replaceAll('\\', '/').replace(/^app\//, '').replace(/\/?page\.tsx$/, '').replace(/\[[^/]+\]/g, 'qa-nonexistent-id');
+    if (url === '/dev' || url === '/superadmin') continue;
+    const role = url.startsWith('/athlete') ? a : url.startsWith('/club') ? c : url.startsWith('/staff') ? staff : url.startsWith('/admin') ? admin : null;
+    await request(`page ${url}`, 'GET', url, role?.cookie, undefined, url.startsWith('/team-official') ? 307 : 200);
+  }
+}
+async function cleanup() {
+  for (const item of owned.uploads) {
+    try { const { createClient } = require('@supabase/supabase-js'); const s = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY); const r = await s.storage.from(item.bucket).remove([item.path]); out.cleanup.storage = !r.error; } catch { out.cleanup.storage = false; }
+  }
+  try {
+    // Exact generated IDs only; cascade removes children of this run's fixtures.
+    const userWhere = { OR: [{ id: { in: owned.userIds } }, { studentId: { in: owned.studentIds } }] };
+    await db.user.deleteMany({ where: userWhere });
+    await db.competition.deleteMany({ where: { id: { in: owned.competitionIds } } });
+    await db.club.deleteMany({ where: { id: { in: owned.clubIds } } });
+    out.cleanup.remainingUsers = await db.user.count({ where: userWhere });
+    out.cleanup.remainingCompetitions = await db.competition.count({ where: { id: { in: owned.competitionIds } } });
+    out.cleanup.remainingClubs = await db.club.count({ where: { id: { in: owned.clubIds } } });
+  } catch (e) { out.cleanup.databaseError = e.code || e.name; }
+  await db.$disconnect(); await pool.end();
+  out.finished = new Date().toISOString();
+  out.summary = { total: out.cases.length, passed: out.cases.filter(c => c.pass).length, failed: out.cases.filter(c => !c.pass).length };
+  fs.writeFileSync('test-results/integration.json', JSON.stringify(out, null, 2));
+  console.log(JSON.stringify({ summary: out.summary, cleanup: out.cleanup }));
+}
+main().catch(e => { record('test fixture/runtime blocker', false, { error: e.code || e.name, detail: e.code ? undefined : e.message }); }).finally(cleanup);

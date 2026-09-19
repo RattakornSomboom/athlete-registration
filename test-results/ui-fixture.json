@@ -1,0 +1,15 @@
+{
+  "users": [
+    {
+      "id": "cmu718sws0000zsc7aztkj5hw",
+      "studentId": "99207470",
+      "role": "STAFF"
+    },
+    {
+      "id": "cmu718t550001zsc7ngs9m50i",
+      "studentId": "99519283",
+      "role": "ATHLETE"
+    }
+  ],
+  "remaining": 0
+}

@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const auth = await requireAuth(request as NextRequest, "STAFF", "ADMIN", "SUPERADMIN");
+    if ("error" in auth) return auth.error;
+
     const sports = await prisma.sportConfig.findMany({
       orderBy: { createdAt: "asc" }
     });
@@ -41,8 +46,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireAuth(request as NextRequest, "STAFF", "ADMIN", "SUPERADMIN");
+    if ("error" in auth) return auth.error;
+
     const body = await request.json();
     const { sports, schedule } = body;
+
 
     // Save sports
     if (sports && Array.isArray(sports)) {

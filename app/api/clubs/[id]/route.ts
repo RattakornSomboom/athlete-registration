@@ -13,7 +13,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     const { id } = await params;
     
     // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN หรือเป็น Club ตัวเอง
@@ -70,7 +70,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     
     // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN เท่านั้น
     if (!session || session.role !== "ADMIN") {

@@ -11,7 +11,7 @@ import bcrypt from "bcryptjs";
  */
 export async function PUT(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     
     if (!session || !session.id) {
       return NextResponse.json(

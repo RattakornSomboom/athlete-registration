@@ -1,0 +1,24 @@
+const fs = require('node:fs');
+const ts = require('typescript');
+const vm = require('node:vm');
+function load(file, extra = {}) {
+  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const context = { exports: {}, console: { log() {} }, ...extra };
+  vm.runInNewContext(source, context, { filename: file }); return context.exports;
+}
+const results = [];
+function check(name, pass, actual) { results.push({ name, pass, actual }); }
+const analytics = load('lib/analytics-data.ts');
+const metrics = analytics.computeMetrics([{ id: 'qa', status: 'SUBMITTED' }], []);
+check('analytics counts one supplied applicant', metrics.totalApplicants === 1, metrics.totalApplicants);
+const store = new Map();
+const snapshots = load('lib/snapshot-store.ts', { localStorage: { getItem: k => store.get(k), setItem: (k,v) => store.set(k,v), removeItem: k => store.delete(k) } });
+snapshots.saveSnapshot({ id: 'qa-helper', title: 'QA', metrics: {}, sportsSummary: [] });
+check('saved snapshot can be retrieved', snapshots.getSnapshots().some(s => s.id === 'qa-helper'), snapshots.getSnapshots().length);
+const fitness = load('lib/fitness-test.ts');
+for (const [sport, category, expected] of [['ฟุตบอล','',1],['กรีฑา','ลาน กระโดด',8],['กรีฑา','ลาน ทุ่ม',6],['กีฬาทางน้ำ','ระยะไกล',9],['ไม่มีกีฬานี้','',null]]) {
+  const actual = fitness.getFitnessTestGroup(sport, category)?.id ?? null;
+  check(`fitness ${sport} ${category}`, actual === expected, actual);
+}
+fs.writeFileSync('test-results/helpers.json', JSON.stringify(results, null, 2));
+console.log(JSON.stringify(results));

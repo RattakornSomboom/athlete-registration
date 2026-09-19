@@ -10,7 +10,7 @@ import { getSession } from "@/lib/auth";
  */
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     
     // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN เท่านั้น
     if (!session || session.role !== "ADMIN") {

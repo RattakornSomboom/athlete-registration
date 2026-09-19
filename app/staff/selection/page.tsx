@@ -8,6 +8,7 @@ import LogoutButton from "@/components/shared/LogoutButton";
 type Application = {
   id: string;
   sport: string;
+  category: string;
   squadType: string | null;
   user: {
     studentId: string;
@@ -33,7 +34,7 @@ export default function StaffSelectionPage() {
   }, []);
 
   const handleAnnounce = async () => {
-    if (!confirm(`ยืนยันประกาศผลการคัดเลือก ${applications.length} คน?`)) return;
+    if (!confirm(`ยืนยันประกาศผลการคัดเลือกนักกีฬาตัวแทนสถาบันทั้งหมด ${applications.length} คน?`)) return;
     setAnnouncing(true);
     try {
       const res = await fetch("/api/staff/applications/announce", {
@@ -61,7 +62,8 @@ export default function StaffSelectionPage() {
       "รหัสนิสิต": a.user.studentId,
       "ชื่อ-นามสกุล": a.user.profile ? `${a.user.profile.firstName} ${a.user.profile.lastName}` : "-",
       "คณะ": a.user.profile?.faculty || "-",
-      "ชนิดกีฬา": a.sport,
+      "ชนิดกีฬา": a.sport || a.competition.sport,
+      "ตำแหน่ง": a.category,
       "สถานะ": a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ผ่านการคัดเลือก",
       "หมายเลขโทรศัพท์": a.user.profile?.phone || "-"
     }));
@@ -74,88 +76,170 @@ export default function StaffSelectionPage() {
 
   if (announced) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">🏆</span>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-8 max-w-md w-full text-center space-y-4">
+          <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+            ✓
           </div>
-          <h2 className="text-lg font-medium text-gray-900 mb-1">ประกาศผลสำเร็จ</h2>
-          <p className="text-gray-500 text-sm mb-6">แจ้งผลการคัดเลือกให้นักกีฬา {count} คนทราบเรียบร้อยแล้ว</p>
-          <button onClick={() => router.push("/staff/applications")} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors">
-            กลับหน้าหลัก
-          </button>
+          <h2 className="text-base font-bold text-slate-900">ประกาศผลการคัดเลือกสำเร็จ</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            ระบบได้เผยแพร่ประกาศรายชื่อนักกีฬาตัวแทนสถาบันอย่างเป็นทางการ และเปิดให้นักกีฬาเข้ารายงานตัวยืนยันสิทธิ์เรียบร้อยแล้ว (รวม {count} คน)
+          </p>
+          <div className="pt-2 flex items-center justify-center gap-2">
+            <button
+              onClick={() => router.push("/staff/analytics")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ไปที่แดชบอร์ดวิเคราะห์ผล
+            </button>
+            <button
+              onClick={() => router.push("/staff/applications")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              กลับหน้ารายการใบสมัคร
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const mainCount = applications.filter(a => a.squadType === "main").length;
+  const reserveCount = applications.filter(a => a.squadType === "reserve").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-6xl mx-auto">
-        <div className="flex items-start justify-between mb-6">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
+
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-3 flex items-center gap-1">← ย้อนกลับ</button>
-            <h1 className="text-2xl font-semibold text-gray-900">ประกาศผลการคัดเลือก</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              นักกีฬาที่ผ่านการอนุมัติจากเจ้าหน้าที่ {loading ? "..." : applications.length} คน
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              ประกาศผลการคัดเลือกนักกีฬาตัวแทนสถาบัน
+            </h1>
+            <p className="text-xs text-slate-500">
+              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
             </p>
           </div>
-          <div className="flex gap-2">
-            {!loading && applications.length > 0 && (
-              <button onClick={handleExportExcel} className="text-sm font-medium bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
-                <span>📥</span> Export Excel
-              </button>
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/staff/analytics")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              แดชบอร์ดวิเคราะห์ผล
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              ย้อนกลับ
+            </button>
             <LogoutButton />
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-16 text-gray-400 text-sm">กำลังโหลด...</div>
-        ) : applications.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-            ยังไม่มีนักกีฬาที่ผ่านการอนุมัติจากเจ้าหน้าที่
+        {/* Summary Card */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs flex items-center justify-between">
+          <div>
+            <span className="text-xs text-slate-500 block">จำนวนนักกีฬาที่ผ่านการอนุมัติขั้นสุดท้าย</span>
+            <span className="text-2xl font-bold text-slate-900">{loading ? "..." : applications.length} คน</span>
+            <p className="text-[11px] text-slate-400 mt-1">
+              แบ่งเป็นตัวจริง {loading ? "..." : mainCount} คน และตัวสำรอง {loading ? "..." : reserveCount} คน
+            </p>
           </div>
-        ) : (
-          <>
-            <div className="space-y-3 mb-6">
-              {applications.map((a, i) => (
-                <div key={a.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-medium flex items-center justify-center shrink-0">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-medium text-gray-900">
-                        {a.user.profile ? `${a.user.profile.firstName} ${a.user.profile.lastName}` : a.user.studentId}
-                      </span>
-                      <span className="text-gray-400 text-sm">#{a.user.studentId}</span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      {a.user.profile?.faculty && `${a.user.profile.faculty} — `}{a.competition.name} ({a.sport})
-                    </p>
-                    <p className="text-xs text-gray-400">{a.competition.club.name}</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.squadType === "main" ? "bg-green-100 text-green-800" : a.squadType === "reserve" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-800"}`}>
-                    {a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ผ่านการคัดเลือก"}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-              <p className="text-sm text-amber-800">⚠️ เมื่อกดยืนยัน สถานะของนักกีฬาทั้งหมดจะเปลี่ยนเป็น &quot;ผ่านการคัดเลือก&quot; และไม่สามารถยกเลิกได้</p>
-            </div>
-
+          <div className="flex gap-2">
+            {!loading && applications.length > 0 && (
+              <button
+                onClick={handleExportExcel}
+                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                📥 Export Excel
+              </button>
+            )}
             <button
-              onClick={handleAnnounce}
-              disabled={announcing}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 rounded-lg text-sm transition-colors"
+              onClick={() => window.print()}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              {announcing ? "กำลังประกาศผล..." : `ยืนยันประกาศผล ${applications.length} คน`}
+              พิมพ์ประกาศทางการ
             </button>
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* Official Candidates List Table */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900">
+              บัญชีรายชื่อนักกีฬาตัวแทนที่พร้อมออกประกาศ
+            </h2>
+            <span className="text-xs text-slate-500">
+              ตรวจสอบความถูกต้องก่อนกดออกประกาศทางการ
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="text-center py-16 text-slate-400 text-sm">กำลังโหลด...</div>
+            ) : applications.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 text-sm">ไม่มีนักกีฬาที่รอประกาศผล</div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">ลำดับ</th>
+                    <th className="py-3 px-4">ชื่อ - นามสกุล</th>
+                    <th className="py-3 px-4">รหัสนิสิต</th>
+                    <th className="py-3 px-4">คณะต้นสังกัด</th>
+                    <th className="py-3 px-4">ชนิดกีฬา / ตำแหน่ง</th>
+                    <th className="py-3 px-4">ชมรมที่สังกัด</th>
+                    <th className="py-3 px-4 text-center">ประเภท</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {applications.map((a, index) => (
+                    <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4 text-slate-400 font-medium">{index + 1}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-900">
+                        {a.user.profile ? `${a.user.profile.firstName} ${a.user.profile.lastName}` : "-"}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-600">{a.user.studentId}</td>
+                      <td className="py-3 px-4 text-slate-600">{a.user.profile?.faculty || "-"}</td>
+                      <td className="py-3 px-4 text-slate-800 font-medium">{a.competition.name} ({a.category})</td>
+                      <td className="py-3 px-4 text-slate-600">{a.competition.club.name}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                          a.squadType === "main"
+                            ? "bg-blue-100 text-blue-900 font-semibold"
+                            : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          {a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ผ่านการคัดเลือก"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {applications.length > 0 && !loading && (
+            <div className="p-6 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs text-slate-500">
+                เมื่อกดออกประกาศทางการ ระบบจะเปิดให้นิสิตเข้ารายงานตัวและยืนยันสิทธิ์ตามกำหนดเวลา
+              </div>
+              <button
+                onClick={handleAnnounce}
+                disabled={announcing}
+                className="bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium px-6 py-2.5 rounded-lg transition-colors cursor-pointer"
+              >
+                {announcing ? "กำลังดำเนินการ..." : "ลงนามอนุมัติและออกประกาศผลทางการ"}
+              </button>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

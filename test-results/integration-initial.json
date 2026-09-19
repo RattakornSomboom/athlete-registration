@@ -1,0 +1,1399 @@
+{
+  "tag": "QA_1789740219173_280608",
+  "started": "2026-09-18T14:03:39.173Z",
+  "cases": [
+    {
+      "name": "login ADMIN",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "login STAFF",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "register athlete 0",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "login athlete 0",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "register athlete 1",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/register",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "login athlete 1",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "register duplicate",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/register",
+      "status": 409,
+      "expected": [
+        409
+      ]
+    },
+    {
+      "name": "register invalid student ID",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/register",
+      "status": 400,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "login empty payload validation",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 500,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "login numeric username validation",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 500,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "login wrong password",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 401,
+      "expected": [
+        401
+      ]
+    },
+    {
+      "name": "get own session",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/auth/me",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "reject invalid JWT",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/auth/me",
+      "status": 401,
+      "expected": [
+        401
+      ]
+    },
+    {
+      "name": "read own profile",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/athletes/profile?studentId=99256779",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "reject other athlete profile",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/athletes/profile?studentId=99341561",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "update own profile",
+      "pass": false,
+      "method": "PUT",
+      "url": "/api/athletes/profile",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "reject update other athlete profile",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/athletes/profile",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "create club 0",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/clubs",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "login club 0",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 401,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "create club 1",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/clubs",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "login club 1",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 401,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "admin approve test club",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/admin/clubs/cmu714cuy0004u4c7co8l3t21/approve",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "admin set test club president",
+      "pass": false,
+      "method": "PUT",
+      "url": "/api/admin/clubs/cmu714cuy0004u4c7co8l3t21/president",
+      "status": 400,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club update own profile",
+      "pass": false,
+      "method": "PUT",
+      "url": "/api/clubs/cmu714cuy0004u4c7co8l3t21",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club cannot update another club",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/clubs/cmu714da20005u4c77z17ma60",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "staff create competition",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/competitions",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "list competitions",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/competitions",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "competition detail",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/competitions/cmu714gfq0006u4c7yhzx1nxc",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club competitions",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/clubs/cmu714cuy0004u4c7co8l3t21/competitions",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "submit application",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "application listing athlete",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/applications",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "application listing staff",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/staff/applications",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "application detail owner",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "application detail other athlete denied",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 500,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "other athlete cannot delete application",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "other club cannot approve application",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "own club approve application",
+      "pass": false,
+      "method": "PATCH",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "staff approve application",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/applications/cmu714jam0008u4c7iw3kjopj",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "announce only test application",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/staff/applications/announce",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "announced status persisted",
+      "pass": true
+    },
+    {
+      "name": "reject application on behalf of other athlete",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 201,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "reject duplicate application",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 201,
+      "expected": [
+        400,
+        409
+      ]
+    },
+    {
+      "name": "reject maximum participation count",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 400,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "reject closed/expired competition application",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 201,
+      "expected": [
+        400,
+        403
+      ]
+    },
+    {
+      "name": "club athletes authenticated",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/clubs/cmu714cuy0004u4c7co8l3t21/athletes",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club athlete data requires authentication",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/clubs/cmu714cuy0004u4c7co8l3t21/athletes",
+      "status": 200,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "export applications XLSX",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/export/applications?competitionId=cmu714gfq0006u4c7yhzx1nxc",
+      "status": 500,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "dashboard statistics",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/stats/dashboard",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club create activity",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/activities",
+      "status": 403,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "club submit request",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/clubs/requests",
+      "status": 403,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "club list requests",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/clubs/requests",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "staff list requests",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/staff/requests",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club add coach",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/club/training",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club create training program",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/club/training",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "club list training",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/club/training",
+      "status": 403,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "admin list users",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/admin/users",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "athlete cannot list users",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/admin/users",
+      "status": 403,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "settings reject anonymous empty update",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/staff/settings",
+      "status": 200,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "student import requires authentication",
+      "pass": false,
+      "method": "POST",
+      "url": "/api/staff/import",
+      "status": 200,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous import must not create user",
+      "pass": false
+    },
+    {
+      "name": "reject disallowed upload type",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/upload",
+      "status": 400,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "reject oversized upload",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/upload",
+      "status": 400,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "upload test PDF",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/upload",
+      "status": 201,
+      "expected": [
+        201
+      ]
+    },
+    {
+      "name": "other athlete cannot delete uploaded file",
+      "pass": false,
+      "method": "DELETE",
+      "url": "/api/upload",
+      "status": 200,
+      "expected": [
+        403
+      ]
+    },
+    {
+      "name": "owner can delete uploaded file",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/upload",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "reject wrong old password",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/auth/password",
+      "status": 400,
+      "expected": [
+        400
+      ]
+    },
+    {
+      "name": "change test user password",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/auth/password",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "new password login works",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "logout clears cookie",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/auth/logout",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "anonymous GET /api/activities",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/activities",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "anonymous POST /api/activities",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/activities",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/activities/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/activities/qa-nonexistent-id",
+      "status": 404,
+      "expected": [
+        200,
+        404
+      ]
+    },
+    {
+      "name": "anonymous PATCH /api/activities/qa-nonexistent-id",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/activities/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/admin/clubs/qa-nonexistent-id/approve",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/admin/clubs/qa-nonexistent-id/approve",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/admin/clubs/qa-nonexistent-id/president",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/admin/clubs/qa-nonexistent-id/president",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/admin/users",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/admin/users",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PATCH /api/admin/users/qa-nonexistent-id",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/admin/users/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/applications",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/applications",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous POST /api/applications",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/applications",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/applications/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/applications/qa-nonexistent-id",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PATCH /api/applications/qa-nonexistent-id",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/applications/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous DELETE /api/applications/qa-nonexistent-id",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/applications/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/applications/qa-nonexistent-id",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/applications/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/athletes/profile",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/athletes/profile",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/athletes/profile",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/athletes/profile",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/auth/me",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/auth/me",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/auth/password",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/auth/password",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/club/training",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/club/training",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous POST /api/club/training",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/club/training",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/clubs/requests",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/clubs/requests",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous POST /api/clubs/requests",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/clubs/requests",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/clubs",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/clubs",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "anonymous POST /api/clubs",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/clubs",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/clubs/qa-nonexistent-id/athletes",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/clubs/qa-nonexistent-id/athletes",
+      "status": 404,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/clubs/qa-nonexistent-id/competitions",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/clubs/qa-nonexistent-id/competitions",
+      "status": 404,
+      "expected": [
+        200,
+        404
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/clubs/qa-nonexistent-id",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/clubs/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous DELETE /api/clubs/qa-nonexistent-id",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/clubs/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/competitions",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/competitions",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "anonymous POST /api/competitions",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/competitions",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/competitions/qa-nonexistent-id",
+      "pass": false,
+      "method": "GET",
+      "url": "/api/competitions/qa-nonexistent-id",
+      "status": 500,
+      "expected": [
+        200,
+        404
+      ]
+    },
+    {
+      "name": "anonymous PATCH /api/competitions/qa-nonexistent-id",
+      "pass": true,
+      "method": "PATCH",
+      "url": "/api/competitions/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous DELETE /api/competitions/qa-nonexistent-id",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/competitions/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/export/applications",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/export/applications",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous POST /api/staff/applications/announce",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/staff/applications/announce",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/staff/applications",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/staff/applications",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/staff/requests",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/staff/requests",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous PUT /api/staff/requests/qa-nonexistent-id",
+      "pass": true,
+      "method": "PUT",
+      "url": "/api/staff/requests/qa-nonexistent-id",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous GET /api/stats/dashboard",
+      "pass": true,
+      "method": "GET",
+      "url": "/api/stats/dashboard",
+      "status": 403,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous POST /api/upload",
+      "pass": true,
+      "method": "POST",
+      "url": "/api/upload",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "anonymous DELETE /api/upload",
+      "pass": true,
+      "method": "DELETE",
+      "url": "/api/upload",
+      "status": 401,
+      "expected": [
+        401,
+        403
+      ]
+    },
+    {
+      "name": "page /admin/clubs",
+      "pass": true,
+      "method": "GET",
+      "url": "/admin/clubs",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /athlete/register",
+      "pass": true,
+      "method": "GET",
+      "url": "/athlete/register",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /athlete/status",
+      "pass": true,
+      "method": "GET",
+      "url": "/athlete/status",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /athlete/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/athlete/qa-nonexistent-id",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/activities/new",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/activities/new",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/activities",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/activities",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/athletes",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/athletes",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/requests/new",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/requests/new",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/requests",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/requests",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/review",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/review",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /club/training",
+      "pass": false,
+      "method": "GET",
+      "url": "/club/training",
+      "status": 307,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /login",
+      "pass": true,
+      "method": "GET",
+      "url": "/login",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /",
+      "pass": true,
+      "method": "GET",
+      "url": "/",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/activities",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/activities",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/activities/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/activities/qa-nonexistent-id",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/analytics",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/analytics",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/applications",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/applications",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/applications/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/applications/qa-nonexistent-id",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/applications/qa-nonexistent-id/qa-nonexistent-id",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/applications/qa-nonexistent-id/qa-nonexistent-id",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/competitions",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/competitions",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/requests",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/requests",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/selection",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/selection",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /staff/settings",
+      "pass": true,
+      "method": "GET",
+      "url": "/staff/settings",
+      "status": 200,
+      "expected": [
+        200
+      ]
+    },
+    {
+      "name": "page /team-official/register",
+      "pass": true,
+      "method": "GET",
+      "url": "/team-official/register",
+      "status": 307,
+      "expected": [
+        307
+      ]
+    },
+    {
+      "name": "page /team-official/status",
+      "pass": true,
+      "method": "GET",
+      "url": "/team-official/status",
+      "status": 307,
+      "expected": [
+        307
+      ]
+    }
+  ],
+  "cleanup": {
+    "storage": true,
+    "remainingUsers": 0,
+    "remainingCompetitions": 0,
+    "remainingClubs": 0
+  },
+  "finished": "2026-09-18T14:04:25.489Z",
+  "summary": {
+    "total": 135,
+    "passed": 96,
+    "failed": 39
+  }
+}

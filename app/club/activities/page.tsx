@@ -17,6 +17,12 @@ type Activity = {
   rejectedReason?: string;
 };
 
+const STATUS_LABEL = {
+  pending: { label: "รอการตรวจสอบ", className: "bg-slate-100 text-slate-700 border-slate-200" },
+  approved: { label: "อนุมัติแล้ว", className: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+  rejected: { label: "ไม่ผ่านเกณฑ์", className: "bg-rose-50 text-rose-800 border-rose-200" },
+};
+
 export default function ClubActivitiesPage() {
   const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -48,85 +54,101 @@ export default function ClubActivitiesPage() {
   const canSubmit = approvedCount >= 2;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
-            <h1 className="text-2xl font-semibold text-gray-900">ผลงานกิจกรรมชมรม</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              อนุมัติแล้ว {approvedCount} กิจกรรม
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              ระบบสารสนเทศชมรมกีฬา · กองกิจการนิสิต มหาวิทยาลัยพะเยา
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              การรายงานผลการดำเนินกิจกรรมของชมรมกีฬา
+            </h1>
+            <p className="text-xs text-slate-500">
+              กิจกรรมที่ผ่านการอนุมัติแล้ว {approvedCount} กิจกรรม
               {!canSubmit && (
-                <span className="text-yellow-600 ml-2">⚠️ ต้องมีอย่างน้อย 2 กิจกรรมที่อนุมัติแล้ว</span>
+                <span className="text-slate-600 font-medium ml-2">(เกณฑ์ขั้นต่ำ: ต้องมีกิจกรรมที่ผ่านการอนุมัติอย่างน้อย 2 กิจกรรม)</span>
               )}
             </p>
           </div>
-          <button
-            onClick={() => router.push("/club/activities/new")}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            + เพิ่มกิจกรรม   
-          </button>
-        </div>
-        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/club/activities/new")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              + บันทึกกิจกรรมใหม่
+            </button>
+            <button
+              onClick={() => router.back()}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
+            >
+              ย้อนกลับ
+            </button>
             <LogoutButton />
+          </div>
         </div>
 
         {/* Progress */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">ความคืบหน้า</span>
-            <span className="text-sm font-medium text-gray-900">{approvedCount} / 2 กิจกรรม</span>
+            <span className="text-xs font-medium text-slate-600">ความพร้อมตามเกณฑ์กิจกรรมชมรม</span>
+            <span className="text-xs font-bold text-slate-900">{approvedCount} / 2 กิจกรรม</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2">
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
             <div
-              className={`h-2 rounded-full transition-all ${approvedCount >= 2 ? "bg-green-500" : "bg-blue-500"}`}
+              className={`h-2 rounded-full transition-all ${approvedCount >= 2 ? "bg-emerald-800" : "bg-blue-900"}`}
               style={{ width: `${Math.min((approvedCount / 2) * 100, 100)}%` }}
             />
           </div>
           {canSubmit && (
-            <p className="text-green-600 text-xs mt-2 font-medium">✓ ครบเกณฑ์แล้ว สามารถส่งใบสมัครนักกีฬาได้</p>
+            <p className="text-emerald-800 text-xs mt-2 font-medium">✓ ครบเกณฑ์แล้ว สามารถส่งใบสมัครนักกีฬาได้</p>
           )}
         </div>
 
         {/* Activity Cards */}
         <div className="space-y-4">
-          {activities.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-              ยังไม่มีกิจกรรม กด + เพิ่มกิจกรรม เพื่อเริ่มต้น
+          {loading ? (
+            <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
+          ) : activities.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs shadow-xs">
+              ยังไม่มีรายงานกิจกรรม กด + บันทึกกิจกรรมใหม่ เพื่อเริ่มต้น
             </div>
-          )}
-          {activities.map((a) => (
-            <div key={a.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-medium text-gray-900">{a.title}</h2>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${a.status === 'approved' ? 'bg-green-100 text-green-800' : a.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                      {a.status === 'approved' ? 'อนุมัติแล้ว' : a.status === 'rejected' ? 'ไม่ผ่าน' : 'รอตรวจสอบ'}
-                    </span>
+          ) : (
+            activities.map((a) => {
+              const statusCfg = STATUS_LABEL[a.status] || STATUS_LABEL["pending"];
+              return (
+                <div key={a.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="font-semibold text-slate-900 text-sm">{a.title}</h2>
+                        <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${statusCfg.className}`}>
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">{a.date} · {a.location}</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500">{a.date} · {a.location}</p>
+
+                  <p className="text-xs text-slate-600 leading-relaxed">{a.description}</p>
+
+                  <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
+                    <span>ผู้เข้าร่วม {a.participants} คน</span>
+                    <span>เอกสารประกอบ {a.documents.length} ฉบับ</span>
+                    <span>ภาพถ่าย {a.images.length} ภาพ</span>
+                  </div>
+
+                  {a.status === "rejected" && a.rejectedReason && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                      <strong>เหตุผลที่ไม่อนุมัติ:</strong> {a.rejectedReason}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-3">{a.description}</p>
-
-              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-                <span>👥 ผู้เข้าร่วม {a.participants} คน</span>
-                <span>📄 เอกสาร {a.documents.length} ไฟล์</span>
-                <span>🖼️ รูปภาพ {a.images.length} รูป</span>
-              </div>
-
-              {a.status === "rejected" && a.rejectedReason && (
-                <div className="mt-3 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-sm text-red-600">
-                  เหตุผล: {a.rejectedReason}
-                </div>
-              )}
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
 
         {/* Submit Button */}
@@ -134,9 +156,9 @@ export default function ClubActivitiesPage() {
           <div className="mt-6">
             <button
               onClick={() => router.push("/club/athletes")}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-xl text-sm transition-colors"
+              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-medium py-3 rounded-xl text-xs transition-colors cursor-pointer"
             >
-              ✓ ครบเกณฑ์แล้ว — ไปส่งใบสมัครนักกีฬา
+              ครบตามเกณฑ์กิจกรรมแล้ว — ดำเนินการคัดเลือกและจัดทำบัญชีรายชื่อนักกีฬา
             </button>
           </div>
         )}

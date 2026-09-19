@@ -27,13 +27,13 @@ type Application = {
   statusHistory: StatusHistory[];
 };
 
-const STATUS_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string }> = {
-  SUBMITTED:      { label: "รอชมรมพิจารณา",           icon: "⏳", color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200" },
-  CLUB_APPROVED:  { label: "ชมรมอนุมัติ — รอเจ้าหน้าที่", icon: "✅", color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
-  CLUB_REJECTED:  { label: "ชมรมไม่อนุมัติ",           icon: "❌", color: "text-red-700",    bg: "bg-red-50 border-red-200" },
-  STAFF_APPROVED: { label: "เจ้าหน้าที่อนุมัติ",       icon: "🎉", color: "text-green-700",  bg: "bg-green-50 border-green-200" },
-  STAFF_REJECTED: { label: "เจ้าหน้าที่ไม่อนุมัติ",   icon: "❌", color: "text-red-700",    bg: "bg-red-50 border-red-200" },
-  FINAL_SELECTED: { label: "ผ่านการคัดเลือกขั้นสุดท้าย", icon: "🏆", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  SUBMITTED:      { label: "รอชมรมพิจารณา",           bg: "bg-yellow-50", text: "text-yellow-700" },
+  CLUB_APPROVED:  { label: "ชมรมอนุมัติ — รอเจ้าหน้าที่", bg: "bg-blue-50", text: "text-blue-700" },
+  CLUB_REJECTED:  { label: "ชมรมไม่อนุมัติ",           bg: "bg-red-50", text: "text-red-700" },
+  STAFF_APPROVED: { label: "เจ้าหน้าที่อนุมัติ",       bg: "bg-green-50", text: "text-green-700" },
+  STAFF_REJECTED: { label: "เจ้าหน้าที่ไม่อนุมัติ",   bg: "bg-red-50", text: "text-red-700" },
+  FINAL_SELECTED: { label: "ผ่านการคัดเลือกขั้นสุดท้าย", bg: "bg-emerald-50", text: "text-emerald-700" },
 };
 
 export default function AthleteStatusPage() {
@@ -53,84 +53,165 @@ export default function AthleteStatusPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
+
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <button onClick={() => router.push("/athlete/register")} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1 mb-2">← กลับหน้าหลัก</button>
-            <h1 className="text-2xl font-semibold text-gray-900">สถานะการสมัคร</h1>
-            <p className="text-gray-500 text-sm mt-1">ติดตามผลการพิจารณาของชมรมและเจ้าหน้าที่</p>
+            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+              ระบบรับสมัครและรายงานตัวนักกีฬาตัวแทนสถาบัน
+            </span>
+            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+              สถานะการสมัครและรายงานตัวนักกีฬา
+            </h1>
+            <p className="text-xs text-slate-500">
+              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
+            </p>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/")}
+              className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 bg-white hover:bg-slate-50 transition-colors"
+            >
+              หน้าแรก
+            </button>
+            <LogoutButton />
+          </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-gray-400 text-sm">กำลังโหลดข้อมูล...</div>
+          <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
         ) : applications.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl">📋</span>
             </div>
-            <h2 className="text-lg font-medium text-gray-900 mb-1">ยังไม่มีใบสมัคร</h2>
-            <p className="text-gray-500 text-sm mb-4">คุณยังไม่ได้ส่งใบสมัครแข่งขัน</p>
-            <button onClick={() => router.push("/athlete/register")} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors">สมัครแข่งขัน</button>
+            <h2 className="text-lg font-medium text-slate-900 mb-1">ยังไม่มีใบสมัคร</h2>
+            <p className="text-slate-500 text-sm mb-4">คุณยังไม่ได้ส่งใบสมัครแข่งขัน</p>
+            <button onClick={() => router.push("/athlete/register")} className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm rounded-lg transition-colors">สมัครแข่งขัน</button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-8">
             {applications.map((app) => {
-              const cfg = STATUS_CONFIG[app.status] ?? { label: app.status, icon: "❓", color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
+              const cfg = STATUS_CONFIG[app.status] ?? { label: app.status, bg: "bg-slate-100", text: "text-slate-700" };
+              
+              const isClubApproved = app.status !== "SUBMITTED" && app.status !== "CLUB_REJECTED";
+              const isStaffApproved = app.status === "STAFF_APPROVED" || app.status === "FINAL_SELECTED";
+              const isFinal = app.status === "FINAL_SELECTED";
+              const isRejected = app.status.includes("REJECTED");
+
               return (
-                <div key={app.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  {/* Status banner */}
-                  <div className={`border-l-4 px-6 py-4 ${cfg.bg.replace("border-", "border-l-")}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{cfg.icon}</span>
-                      <div>
-                        <p className={`font-semibold text-sm ${cfg.color}`}>{cfg.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{app.competition.name} · {app.competition.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {app.competition.year}</p>
+                <div key={app.id} className="space-y-6">
+                  {/* Step Progress Tracker */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">
+                      ขั้นตอนการคัดเลือก ({app.competition.name})
+                    </h2>
+                    <div className="grid grid-cols-4 gap-2 relative">
+                      <div className="text-center">
+                        <div className="w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center mx-auto mb-2">1</div>
+                        <p className="text-xs font-semibold text-slate-900">ยื่นใบสมัคร</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">สำเร็จแล้ว</p>
+                      </div>
+
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          isClubApproved ? "bg-emerald-700 text-white" : isRejected && app.status === "CLUB_REJECTED" ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>2</div>
+                        <p className="text-xs font-semibold text-slate-900">พิจารณาคัดเลือก (ชมรม)</p>
+                        <p className={`text-[11px] mt-0.5 ${isClubApproved ? "text-emerald-700" : isRejected && app.status === "CLUB_REJECTED" ? "text-rose-700" : "text-slate-400"}`}>
+                          {isClubApproved ? "ผ่านเกณฑ์ชมรม" : isRejected && app.status === "CLUB_REJECTED" ? "ไม่ผ่าน" : "รอพิจารณา"}
+                        </p>
+                      </div>
+
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          isStaffApproved ? "bg-emerald-700 text-white" : isRejected && app.status === "STAFF_REJECTED" ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>3</div>
+                        <p className="text-xs font-semibold text-slate-900">พิจารณา (เจ้าหน้าที่)</p>
+                        <p className={`text-[11px] mt-0.5 ${isStaffApproved ? "text-emerald-700" : isRejected && app.status === "STAFF_REJECTED" ? "text-rose-700" : "text-slate-400"}`}>
+                          {isStaffApproved ? "อนุมัติ" : isRejected && app.status === "STAFF_REJECTED" ? "ไม่ผ่าน" : "รอพิจารณา"}
+                        </p>
+                      </div>
+
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          isFinal ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>4</div>
+                        <p className="text-xs font-semibold text-slate-900">ประกาศผล</p>
+                        <p className={`text-[11px] mt-0.5 ${isFinal ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
+                          {isFinal ? "ผ่านการคัดเลือก" : "-"}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="px-6 py-4 space-y-4">
-                    {/* ชนิดกีฬา */}
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">ชนิดกีฬาที่สมัคร</p>
-                      <div className="flex flex-wrap gap-2">
-                        {app.sportEntries.length > 0
-                          ? app.sportEntries.map((e, i) => (
-                              <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
-                                {e.sport} · {e.category}{e.division ? ` · รุ่น${e.division}` : ""}
-                              </span>
-                            ))
-                          : <span className="text-xs text-gray-400">{app.sport} · {app.category}</span>
-                        }
+                  {/* Application Details Card */}
+                  <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                    <div className="bg-slate-900 text-white p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono tracking-widest text-slate-300">
+                            {app.id.slice(-8).toUpperCase()}
+                          </span>
+                        </div>
+                        <h2 className="text-lg font-bold text-white mt-1">{app.competition.name}</h2>
+                        <p className="text-xs text-slate-300">
+                          {app.competition.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} ปี {app.competition.year}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-slate-400 block">สถานะผลการพิจารณา</span>
+                        <span className={`text-sm font-semibold ${isFinal ? "text-emerald-400" : isRejected ? "text-rose-400" : "text-amber-400"}`}>
+                          {cfg.label}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Timeline */}
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">ประวัติสถานะ</p>
-                      <div className="space-y-3">
-                        {app.statusHistory.map((h, i) => (
-                          <div key={h.id} className="flex gap-3">
-                            <div className="flex flex-col items-center">
-                              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1 shrink-0" />
-                              {i < app.statusHistory.length - 1 && <div className="w-0.5 bg-gray-200 flex-1 mt-1" />}
-                            </div>
-                            <div className="pb-2">
-                              <p className="text-sm font-medium text-gray-900">{h.label}</p>
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                {new Date(h.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} — {h.by}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                    <div className="p-6 space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">ชนิดกีฬา / รายการ</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">
+                            {app.sportEntries.length > 0 ? app.sportEntries.map(e => e.sport).join(', ') : app.sport}
+                          </span>
+                          <span className="text-slate-500 mt-1 block">
+                            ประเภท: {app.sportEntries.length > 0 ? app.sportEntries.map(e => e.category).join(', ') : app.category}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">ชมรมสังกัด</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">{app.competition.club.name}</span>
+                          <span className="text-slate-500 mt-1 block">สังกัดกองกิจการนิสิต มพ.</span>
+                        </div>
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">วันที่สมัคร</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">
+                            {new Date(app.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="pt-2 border-t border-gray-100 flex justify-end">
-                      <button onClick={() => router.push(`/athlete/${app.id}`)} className="text-sm text-blue-600 hover:text-blue-700 font-medium">ดูรายละเอียด →</button>
+                      <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-sm font-bold text-slate-900 mb-4">ประวัติการดำเนินการ</h3>
+                        <div className="space-y-3">
+                          {app.statusHistory.map((h, i) => (
+                            <div key={h.id} className="flex gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-900 mt-1 shrink-0" />
+                                {i < app.statusHistory.length - 1 && <div className="w-0.5 bg-slate-200 flex-1 mt-1" />}
+                              </div>
+                              <div className="pb-2">
+                                <p className="text-sm font-medium text-slate-900">{h.label}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  {new Date(h.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} — {h.by}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,0 +1,40 @@
+const fs = require('node:fs');
+require('dotenv').config({ quiet: true });
+const { Pool } = require('pg'); const { PrismaPg } = require('@prisma/adapter-pg'); const { PrismaClient } = require('@prisma/client');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000 });
+const db = new PrismaClient({ adapter: new PrismaPg(pool) });
+const fixture = JSON.parse(fs.readFileSync('test-results/ui-fixture.json'));
+const athlete = fixture.users.find(u => u.role === 'ATHLETE'); const staff = fixture.users.find(u => u.role === 'STAFF');
+const results = []; let competitionId; let createdSettingId;
+async function call(name, method, url, cookie, body, expected) {
+  const response = await fetch('http://localhost:3100' + url, { method, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(30000) });
+  const data = await response.json();
+  const result = { name, method, url, status: response.status, expected, pass: response.status === expected };
+  results.push(result); console.log(JSON.stringify(result));
+  return { data, cookie: response.headers.getSetCookie().map(x => x.split(';')[0]).join('; ') };
+}
+(async () => {
+  const a = (await call('supplement athlete login', 'POST', '/api/auth/login', null, { username: athlete.studentId, password: 'QaUiTemporary-2026!' }, 200)).cookie;
+  const s = (await call('supplement staff login', 'POST', '/api/auth/login', null, { username: staff.studentId, password: 'QaUiTemporary-2026!' }, 200)).cookie;
+  const profile = { studentId: athlete.studentId, firstName: 'QA UI', lastName: 'Disposable', faculty: 'QA', major: 'QA', studentLevel: 'bachelor', year: '1', nationalId: '0000000000000', nationality: 'ไทย', birthDate: '2005-01-01', addressNo: '0', subDistrict: 'QA', district: 'QA', province: 'QA', postalCode: '00000', phone: '0000000000' };
+  await call('save full athlete profile', 'PUT', '/api/athletes/profile', a, profile, 200);
+  const c = await call('create disposable competition for CRUD', 'POST', '/api/competitions', s, { name: 'QA Supplemental ' + Date.now(), round: 'QA', year: 2026, quotas: [] }, 201);
+  competitionId = c.data.competition.id;
+  await call('staff edit competition', 'PATCH', `/api/competitions/${competitionId}`, s, { name: 'QA edited' }, 200);
+  const app = await call('create application for edit test', 'POST', '/api/applications', a, { studentId: athlete.studentId, competitionId, sport: 'QA', category: 'QA' }, 201);
+  const id = app.data.application.id;
+  await call('athlete edit own submitted application', 'PUT', `/api/applications/${id}`, a, { note: 'QA edited note' }, 200);
+  const saved = await db.application.findUnique({ where: { id } });
+  results.push({ name: 'edited note persisted', pass: saved.note === 'QA edited note' });
+  await call('reject competition deletion with applications', 'DELETE', `/api/competitions/${competitionId}`, s, undefined, 400);
+  await call('athlete cancel own submitted application', 'DELETE', `/api/applications/${id}`, a, undefined, 200);
+  await call('staff delete empty competition', 'DELETE', `/api/competitions/${competitionId}`, s, undefined, 200);
+  const existing = await db.systemSetting.findUnique({ where: { key: 'QUALIFIER_SCHEDULE' }, select: { id: true } });
+  await call('read settings', 'GET', '/api/staff/settings', s, undefined, 200);
+  if (!existing) createdSettingId = (await db.systemSetting.findUnique({ where: { key: 'QUALIFIER_SCHEDULE' }, select: { id: true } }))?.id;
+})().catch(e => { results.push({ name: 'supplemental blocker', pass: false, code: e.code || e.name }); }).finally(async () => {
+  if (competitionId) await db.competition.deleteMany({ where: { id: competitionId } });
+  if (createdSettingId) await db.systemSetting.deleteMany({ where: { id: createdSettingId } });
+  fs.writeFileSync('test-results/supplemental.json', JSON.stringify(results, null, 2));
+  await db.$disconnect(); await pool.end();
+});

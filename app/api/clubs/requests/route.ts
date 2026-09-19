@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || session.role !== "CLUB") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || session.role !== "CLUB") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

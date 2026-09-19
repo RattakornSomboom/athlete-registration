@@ -1,0 +1,81 @@
+app/api/applications/[id]/route.ts(32,22): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/api/applications/[id]/route.ts(51,65): error TS2367: This comparison appears to be unintentional because the types '"ATHLETE" | "CLUB"' and '"SUPERADMIN"' have no overlap.
+app/api/applications/[id]/route.ts(53,55): error TS2551: Property 'competition' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; userId: string; competitionId: string; sport: string; category: string; division: string | null; squadType: string | null; status: ApplicationStatus; ... 9 more ...; supervisorPosition: string | null; }'. Did you mean 'competitionId'?
+app/api/applications/route.ts(60,22): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/api/applications/route.ts(99,52): error TS2367: This comparison appears to be unintentional because the types '"CLUB" | "STAFF" | "ADMIN"' and '"SUPERADMIN"' have no overlap.
+app/api/auth/login/route.ts(48,9): error TS2322: Type 'Role' is not assignable to type '"ATHLETE" | "CLUB" | "STAFF" | "ADMIN"'.
+  Type '"SUPERADMIN"' is not assignable to type '"ATHLETE" | "CLUB" | "STAFF" | "ADMIN"'.
+app/api/club/training/route.ts(9,49): error TS2367: This comparison appears to be unintentional because the types '"ATHLETE" | "STAFF" | "ADMIN"' and '"SUPERADMIN"' have no overlap.
+app/api/club/training/route.ts(32,49): error TS2367: This comparison appears to be unintentional because the types '"ATHLETE" | "STAFF" | "ADMIN"' and '"SUPERADMIN"' have no overlap.
+app/api/club/training/route.ts(42,49): error TS2322: Type '{ clubId: string | undefined; name: any; phone: any; }' is not assignable to type '(Without<CoachCreateInput, CoachUncheckedCreateInput> & CoachUncheckedCreateInput) | (Without<...> & CoachCreateInput)'.
+  Type '{ clubId: string | undefined; name: any; phone: any; }' is not assignable to type 'Without<CoachUncheckedCreateInput, CoachCreateInput> & CoachCreateInput'.
+    Type '{ clubId: string | undefined; name: any; phone: any; }' is not assignable to type 'Without<CoachUncheckedCreateInput, CoachCreateInput>'.
+      Types of property 'clubId' are incompatible.
+        Type 'string | undefined' is not assignable to type 'undefined'.
+          Type 'string' is not assignable to type 'undefined'.
+app/api/club/training/route.ts(48,61): error TS2322: Type '{ clubId: string | undefined; goal: any; schedule: any; }' is not assignable to type '(Without<TrainingProgramCreateInput, TrainingProgramUncheckedCreateInput> & TrainingProgramUncheckedCreateInput) | (Without<...> & TrainingProgramCreateInput)'.
+  Type '{ clubId: string | undefined; goal: any; schedule: any; }' is not assignable to type 'Without<TrainingProgramUncheckedCreateInput, TrainingProgramCreateInput> & TrainingProgramCreateInput'.
+    Type '{ clubId: string | undefined; goal: any; schedule: any; }' is not assignable to type 'Without<TrainingProgramUncheckedCreateInput, TrainingProgramCreateInput>'.
+      Types of property 'clubId' are incompatible.
+        Type 'string | undefined' is not assignable to type 'undefined'.
+          Type 'string' is not assignable to type 'undefined'.
+app/api/clubs/[id]/competitions/route.ts(26,16): error TS2353: Object literal may only specify known properties, and 'clubId' does not exist in type 'CompetitionWhereInput'.
+app/api/clubs/route.ts(50,50): error TS2367: This comparison appears to be unintentional because the types '"ATHLETE" | "CLUB" | "STAFF"' and '"SUPERADMIN"' have no overlap.
+app/api/competitions/[id]/route.ts(19,9): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/api/competitions/[id]/route.ts(77,48): error TS2339: Property 'clubId' does not exist on type '{ name: string; id: string; createdAt: Date; sport: string | null; status: CompetitionStatus; year: number; round: string; deadline: Date | null; }'.
+app/api/competitions/[id]/route.ts(98,9): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/api/competitions/[id]/route.ts(143,48): error TS2339: Property 'clubId' does not exist on type '{ _count: { applications: number; }; } & { name: string; id: string; createdAt: Date; sport: string | null; status: CompetitionStatus; year: number; round: string; deadline: Date | null; }'.
+app/api/competitions/route.ts(52,78): error TS2367: This comparison appears to be unintentional because the types '"ATHLETE" | "CLUB"' and '"SUPERADMIN"' have no overlap.
+app/api/export/applications/route.ts(49,13): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/api/export/applications/route.ts(77,27): error TS2339: Property 'user' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; userId: string; competitionId: string; sport: string; category: string; division: string | null; squadType: string | null; status: ApplicationStatus; ... 9 more ...; supervisorPosition: string | null; }'.
+app/api/export/applications/route.ts(80,13): error TS2339: Property 'user' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; userId: string; competitionId: string; sport: string; category: string; division: string | null; squadType: string | null; status: ApplicationStatus; ... 9 more ...; supervisorPosition: string | null; }'.
+app/api/export/applications/route.ts(86,13): error TS2551: Property 'competition' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; userId: string; competitionId: string; sport: string; category: string; division: string | null; squadType: string | null; status: ApplicationStatus; ... 9 more ...; supervisorPosition: string | null; }'. Did you mean 'competitionId'?
+app/api/export/applications/route.ts(87,13): error TS2551: Property 'competition' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; userId: string; competitionId: string; sport: string; category: string; division: string | null; squadType: string | null; status: ApplicationStatus; ... 9 more ...; supervisorPosition: string | null; }'. Did you mean 'competitionId'?
+app/api/staff/applications/route.ts(45,13): error TS2353: Object literal may only specify known properties, and 'club' does not exist in type 'CompetitionInclude<DefaultArgs>'.
+app/staff/analytics/page.tsx(135,22): error TS2339: Property 'sportName' does not exist on type 'never'.
+app/staff/analytics/page.tsx(136,23): error TS2339: Property 'applicants' does not exist on type 'never'.
+app/staff/analytics/page.tsx(137,21): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(138,18): error TS2339: Property 'quota' does not exist on type 'never'.
+app/staff/analytics/page.tsx(432,88): error TS2339: Property 'applicants' does not exist on type 'never'.
+app/staff/analytics/page.tsx(432,102): error TS2339: Property 'quota' does not exist on type 'never'.
+app/staff/analytics/page.tsx(433,42): error TS2339: Property 'applicants' does not exist on type 'never'.
+app/staff/analytics/page.tsx(434,47): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(437,38): error TS2339: Property 'sportName' does not exist on type 'never'.
+app/staff/analytics/page.tsx(440,35): error TS2339: Property 'sportName' does not exist on type 'never'.
+app/staff/analytics/page.tsx(442,37): error TS2339: Property 'categoryLabel' does not exist on type 'never'.
+app/staff/analytics/page.tsx(446,79): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(446,120): error TS2339: Property 'quota' does not exist on type 'never'.
+app/staff/analytics/page.tsx(446,149): error TS2339: Property 'applicants' does not exist on type 'never'.
+app/staff/analytics/page.tsx(456,56): error TS2339: Property 'applicants' does not exist on type 'never'.
+app/staff/analytics/page.tsx(463,60): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(469,55): error TS2339: Property 'fillRate' does not exist on type 'never'.
+app/staff/analytics/page.tsx(470,33): error TS2339: Property 'fillRate' does not exist on type 'never'.
+app/staff/analytics/page.tsx(473,75): error TS2339: Property 'quota' does not exist on type 'never'.
+app/staff/analytics/page.tsx(473,88): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(501,84): error TS2339: Property 'value' does not exist on type 'never'.
+app/staff/analytics/page.tsx(503,42): error TS2339: Property 'name' does not exist on type 'never'.
+app/staff/analytics/page.tsx(504,80): error TS2339: Property 'name' does not exist on type 'never'.
+app/staff/analytics/page.tsx(505,82): error TS2339: Property 'value' does not exist on type 'never'.
+app/staff/analytics/page.tsx(518,79): error TS2339: Property 'value' does not exist on type 'never'.
+app/staff/analytics/page.tsx(521,34): error TS2339: Property 'name' does not exist on type 'never'.
+app/staff/analytics/page.tsx(525,48): error TS2339: Property 'name' does not exist on type 'never'.
+app/staff/analytics/page.tsx(528,30): error TS2339: Property 'name' does not exist on type 'never'.
+app/staff/analytics/page.tsx(528,47): error TS2339: Property 'value' does not exist on type 'never'.
+app/staff/analytics/page.tsx(570,81): error TS2339: Property 'total' does not exist on type 'never'.
+app/staff/analytics/page.tsx(572,38): error TS2339: Property 'faculty' does not exist on type 'never'.
+app/staff/analytics/page.tsx(573,87): error TS2339: Property 'faculty' does not exist on type 'never'.
+app/staff/analytics/page.tsx(574,101): error TS2339: Property 'male' does not exist on type 'never'.
+app/staff/analytics/page.tsx(575,101): error TS2339: Property 'female' does not exist on type 'never'.
+app/staff/analytics/page.tsx(576,97): error TS2339: Property 'total' does not exist on type 'never'.
+app/staff/analytics/page.tsx(577,99): error TS2339: Property 'approved' does not exist on type 'never'.
+app/staff/analytics/page.tsx(606,38): error TS2339: Property 'status' does not exist on type 'never'.
+app/staff/analytics/page.tsx(607,58): error TS2339: Property 'count' does not exist on type 'never'.
+app/staff/analytics/page.tsx(607,68): error TS2339: Property 'required' does not exist on type 'never'.
+app/staff/analytics/page.tsx(609,37): error TS2339: Property 'category' does not exist on type 'never'.
+app/staff/analytics/page.tsx(611,79): error TS2339: Property 'label' does not exist on type 'never'.
+app/staff/analytics/page.tsx(619,89): error TS2339: Property 'count' does not exist on type 'never'.
+app/staff/analytics/page.tsx(620,52): error TS2339: Property 'required' does not exist on type 'never'.
+app/staff/applications/[clubId]/[competitionId]/page.tsx(159,11): error TS2322: Type '{ index: number; fullName: string; studentId: string; nationalId: string; gender: string; faculty: string; major: string; studentLevel: string; year: string; sportName: string; position: string; squadType: string; status: string; gpaCumulative: string; phone: string; }[]' is not assignable to type 'AthleteExportRow[]'.
+  Type '{ index: number; fullName: string; studentId: string; nationalId: string; gender: string; faculty: string; major: string; studentLevel: string; year: string; sportName: string; position: string; squadType: string; status: string; gpaCumulative: string; phone: string; }' is not assignable to type 'AthleteExportRow'.
+    Types of property 'year' are incompatible.
+      Type 'string' is not assignable to type 'number'.

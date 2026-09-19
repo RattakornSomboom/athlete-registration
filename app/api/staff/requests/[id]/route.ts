@@ -5,7 +5,7 @@ import { getSession } from "@/lib/auth";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     if (!session || session.role !== "STAFF") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

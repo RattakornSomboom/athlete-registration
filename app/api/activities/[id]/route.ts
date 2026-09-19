@@ -39,7 +39,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = getSession(request);
+    const session = await getSession(request);
 
     if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
       return NextResponse.json(

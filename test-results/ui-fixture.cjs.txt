@@ -1,0 +1,28 @@
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+require('dotenv').config({ quiet: true });
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000 });
+const db = new PrismaClient({ adapter: new PrismaPg(pool) });
+(async () => {
+  const file = 'test-results/ui-fixture.json';
+  if (process.argv[2] === 'cleanup') {
+    const f = JSON.parse(fs.readFileSync(file, 'utf8'));
+    await db.user.deleteMany({ where: { id: { in: f.users.map(u => u.id) } } });
+    f.remaining = await db.user.count({ where: { id: { in: f.users.map(u => u.id) } } });
+    fs.writeFileSync(file, JSON.stringify(f, null, 2)); console.log(JSON.stringify({ remaining: f.remaining }));
+  } else {
+    if (fs.existsSync(file)) throw new Error('Fixture file already exists');
+    const f = { users: [] }; fs.writeFileSync(file, JSON.stringify(f));
+    for (const role of ['STAFF', 'ATHLETE']) {
+      let studentId;
+      do { studentId = String(99000000 + crypto.randomInt(999999)); } while (await db.user.findUnique({ where: { studentId } }));
+      const u = await db.user.create({ data: { studentId, email: `qa_ui_${studentId}@example.invalid`, role, password: await bcrypt.hash('QaUiTemporary-2026!', 10) } });
+      f.users.push({ id: u.id, studentId, role }); fs.writeFileSync(file, JSON.stringify(f, null, 2));
+    }
+    console.log(JSON.stringify(f));
+  }
+})().catch(e => { console.log(JSON.stringify({ error: e.code || e.name })); process.exitCode = 1; }).finally(async () => { await db.$disconnect(); await pool.end(); });

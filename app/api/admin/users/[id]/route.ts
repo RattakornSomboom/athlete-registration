@@ -12,7 +12,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const session = getSession(request as NextRequest);
+    const session = await getSession(request as NextRequest);
     
     // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN เท่านั้น
     if (!session || session.role !== "ADMIN") {
