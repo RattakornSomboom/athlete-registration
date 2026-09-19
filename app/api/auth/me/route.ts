@@ -1,3 +1,4 @@
+import { publicUser } from "@/lib/public-account";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "ไม่พบบัญชีผู้ใช้" }, { status: 404 });
     }
 
-    const { password: _, ...safeUser } = user;
+    const safeUser = publicUser(user);
 
     return NextResponse.json({
       id: session.id,

@@ -11,7 +11,8 @@ import { getSession } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const session = await getSession(request as NextRequest);
-    if (!session || !["STAFF", "ADMIN"].includes(session.role)) {
+    if (!session) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+    if (!["STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะเจ้าหน้าที่)" },
         { status: 403 }
@@ -30,20 +31,18 @@ export async function GET(request: Request) {
     if (sport) where.sport = sport;
     if (competitionId) {
       where.competitionId = competitionId;
-    } else if (clubId) {
+    }
+    if (clubId) {
       // Filter by sport that matches the club's sport
       const club = await prisma.club.findUnique({ where: { id: clubId } });
-      if (club) {
-        where.sport = club.sport;
-      }
+      if (!club) return NextResponse.json({ error: "ไม่พบชมรม" }, { status: 404 });
+      where.AND = [{ sport: club.sport }, { OR: [{ rosterItem: null }, { rosterItem: { roster: { clubId: club.id } } }] }];
     }
 
     const applications = await prisma.application.findMany({
       where,
       include: {
-        user: {
-          include: { profile: true },
-        },
+        user: { select: { id: true, studentId: true, email: true, role: true, profile: true } },
         competition: {
           include: { quotas: true },
         },

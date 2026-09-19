@@ -9,7 +9,12 @@
     "lint": "eslint",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "db:generate": "npx prisma generate"
+    "db:generate": "npx prisma generate",
+    "test": "npm run test:unit",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.mjs",
+    "storage:private": "node scripts/setup-private-storage.mjs",
+    "db:migrate": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -39,6 +39,9 @@ export async function POST(request: Request) {
     const file = formData.get("file") as File | null;
     const bucket = (formData.get("bucket") as string) || "athlete-docs";
     const folder = (formData.get("folder") as string) || "uploads";
+    if (bucket !== "athlete-docs" || session.role === "TEAM_OFFICIAL") {
+      return NextResponse.json({ error: "กรุณาใช้ช่องทางเอกสารส่วนตัว" }, { status: 403 });
+    }
 
     // ─── Validation ───
     if (!file || !(file instanceof File)) {
@@ -137,6 +140,9 @@ export async function DELETE(request: Request) {
 
     const body = await request.json();
     const { path, bucket = "athlete-docs" } = body;
+    if (bucket !== "athlete-docs" || session.role === "TEAM_OFFICIAL") {
+      return NextResponse.json({ error: "ไม่มีสิทธิ์ใช้ bucket นี้" }, { status: 403 });
+    }
 
     if (!path) {
       return NextResponse.json(

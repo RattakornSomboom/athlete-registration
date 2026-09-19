@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
 
@@ -33,8 +35,8 @@ type Application = {
       postalCode: string;
     } | null;
   };
-  sportEntries: any[];
-  competitionResults: any[];
+  sportEntries: { sport: string; category: string; division: string | null }[];
+  competitionResults: { competitionName: string; year: string; result: string }[];
   note: string | null;
   photoFileUrl: string | null;
   idCardFileUrl: string | null;
@@ -50,7 +52,7 @@ type Application = {
 type Competition = {
   name: string;
   sport: string;
-  club: { name: string };
+
 };
 
 function evaluateEligibility(a: Application) {
@@ -72,88 +74,44 @@ export default function StaffCompetitionApplicantsPage() {
   const params = useParams();
   const competitionId = params.competitionId as string;
 
-  const [competition, setCompetition] = useState<Competition | null>(null);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
+  const clubId = params.clubId as string;
+  const action = useRequestAction();
   
   const [detailId, setDetailId] = useState<string | null>(null);
   const [rejectReasonInput, setRejectReasonInput] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
   const [squadModalId, setSquadModalId] = useState<string | null>(null);
-  const [squadChoice, setSquadChoice] = useState<"main" | "reserve" | "">("");
 
   const openSquadModal = (id: string) => {
     setSquadModalId(id);
-    const current = applications.find((a) => a.id === id);
-    setSquadChoice(current?.squadType === "main" || current?.squadType === "reserve" ? current.squadType : "main");
   };
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [compRes, appsRes] = await Promise.all([
-        fetch(`/api/competitions/${competitionId}`),
-        fetch(`/api/staff/applications?competitionId=${competitionId}`)
-      ]);
-      const compData = await compRes.json();
-      const appsData = await appsRes.json();
-      
-      setCompetition(compData.competition);
-      setApplications(appsData.applications ?? []);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  }, [competitionId]);
+  const load = useCallback(async () => {
+    const [comp, apps, clubs] = await Promise.all([
+      fetchJson<{ competition: Competition }>(`/api/competitions/${encodeURIComponent(competitionId)}`),
+      fetchJson<{ applications: Application[] }>(`/api/staff/applications?${new URLSearchParams({ clubId, competitionId })}`),
+      fetchJson<{ club: { id: string; name: string } }>(`/api/clubs/${encodeURIComponent(clubId)}/competitions`),
+    ]);
+    return { competition: comp.competition, applications: apps.applications, club: clubs.club };
+  }, [competitionId, clubId]);
+  const resource = useRemoteData(load);
+  const competition = resource.data?.competition;
+  const applications = resource.data?.applications ?? [];
+  const club = resource.data?.club;
+  const loading = resource.loading;
 
-  useEffect(() => { 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData(); 
-  }, [fetchData]);
-
-  const handleApprove = async () => {
-    if (!squadModalId || !squadChoice) return;
-    try {
-      const res = await fetch(`/api/applications/${squadModalId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          status: "STAFF_APPROVED", 
-          label: "อนุมัติโดยเจ้าหน้าที่", 
-          by: "staff",
-          squadType: squadChoice
-        })
-      });
-      if (res.ok) {
-        setApplications(prev => prev.map(a => a.id === squadModalId ? { ...a, status: "STAFF_APPROVED", squadType: squadChoice } : a));
-        setSquadModalId(null);
-        setSquadChoice("");
-      } else {
-        alert("ดำเนินการไม่สำเร็จ");
-      }
-    } catch {
-      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
-    }
-  };
-
-  const handleReject = async (id: string, reason: string) => {
-    if (!reason.trim()) return;
-    try {
-      const res = await fetch(`/api/applications/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "STAFF_REJECTED", label: `ปฏิเสธ: ${reason}`, by: "staff" })
-      });
-      if (res.ok) {
-        setApplications(prev => prev.map(a => a.id === id ? { ...a, status: "STAFF_REJECTED" } : a));
-        setShowRejectInput(null);
-      } else {
-        alert("ดำเนินการไม่สำเร็จ");
-      }
-    } catch {
-      alert("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
-    }
-  };
+  const handleApprove = () => action.run(async () => {
+    if (!squadModalId) return;
+    await fetchJson(`/api/applications/${squadModalId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "STAFF_APPROVED", label: "อนุมัติโดยเจ้าหน้าที่", by: "staff" }) });
+    resource.update(data => ({ ...data, applications: data.applications.map(a => a.id === squadModalId ? { ...a, status: "STAFF_APPROVED" } : a) }));
+    setSquadModalId(null);
+  });
+  const handleReject = (id: string, reason: string) => action.run(async () => {
+    if (!reason.trim()) throw new Error("กรุณาระบุเหตุผลที่ไม่ผ่าน");
+    await fetchJson(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "STAFF_REJECTED", label: `ปฏิเสธ: ${reason}`, by: "staff" }) });
+    resource.update(data => ({ ...data, applications: data.applications.map(a => a.id === id ? { ...a, status: "STAFF_REJECTED" } : a) }));
+    setShowRejectInput(null);
+  });
 
   const handleExportCSV = () => {
     const rows: AthleteExportRow[] = applications.map((a, idx) => ({
@@ -174,7 +132,7 @@ export default function StaffCompetitionApplicantsPage() {
       phone: a.user.profile?.phone || "",
     }));
 
-    exportAthletesToCSV(`บัญชีรายชื่อนักกีฬา_${competition?.club?.name || "ชมรม"}_${competition?.name || "รายการ"}`, rows);
+    exportAthletesToCSV(`บัญชีรายชื่อนักกีฬา_${club?.name || "ชมรม"}_${competition?.name || "รายการ"}`, rows);
   };
 
   const mainCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "main").length;
@@ -190,7 +148,7 @@ export default function StaffCompetitionApplicantsPage() {
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-              กองกิจการนิสิต มหาวิทยาลัยพะเยา · {competition?.club?.name || "กำลังโหลด..."}
+              กองกิจการนิสิต มหาวิทยาลัยพะเยา · {club?.name || "กำลังโหลด..."}
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">{competition?.name || "กำลังโหลด..."}</h1>
             <p className="text-xs text-slate-500">
@@ -199,6 +157,7 @@ export default function StaffCompetitionApplicantsPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              disabled={loading || !!resource.error}
               onClick={handleExportCSV}
               className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
@@ -231,7 +190,9 @@ export default function StaffCompetitionApplicantsPage() {
         </div>
 
         {/* Applicants List */}
-        {loading ? (
+        <RequestState error={resource.error || action.error} retry={resource.retry} />
+        {action.success && <p role="status">{action.success}</p>}
+        {resource.error ? null : loading ? (
           <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลด...</div>
         ) : applications.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm shadow-xs">
@@ -321,6 +282,7 @@ export default function StaffCompetitionApplicantsPage() {
                                 className="bg-slate-50 border border-slate-300 text-xs px-2.5 py-1.5 rounded-lg outline-none w-48"
                               />
                               <button
+                                disabled={action.busy}
                                 onClick={() => handleReject(a.id, rejectReasonInput[a.id] || "")}
                                 className="bg-rose-700 hover:bg-rose-800 text-white text-xs px-2.5 py-1.5 rounded-lg cursor-pointer"
                               >
@@ -357,7 +319,7 @@ export default function StaffCompetitionApplicantsPage() {
                           onClick={() => openSquadModal(a.id)}
                           className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                         >
-                          เปลี่ยนตัวจริง / สำรอง
+                          ดูผลพิจารณา
                         </button>
                       )}
                     </div>
@@ -373,52 +335,23 @@ export default function StaffCompetitionApplicantsPage() {
           <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl border border-slate-300 max-w-sm w-full p-6 space-y-4 shadow-xl">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">กำหนดสถานะนักกีฬาตัวแทน</h3>
-                <p className="text-xs text-slate-500 mt-0.5">เลือกประเภทบัญชีรายชื่อที่จะนำส่ง กกมท.</p>
+                <h3 className="text-sm font-bold text-slate-900">ยืนยันผลพิจารณานักกีฬา</h3>
+                <p className="text-xs text-slate-500 mt-0.5">อนุมัติใบสมัครที่ผ่านชมรมแล้ว</p>
               </div>
 
-              <div className="space-y-2 text-xs">
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="squad"
-                    value="main"
-                    checked={squadChoice === "main"}
-                    onChange={(e) => setSquadChoice("main")}
-                    className="text-blue-900 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-semibold text-slate-900 block">นักกีฬาตัวจริง (Main Squad)</span>
-                    <span className="text-[11px] text-slate-500">ขึ้นทะเบียนในรายชื่อหลักที่เข้าแข่งขัน</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-50">
-                  <input
-                    type="radio"
-                    name="squad"
-                    value="reserve"
-                    checked={squadChoice === "reserve"}
-                    onChange={(e) => setSquadChoice("reserve")}
-                    className="text-blue-900 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-semibold text-slate-900 block">นักกีฬาตัวสำรอง (Reserve Squad)</span>
-                    <span className="text-[11px] text-slate-500">ขึ้นทะเบียนทดแทนกรณีตัวจริงสละสิทธิ์หรือบาดเจ็บ</span>
-                  </div>
-                </label>
-              </div>
+              <RequestState error={action.error} retry={resource.retry} />
+              <p className="text-sm">ตัวจริง/สำรองใช้ตามบัญชีที่ชมรมลงนาม หากต้องแก้ไข ให้ส่งคืนบัญชีผ่านหน้าบัญชีชมรม</p>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
-                  onClick={() => { setSquadModalId(null); setSquadChoice(""); }}
+                  onClick={() => { setSquadModalId(null); }}
                   className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  disabled={action.busy}
                   onClick={handleApprove}
-                  disabled={!squadChoice}
                   className="px-4 py-1.5 text-xs font-medium text-white bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 rounded-md cursor-pointer"
                 >
                   บันทึกผล
@@ -467,9 +400,9 @@ export default function StaffCompetitionApplicantsPage() {
                   <p className="text-xs text-slate-400 italic">ไม่มีข้อมูลผลงานที่ระบุ</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {detailAthlete.competitionResults.map((c: any, i) => (
+                    {detailAthlete.competitionResults.map((c, i) => (
                       <div key={i} className="p-2.5 bg-slate-50 border border-slate-100 rounded text-xs flex justify-between">
-                        <span className="font-medium text-slate-800">{c.name} (ปี {c.year})</span>
+                        <span className="font-medium text-slate-800">{c.competitionName} (ปี {c.year})</span>
                         <span className="font-semibold text-blue-900">{c.result}</span>
                       </div>
                     ))}

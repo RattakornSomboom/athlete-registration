@@ -10,7 +10,8 @@ import { getSession } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const session = await getSession(request as NextRequest);
-    if (!session || session.role !== "ATHLETE") {
+    if (!session) return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
+    if (session.role !== "ATHLETE") {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะนักกีฬา)" },
         { status: 403 }
@@ -31,9 +32,8 @@ export async function GET(request: Request) {
     const applications = await prisma.application.findMany({
       where,
       include: {
-        user: {
-          include: { profile: true },
-        },
+        rosterItem: { select: { roster: { select: { club: { select: { id: true, name: true, sport: true } } } } } },
+        user: { select: { id: true, studentId: true, email: true, role: true, profile: true } },
         competition: {
           include: { quotas: true },
         },
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ applications });
+    return NextResponse.json({ applications: applications.map(({ rosterItem, ...application }) => ({ ...application, rosterClub: rosterItem?.roster.club ?? null })) });
   } catch (error) {
     console.error("[GET /api/applications]", error);
     return NextResponse.json(

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSession, type JWTPayload } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isDatabaseConflict } from "@/lib/db-errors";
+import { ValidationError, parseJsonObject } from "@/lib/validation";
 export const STAFF = ["STAFF", "ADMIN", "SUPERADMIN"] as const;
 export type Tx = Prisma.TransactionClient;
 export class ApiError extends Error {
@@ -19,9 +21,7 @@ export function version(value: unknown) {
   return Number(value);
 }
 export async function body(request: Request): Promise<Record<string, unknown>> {
-  const data = await request.json();
-  ensure(data && typeof data === "object" && !Array.isArray(data), "ข้อมูลไม่ถูกต้อง");
-  return data;
+  return parseJsonObject(request);
 }
 export async function api(request: Request, roles: readonly string[], action: (session: JWTPayload) => Promise<unknown>) {
   try {
@@ -30,6 +30,7 @@ export async function api(request: Request, roles: readonly string[], action: (s
     ensure(roles.includes(session.role), "ไม่มีสิทธิ์เข้าถึง", 403);
     return NextResponse.json(await action(session), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof ValidationError) return NextResponse.json({ error: error.message, fieldErrors: error.fieldErrors }, { status: 400 });
     if (error instanceof ApiError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof SyntaxError) return NextResponse.json({ error: "JSON ไม่ถูกต้อง" }, { status: 400 });
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -40,8 +41,13 @@ export async function api(request: Request, roles: readonly string[], action: (s
     return NextResponse.json({ error: "ไม่สามารถดำเนินการได้ กรุณาลองใหม่" }, { status: 500 });
   }
 }
-export function atomic<T>(fn: (tx: Tx) => Promise<T>) {
-  return prisma.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 20000 });
+export async function atomic<T>(fn: (tx: Tx) => Promise<T>) {
+  try {
+    return await prisma.$transaction(fn, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, maxWait: 10000, timeout: 20000 });
+  } catch (error) {
+    if (isDatabaseConflict(error)) throw new ApiError(409, "ข้อมูลถูกแก้ไขพร้อมกันหรือซ้ำ กรุณาโหลดใหม่");
+    throw error;
+  }
 }
 export function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -57,4 +63,3 @@ export async function openCompetition(tx: Tx, id: string) {
   ensure(c.status === "OPEN" && (!c.deadline || c.deadline >= new Date()), "การแข่งขันไม่เปิดรับสมัคร", 409);
   return c;
 }
-

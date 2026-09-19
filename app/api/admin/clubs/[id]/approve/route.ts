@@ -1,27 +1,12 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { api, atomic, ensure } from "@/lib/phase4-server";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
+  return api(request, ["ADMIN"], async () => {
     const { id } = await params;
-
-    const updatedClub = await prisma.club.update({
-      where: { id },
-      data: {
-        status: "ACTIVE"
-      }
+    return atomic(async tx => {
+      ensure(await tx.club.findUnique({ where: { id }, select: { id: true } }), "ไม่พบชมรม", 404);
+      const club = await tx.club.update({ where: { id }, data: { status: "ACTIVE" }, select: { id: true, name: true, sport: true, email: true, status: true, isActive: true } });
+      return { club };
     });
-
-    return NextResponse.json({ club: updatedClub });
-  } catch (error) {
-    console.error("[PUT /api/admin/clubs/[id]/approve]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
+  });
 }

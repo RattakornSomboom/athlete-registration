@@ -1,3 +1,7 @@
+import { publicUser } from "@/lib/public-account";
+import { reserveEmail } from "@/lib/account-service";
+import { ApiError, atomic } from "@/lib/phase4-server";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -56,7 +60,9 @@ export async function POST(request: Request) {
     // --- Create user + profile ---
     const email = `${studentId}@up.ac.th`;
 
-    const user = await prisma.user.create({
+    const user = await atomic(async tx => {
+      await reserveEmail(tx, email);
+      return tx.user.create({
       data: {
         studentId,
         email,
@@ -91,15 +97,18 @@ export async function POST(request: Request) {
       },
       include: { profile: true },
     });
+    });
 
     // Remove password from response
-    const { password: _, ...safeUser } = user;
+    const safeUser = publicUser(user);
 
     return NextResponse.json(
       { message: "ลงทะเบียนสำเร็จ", user: safeUser },
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof ApiError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2002", "P2034"].includes(error.code)) return NextResponse.json({ error: "บัญชีซ้ำ กรุณาใช้บัญชีเดิม" }, { status: 409 });
     console.error("[POST /api/auth/register]", error);
     return NextResponse.json(
       { error: "เกิดข้อผิดพลาดภายในระบบ" },

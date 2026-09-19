@@ -22,7 +22,7 @@
 - `npx tsc --noEmit`: ตรวจสอบชนิดข้อมูล TypeScript
 - `npm run db:generate`: สร้าง Prisma Client ใหม่หลังแก้ไข schema
 - `npm run db:push`: ปรับฐานข้อมูลให้ตรงกับ schema โดยตรวจสอบฐานข้อมูลปลายทางก่อนรัน
-- ยังไม่มีคำสั่ง `npm run test` ใน `package.json`; ใช้การตรวจและทดสอบตามหัวข้อด้านล่าง
+- `npm test`: รัน unit tests; `npm run test:integration`: รันทดสอบ HTTP/ฐานทดสอบ โดยต้องกำหนด `TEST_BASE_URL`, `TEST_DATABASE_URL`, `TEST_ALLOW_WRITE=yes` ชัดเจน
 
 ## รูปแบบโค้ดและการตั้งชื่อ
 
@@ -30,7 +30,7 @@
 
 ## แนวทางการทดสอบ
 
-ยังไม่มีสคริปต์ `test` ใน `package.json` เฟรมเวิร์กทดสอบ หรือเกณฑ์ coverage จึงยังใช้ `npm test` ไม่ได้ โดย `lib/fitness-test.ts` เป็นตรรกะของระบบ ก่อนส่งงานให้รัน lint ตรวจชนิดข้อมูล และบิลด์ ทดสอบขั้นตอนลงทะเบียน การพิจารณาใบสมัคร และสิทธิ์ตามบทบาทที่ได้รับผลกระทบด้วยตนเอง บันทึกขั้นตอนและผลตรวจสอบใน PR
+ใช้ Node.js test runner ใน `tests/unit/` และ `tests/integration/` (Node.js 22.18+ สำหรับอ่าน TypeScript ใน unit tests) ยังไม่กำหนด coverage ขั้นต่ำ Integration tests ใช้ fixture ที่ระบุ ID และล้างเฉพาะข้อมูลของรอบทดสอบ ห้ามใช้ฐาน production ก่อนส่งงานให้รัน lint, TypeScript, build และทดสอบ flow กับสิทธิ์ที่กระทบ ดูวิธีรันใน README และบันทึกหลักฐานใน TEST-REPORT.md
 
 ## ส่วนช่วยทดสอบและขอบเขต Production
 
@@ -47,13 +47,13 @@
 
 - ห้าม commit `.env` หรือข้อมูลลับ เก็บ `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET` และ `SUPABASE_SERVICE_ROLE_KEY` ไว้ฝั่งเซิร์ฟเวอร์ ห้ามนำ `lib/supabase-admin.ts` เข้า client component
 - Runtime ใช้ `DATABASE_URL` ส่วน Prisma CLI ใช้ `DIRECT_URL` ฝั่ง Supabase server ใช้ `SUPABASE_URL` และ service-role key; browser ใช้ `NEXT_PUBLIC_SUPABASE_URL` และ `NEXT_PUBLIC_SUPABASE_ANON_KEY` ห้ามใส่ secret ในตัวแปร `NEXT_PUBLIC_*`
-- แก้ `prisma/schema.prisma`, `prisma.config.ts`, `middleware.ts`, `next.config.ts`, `tsconfig.json` และ `eslint.config.mjs` เฉพาะเมื่อจำเป็นต่องาน พร้อมอธิบายผลกระทบ ห้ามปิด strict/lint เพื่อหลบข้อผิดพลาด หรือเปลี่ยนฐานข้อมูลปลายทางโดยไม่ตรวจสอบ
-- ตรวจ session และสิทธิ์ใน API งานจริงด้วย อย่าเชื่อเฉพาะ cookie `role` ที่ middleware อ่าน สำหรับ dev-login ให้ปฏิบัติตามหัวข้อส่วนช่วยทดสอบและขอบเขต Production
-- บางส่วนยังเป็น mock/stub เช่น `lib/athlete-profile.ts` ใช้ localStorage และ `lib/snapshot-store.ts` ยังไม่บันทึกข้อมูลถาวร ตรวจ implementation ก่อนอ้างว่าฟีเจอร์เชื่อมฐานข้อมูลแล้ว
+- แก้ `prisma/schema.prisma`, `prisma.config.ts`, `proxy.ts`, `next.config.ts`, `tsconfig.json` และ `eslint.config.mjs` เฉพาะเมื่อจำเป็นต่องาน พร้อมอธิบายผลกระทบ ห้ามปิด strict/lint เพื่อหลบข้อผิดพลาด หรือเปลี่ยนฐานข้อมูลปลายทางโดยไม่ตรวจสอบ
+- ตรวจ session และสิทธิ์ใน API งานจริงด้วย อย่าเชื่อเฉพาะ cookie `role` ที่ client อ่าน สำหรับ dev-login ให้ปฏิบัติตามหัวข้อส่วนช่วยทดสอบและขอบเขต Production
+- บางส่วนยังเป็น mock/stub เช่น `lib/athlete-profile.ts` ใช้ localStorage ส่วน Phase 4 Analytics/Snapshot/บัญชีชมรม/เจ้าหน้าที่ทีมใช้ API และฐานข้อมูลแล้ว ตรวจ implementation ก่อนอ้างว่าฟีเจอร์เชื่อมฐานข้อมูลแล้ว
 
 ## CI และ Deployment
 
-ยังไม่พบ workflow CI, Dockerfile หรือไฟล์ตั้งค่า deployment ใน repository ส่วน README เป็นคำแนะนำ Vercel จาก starter จึงยังยืนยันโฮสต์จริงไม่ได้ สำหรับรัน production ด้วย Node.js ให้ตั้ง environment variables จากนั้นรัน `npm ci`, `npm run db:generate`, `npm run build` และ `npm start` การปรับ schema เป็นขั้นตอนแยก ไม่ควรรัน `db:push` กับ production โดยไม่ตรวจผลกระทบ
+ยังไม่พบ workflow CI, Dockerfile หรือไฟล์ตั้งค่า deployment ใน repository ส่วน README เป็นคำแนะนำ Vercel จาก starter จึงยังยืนยันโฮสต์จริงไม่ได้ สำหรับรัน production ด้วย Node.js ให้ตั้ง environment variables จากนั้นรัน `npm ci`, `npm run db:generate`, `npm run build` และ `npm start` มี migration history แล้ว ใช้ `npm run db:migrate` หลังตรวจปลายทางและ SQL; ฐานเดิมต้องตรวจ baseline ตาม README ห้ามรัน `db:push` หรือ reset แทน migration โดยไม่ตรวจผลกระทบ
 
 ## คำแนะนำสำหรับเอเจนต์
 

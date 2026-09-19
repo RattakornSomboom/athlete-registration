@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type StatusHistory = { id: string; status: string; label: string; by: string; createdAt: string };
@@ -64,25 +68,11 @@ const STATUS_LABEL: Record<string, string> = {
 export default function AthleteDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const [application, setApplication] = useState<Application | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    const id = params?.id as string;
-    if (!id) return;
-
-    fetch(`/api/applications/${id}`)
-      .then((r) => {
-        if (r.status === 404) { setNotFound(true); return null; }
-        return r.json();
-      })
-      .then((data) => {
-        if (data?.application) setApplication(data.application);
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [params?.id]);
+  const id = params.id as string;
+  const load = useCallback(() => fetchJson<{ application: Application }>("/api/applications/" + encodeURIComponent(id)), [id]);
+  const resource = useRemoteData(load);
+  const application = resource.data?.application;
+  const loading = resource.loading;
 
   const handlePrint = () => window.print();
 
@@ -94,7 +84,9 @@ export default function AthleteDetailPage() {
     );
   }
 
-  if (notFound || !application) {
+  if (resource.error) return <main className="mx-auto max-w-3xl p-6"><RequestState error={resource.error} retry={resource.retry} /><button onClick={() => router.back()}>ย้อนกลับ</button></main>;
+
+  if (!application) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

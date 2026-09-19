@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -32,35 +36,12 @@ export default function StaffClubCompetitionsPage() {
   const params = useParams();
   const clubId = params.clubId as string;
 
-  const [club, setClub] = useState<Club | null>(null);
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [clubsRes, compRes] = await Promise.all([
-        fetch("/api/clubs"),
-        fetch(`/api/competitions?clubId=${clubId}`)
-      ]);
-      
-      const clubsData = await clubsRes.json();
-      const compData = await compRes.json();
-
-      const foundClub = clubsData.clubs?.find((c: Club) => c.id === clubId);
-      if (foundClub) setClub(foundClub);
-
-      setCompetitions(compData.competitions ?? []);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  }, [clubId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, [fetchData]);
+  const load = useCallback(() => fetchJson<{ club: Club; competitions: Competition[] }>("/api/clubs/" + encodeURIComponent(clubId) + "/competitions"), [clubId]);
+  const resource = useRemoteData(load);
+  const club = resource.data?.club;
+  const competitions = resource.data?.competitions ?? [];
+  const loading = resource.loading;
+  if (resource.error) return <main className="mx-auto max-w-3xl p-6"><RequestState error={resource.error} retry={resource.retry} /><button onClick={() => router.back()}>ย้อนกลับ</button></main>;
 
   if (!loading && !club) {
     return (

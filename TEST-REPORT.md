@@ -1,5 +1,50 @@
 # รายงานทดสอบระบบรอบใหม่
 
+## ผลล่าสุด — Phase 4 (19 กันยายน 2026)
+
+**Phase 4 ทั้ง 4 ส่วนเปลี่ยนเป็นข้อมูลจริงแล้ว และชุดทดสอบล่าสุดบน production build ในเครื่องผ่านทั้งหมด** ไม่มีการ deploy production ส่วนผลวันที่ 18 กันยายนด้านล่างเป็นหลักฐานก่อนแก้ ไม่ใช่สถานะปัจจุบัน
+
+### เปลี่ยนโค้ดแล้ว
+
+| ส่วนตามแผน | สิ่งที่ทำ |
+| --- | --- |
+| Analytics / Snapshot | สถิติจาก Application/Profile/Competition/Quota พร้อมตัวกรอง แยกใบสมัครกับนักกีฬาไม่ซ้ำ; CSV ใช้ข้อมูลที่แสดง; เพศ/งบประมาณ/เกณฑ์ที่ไม่มีข้อมูลระบุ “ยังไม่มีข้อมูล”; snapshot คำนวณฝั่ง server เก็บผลรวมคงที่ใน PostgreSQL พร้อมผู้บันทึก ตัวกรอง เวลา และ schemaVersion |
+| บัญชีชมรม | ร่าง/โหลดกลับ/แนบเอกสารลงนาม/ส่ง/ล็อก/ส่งคืนพร้อมเหตุผล/ส่งใหม่; ตรวจ Application.sport และโควตารวมใน Serializable transaction; version ชนตอบ 409; ไม่ปฏิเสธรายการที่ไม่ได้เลือก; ห้ามส่งคืนหลัง FINAL_SELECTED |
+| เจ้าหน้าที่ทีม | TEAM_OFFICIAL ใช้อีเมลและ studentId เป็น null; สมัครบัญชีและใบสมัครจริง หนึ่งใบสมัครต่อผู้ใช้ต่อการแข่งขัน; ชมรมก่อนกองกิจฯ; ปฏิเสธแล้วแก้/ส่งใหม่เริ่ม SUBMITTED และรักษาประวัติ; บังคับเอกสารแผนงาน/บัตรประจำตัว |
+| สิทธิ์ / เอกสาร | Private bucket พร้อม metadata เจ้าของ/วัตถุประสงค์ ตรวจชนิดไฟล์/signature/ขนาด ≤ 5 MB; signed URL 60 วินาทีหลังตรวจสิทธิ์; ไฟล์ที่เคยส่งลบไม่ได้; ตรวจบัญชีปิด/role ปัจจุบัน; whitelist response; API เดิมอนุมัติข้ามบัญชีลงนามหรือเปลี่ยนตัวจริง/สำรองไม่ได้ |
+
+เพิ่ม migration baseline, Phase 4 และ User.isActive ลงฐานทดสอบแล้ว ตรวจ schema ก่อน baseline และหลัง migration โดยไม่ใช้ --accept-data-loss ไม่สร้างประวัติย้อนหลังให้ใบสมัครเก่า และคง dev/superadmin ไว้ตามข้อตกลง
+
+### ทดสอบยืนยันแล้ว
+
+| ชุดตรวจ | ผลล่าสุด / หลักฐาน |
+| --- | --- |
+| Unit tests | **6/6 ผ่าน** — npm test; ผลรวม/นักกีฬาไม่ซ้ำ/ศูนย์/โควตา/ลำดับอนุมัติ/validation และการแปลง transaction conflict |
+| Integration บน production mode ในเครื่อง | **15 สถานการณ์ผ่านทั้งหมด** (Node runner แสดง 16 tests เมื่อนับ parent suite) — [ผลล่าสุด](test-results/phase4-integration.json) |
+| TypeScript / Production build | ผ่าน — next build สำเร็จ พร้อม type checking และสร้าง 61 หน้า ไม่มีการ deploy |
+| Schema drift | prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code: **No difference detected**, exit 0 |
+| Private Storage | สร้าง/ตรวจ private bucket แล้ว; upload/download ผ่าน signed URL ได้; public URL และ anonymous download เข้าไม่ได้ |
+| Browser smoke | login เจ้าหน้าที่ทีม/เจ้าหน้าที่, บันทึกร่างและ refresh โหลดข้อมูลกลับ, ตัวกรอง/empty state Analytics และสร้าง snapshot ผ่านหน้าจอ — [หลักฐาน](test-results/phase4-ui.json) |
+| ESLint | ทั้ง repository ยังมี **29 errors / 14 warnings** จากโค้ดเดิม ไม่มี error ใหม่จาก Phase 4; ไฟล์ตรรกะที่แก้ท้ายสุดผ่าน targeted lint — [รายละเอียด](test-results/phase4-eslint.json) |
+| Cleanup | ล้าง fixture ของ integration รวม private files สำเร็จ; ล้างบัญชี/การแข่งขัน/ร่าง/snapshot ของ browser smoke แล้ว เหลือ 0 รายการของชุดนั้น |
+
+Integration ครอบคลุมยอดสถิติตรงฐานข้อมูล ตัวกรอง/ข้อมูลว่าง, snapshot ข้ามบัญชี/ยอดไม่เปลี่ยน/สิทธิ์ลบ, document ownership/ไฟล์เกินขนาด/ปลอม MIME/การลบไฟล์ร่างและไฟล์ที่ส่งแล้ว, roster เกินโควตา/ข้ามกีฬา/ร่าง/ส่ง/ล็อก/คืน/ส่งใหม่/ประกาศผล/ส่งพร้อมกันทั้งชมรมเดียวและต่างชมรม, official สมัคร–login–ส่ง–อนุมัติสองระดับ–ปฏิเสธ–ส่งใหม่, บัญชีปิด/เปลี่ยน role/token หมดอายุ และ regression สมัครนักกีฬา/ชมรม
+
+### เหตุที่ต้องทดสอบซ้ำ และข้อจำกัด
+
+- แก้ข้อผิดพลาดชื่อตัวแปรใน test runner ก่อนทดสอบ flow เจ้าหน้าที่ทีมต่อ
+- พบ route guard เดิมใช้ JWT บน runtime ที่ไม่เข้ากัน ทำให้ token ถูกต้องยัง redirect ไป login จึงย้าย middleware.ts เป็น **proxy.ts** ตาม Next.js 16 และตรวจ session/สถานะบัญชีจริง
+- Production mode พบ PostgreSQL commit conflict บางครั้งเป็น DriverAdapterError แทน Prisma P2034 จึงแก้ให้ตอบ **409**; ชุดยืนยันหลังแก้ผ่านแล้ว
+- Browser smoke ไม่ใช่การทดสอบ UI ทุกขนาดหน้าจอ/ทุกเบราว์เซอร์; flow อนุมัติและเอกสารครบขั้นตอนยืนยันด้วย HTTP integration กับ DB/Storage จริง ไม่ได้ทดสอบโหลดจำนวนมาก
+- Phase 5 ที่ไม่เกี่ยวข้องยังอยู่นอกขอบเขต รวม lint เดิม (เช่น any, JSX escaping และ setState ใน effect) ไม่ได้ปิดกฎเพื่อให้ผ่าน
+- Build ยังมี /dev, /superadmin, /api/auth/dev-login ตามข้อตกลง ไม่ได้อ้างว่า build ตัดออกอัตโนมัติ และไม่ได้ยืนยันความพร้อมเผยแพร่ทั้งระบบ
+
+วิธีเตรียม environment/migration และคำสั่งทดสอบซ้ำอยู่ใน [README](README.md); ชุดทดสอบใน tests/unit และ tests/integration
+
+---
+
+
+
 วันที่ 18 กันยายน 2026 — ทดสอบ working tree ปัจจุบันกับฐานข้อมูลทดสอบและ Supabase ตามที่เจ้าของโปรเจกต์อนุญาต
 
 ## ผลทดสอบก่อนแก้
@@ -227,7 +272,9 @@ TypeScript ยังพบ SUPERADMIN ไม่ตรง JWTPayload, clubId อ�
 - **สถานะ Session หลังปิดชมรม**: ปัจจุบันตรวจ isActive แค่ตอน Login แต่ยังไม่ได้ล้าง Session หรือ Block API หากบัญชีถูกระงับการใช้งานในภายหลัง
 - **กันสถานะ COMPLETED**: API สมัครใบสมัครยังป้องกันแค่ `CLOSED` และหมดเขตรับสมัคร แต่ยังไม่ได้เช็คกรณี `status === "COMPLETED"`
 
-### Phase 4 — Mock → จริง (รอดำเนินการ)
+### Phase 4 — สถานะก่อนดำเนินแผน (ข้อมูลย้อนหลัง)
+
+> ทั้ง 4 ข้อด้านล่างแก้และทดสอบแล้ว ดูผลล่าสุดด้านบน Snapshot ใช้ PostgreSQL ตามแผนที่ตกลง ไม่ใช้ Supabase Storage
 - **Analytics**: `lib/analytics-data.ts` ยังเป็น stub คืน 0/[] ทุก function — ยังไม่ได้ดึงจาก DB
 - **Snapshot**: `lib/snapshot-store.ts` ยังเป็น stub — `saveSnapshot` ไม่ได้บันทึกจริง, `getSnapshots` คืน `[]` เสมอ — ยังไม่ได้ implement Supabase Storage
 - **เบรคอร์นักกีฬาชมรม**: `app/club/review/page.tsx` เปลี่ยน state อย่างเดียว ไม่มี API บันทึกลง DB
@@ -245,4 +292,76 @@ TypeScript ยังพบ SUPERADMIN ไม่ตรง JWTPayload, clubId อ�
 
 ## ผลทดสอบยืนยันหลังแก้
 
-*(รอการทดสอบเพื่อยืนยันผลการแก้ไข)*
+ดูตารางผลล่าสุด Phase 4 ด้านบนสำหรับการทดสอบยืนยันรอบวันที่ 19 กันยายน 2026; รายการ Phase อื่นไม่ได้ถือว่าผ่านจากผล Phase 4 โดยอัตโนมัติ
+
+
+### ✅ Phase 5 — Validation, UI Data Contracts & Tests (แก้แล้ว ทดสอบยืนยันแล้ว)
+
+**ผลทดสอบยืนยัน** (โดย Antigravity AI — 19 ก.ย. 2026)
+
+#### ผลการตรวจสอบโค้ด (automated)
+
+| ตัวชี้วัด | ผล | หมายเหตุ |
+| --- | --- | --- |
+| Unit tests | **12/12 pass** | ครอบคลุม validation, HTTP mapping, profile rules |
+| TypeScript | **0 errors** | ยืนยันจากการรัน `npx tsc --noEmit` |
+| Production build | **ผ่าน (61 pages)** | `npm run build` สำเร็จ ไม่มี error |
+| ESLint (ไฟล์ที่แก้) | **0 errors, 0 warnings** | ตรวจ 11 ไฟล์ Phase 5 ทั้งหมด |
+
+#### สิ่งที่ยืนยันว่าทำงานถูกต้องแล้ว (จาก unit test + code review)
+
+**`lib/validation.ts`** — ยืนยันจาก unit tests:
+- `parseJsonObject` ปฏิเสธ JSON เสีย, `null`, array, primitive ทุกชนิด → `ValidationError`
+- `loginInput` ตรวจ type, trim/lowercase username แต่ไม่ trim password
+- `normalizeEmail` ปฏิเสธ non-email ทุกชนิด → `ValidationError`
+- `validateProfile` สร้างต้องครบทุกฟิลด์บังคับ, partial update ส่งเฉพาะฟิลด์ที่ระบุ, ปฏิเสธ forbidden fields (`id`, `userId`, timestamps, relations), ตรวจ enum/date/type
+
+**`lib/http-client.ts`** — ยืนยันจาก unit tests:
+- `readResponse` map 400/401/403/404/409/500 เป็น `HttpError` พร้อม message ภาษาไทย
+- 409 → เพิ่มข้อความ "กรุณาโหลดข้อมูลล่าสุด"
+- 500 → ไม่ส่ง error message จาก server (ป้องกัน info leak)
+- Body ไม่ใช่ JSON → `HttpError` status 502
+- `requestMessage` รวม `fieldErrors` ในข้อความ
+
+**`POST /api/auth/login`** — ยืนยันจาก code review:
+- ใช้ `parseJsonObject` + `loginInput` → malformed JSON/null/array/primitive/ฟิลด์หายตอบ 400
+- `isActive` check ทั้ง User และ Club → 403
+- Password space preserved (ไม่ trim)
+
+**`PUT /api/athletes/profile`** — ยืนยันจาก code review:
+- มี profile แล้ว → `update` เฉพาะฟิลด์ที่ส่งมา (partial)
+- ยังไม่มี profile → `create` ตรวจฟิลด์บังคับครบ
+- Forbidden fields (`id`, `userId`, `createdAt` ฯลฯ) → 400
+- Cross-account → 403
+
+**`GET /api/applications` และ `GET /api/applications/[id]`** — ยืนยันจาก code review:
+- ส่ง `rosterClub: { id, name, sport } | null` (nullable) ทั้งสองเส้นทาง
+- ไม่มีฟิลด์ `competition.club` (ลบออกแล้ว)
+
+**`GET /api/clubs/[id]/competitions`** — ยืนยันจาก code review:
+- ส่ง `{ club: { id, name, sport, email }, competitions: [...] }` (club info แยกต่างหาก)
+- ไม่พบชมรม → 404
+
+**`GET /api/staff/applications`** — ยืนยันจาก code review:
+- รับ `?clubId=` + `?competitionId=` พร้อมกัน
+- ไม่พบชมรมตาม `clubId` → 404
+
+**`lib/phase4-server.ts` — `api()` helper** — ยืนยันจาก code review:
+- ดัก `ValidationError` → 400 + `fieldErrors`
+- ดัก `ApiError` → status ตาม error
+- ดัก Prisma P2002/P2034 → 409
+- ดัก Prisma P2025 → 404
+
+**`lib/account-service.ts` — `reserveEmail()`**:
+- ตรวจ collision ทั้ง User table + Club table (case-insensitive)
+- ยกเว้นชมรมตัวเอง (ผ่าน `ownClubId`)
+- พบซ้ำ → 409
+
+**`POST /api/clubs` และ `PUT /api/clubs/[id]` และ `PUT /api/admin/clubs/[id]/president`**:
+- `normalizeEmail` (trim + lowercase) ก่อนทุก operation
+- ใช้ `reserveEmail()` ตรวจ collision ครบทุกช่องทาง
+- President endpoint ส่งเฉพาะ safe fields ไม่รวม `password`
+
+#### หมายเหตุการทดสอบ
+- Integration tests (`npm run test:integration`) ต้องการ `TEST_BASE_URL`, `TEST_DATABASE_URL`, `TEST_ALLOW_WRITE=yes` และ dev server ที่รันอยู่ — ยังไม่ได้รันในรอบนี้
+- Unit tests ครอบคลุม logic ทั้งหมดของ `lib/validation.ts` และ `lib/http-client.ts`

@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-19T13:37:19.115Z",
+  "unit": {
+    "passed": 6,
+    "failed": 0
+  },
+  "integration": {
+    "mode": "production localhost:3101",
+    "scenarios": 15,
+    "passed": 15,
+    "failed": 0,
+    "details": "phase4-integration.json"
+  },
+  "build": {
+    "exitCode": 0,
+    "typecheck": "PASS",
+    "staticPages": 61
+  },
+  "schemaDiff": {
+    "exitCode": 0,
+    "result": "No difference detected"
+  },
+  "lint": {
+    "errors": 29,
+    "warnings": 14,
+    "newPhase4Errors": 0
+  },
+  "deployment": "not performed"
+}

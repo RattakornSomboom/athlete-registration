@@ -1,3 +1,5 @@
+import { loginInput, parseJsonObject, ValidationError } from "@/lib/validation";
+import { publicUser, publicClub } from "@/lib/public-account";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -12,16 +14,7 @@ import { signToken } from "@/lib/auth";
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const username = typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
-    const { password } = body;
-
-    if (!username || typeof password !== "string" || !password) {
-      return NextResponse.json(
-        { error: "กรุณากรอก username และรหัสผ่าน" },
-        { status: 400 }
-      );
-    }
+    const { username, password } = loginInput(await parseJsonObject(request));
 
     // ─── ลองค้นหาใน User table ก่อน (Athlete/Staff/Admin) ───
     const isEmail = username.includes("@");
@@ -33,6 +26,7 @@ export async function POST(request: Request) {
     });
 
     if (user) {
+      if (!user.isActive) return NextResponse.json({ error: "บัญชีถูกระงับการใช้งาน" }, { status: 403 });
       // --- Verify password ---
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
@@ -49,7 +43,7 @@ export async function POST(request: Request) {
         studentId: user.studentId ?? undefined,
       });
 
-      const { password: _, ...safeUser } = user;
+      const safeUser = publicUser(user);
 
       const response = NextResponse.json({
         message: "เข้าสู่ระบบสำเร็จ",
@@ -104,7 +98,7 @@ export async function POST(request: Request) {
           clubId: club.id,
         });
 
-        const { password: _, ...safeClub } = club;
+        const safeClub = publicClub(club);
 
         const response = NextResponse.json({
           message: "เข้าสู่ระบบสำเร็จ",
@@ -134,6 +128,7 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   } catch (error) {
+    if (error instanceof ValidationError) return NextResponse.json({ error: error.message, fieldErrors: error.fieldErrors }, { status: 400 });
     console.error("[POST /api/auth/login]", error);
     return NextResponse.json(
       { error: "เกิดข้อผิดพลาดภายในระบบ" },

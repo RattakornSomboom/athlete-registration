@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useState, useCallback } from "react";
 import LogoutButton from "@/components/shared/LogoutButton";
 import Link from "next/link";
 
-type SportEntry = { sport: string; category: string; division?: string | null };
 
 type Application = {
   id: string;
@@ -25,30 +27,16 @@ type Application = {
 };
 
 export default function ClubAthletesPage() {
-  const router = useRouter();
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [clubName, setClubName] = useState("");
   const [notified, setNotified] = useState(false);
-
-  const fetchAthletes = useCallback(async (cId: string) => {
-    try {
-      const res = await fetch(`/api/clubs/${cId}/athletes`);
-      const data = await res.json();
-      setApplications(data.athletes ?? []);
-      if (data.club) setClubName(data.club.name);
-    } catch {
-      console.error("Failed to fetch athletes");
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(async () => {
+    const me = await fetchJson<{ club: { id: string; name: string } }>("/api/auth/me");
+    const result = await fetchJson<{ athletes: Application[] }>("/api/clubs/" + me.club.id + "/athletes");
+    return { applications: result.athletes, club: me.club };
   }, []);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("current_club_id");
-    if (!stored) { router.push("/login"); return; }
-    fetchAthletes(stored);
-  }, [router, fetchAthletes]);
+  const resource = useRemoteData(load);
+  const applications = resource.data?.applications ?? [];
+  const clubName = resource.data?.club.name ?? "";
+  const loading = resource.loading;
 
   const handleNotifyAdvisor = () => {
     // In a real app, this would hit an API to send an email or line message
@@ -106,7 +94,8 @@ export default function ClubAthletesPage() {
             </button>
           </div>
 
-          {loading ? (
+          <RequestState error={resource.error} retry={resource.retry} />
+          {resource.error ? null : loading ? (
             <p className="text-sm text-gray-500">กำลังโหลด...</p>
           ) : applications.length === 0 ? (
             <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500 text-sm">

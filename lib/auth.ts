@@ -42,7 +42,7 @@ export async function getSession(request: NextRequest): Promise<JWTPayload | nul
       return club?.isActive && session.clubId === club.id ? session : null;
     }
     const user = await prisma.user.findUnique({ where: { id: session.id } });
-    return user && user.role === session.role
+    return user?.isActive && user.role === session.role
       ? { ...session, studentId: user.studentId ?? undefined }
       : null;
   } catch {

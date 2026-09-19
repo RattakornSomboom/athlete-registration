@@ -44,13 +44,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       include: {
         quotas: true,
         _count: {
-          select: { applications: true },
+          select: { applications: { where: { sport: club.sport, OR: [{ rosterItem: null }, { rosterItem: { roster: { clubId: club.id } } }] } } },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ competitions, club: { id: club.id, name: club.name, sport: club.sport } });
+    return NextResponse.json({ competitions, club: { id: club.id, name: club.name, sport: club.sport, email: club.email } });
   } catch (error) {
     console.error("[GET /api/clubs/[id]/competitions]", error);
     return NextResponse.json(

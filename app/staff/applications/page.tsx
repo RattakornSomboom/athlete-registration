@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -23,41 +27,16 @@ type Club = {
   _count: { activities: number };
 };
 
-const SPORTS = [
-  "กรีฑา", "กีฬาทางน้ำ", "วอลเลย์บอล", "เทควันโด", "มวยไทยสมัครเล่น", "ฟุตบอล", "บาสเกตบอล",
-  "เปตอง", "จักรยาน", "เซปักตะกร้อ", "ยูยิตสู", "เทเบิลเทนนิส", "แบดมินตัน", "เทนนิส",
-  "ฟุตซอล", "ฮับกิโด", "อีสปอร์ต", "จานร่อน", "ปีนหน้าผา", "วู้ดบอล", "สควอช",
-  "คิกบ็อกซิ่ง", "ซอฟท์บอล", "เรือพาย", "คาราเต้", "ฟันดาบสากล", "เชียร์",
-  "แฮนด์บอล", "ฮอกกี้", "รักบี้ฟุตบอล", "วูซู", "หมากรุกสากล", "บริดจ์", "ดาบไทย",
-];
-
 export default function StaffApplicationsPage() {
   const router = useRouter();
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [clubsRes, statsRes] = await Promise.all([
-        fetch("/api/clubs"),
-        fetch("/api/staff/applications"),
-      ]);
-      const clubsData = await clubsRes.json();
-      const statsData = await statsRes.json();
-      setClubs(clubsData.clubs ?? []);
-      setStats(statsData.stats ?? null);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(async () => {
+    const [c, a] = await Promise.all([fetchJson<{ clubs: Club[] }>("/api/clubs"), fetchJson<{ stats: Stats }>("/api/staff/applications")]);
+    return { clubs: c.clubs, stats: a.stats };
   }, []);
-
-  useEffect(() => { 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData(); 
-  }, [fetchData]);
+  const resource = useRemoteData(load);
+  const clubs = resource.data?.clubs ?? [];
+  const stats = resource.data?.stats;
+  const loading = resource.loading;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -129,7 +108,8 @@ export default function StaffApplicationsPage() {
         )}
 
         {/* รายชื่อชมรม */}
-        {loading ? (
+        <RequestState error={resource.error} retry={resource.retry} />
+        {resource.error ? null : loading ? (
           <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลด...</div>
         ) : (
           <div className="space-y-3">

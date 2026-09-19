@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
 
@@ -21,7 +25,8 @@ type Application = {
   sport: string;
   category: string;
   createdAt: string;
-  competition: { name: string; sport: string; round: string; year: number; club: { name: string } };
+  competition: { name: string; round: string; year: number };
+  rosterClub: { id: string; name: string; sport: string } | null;
   sportEntries: SportEntry[];
   competitionResults: CompetitionResult[];
   statusHistory: StatusHistory[];
@@ -38,19 +43,10 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
 
 export default function AthleteStatusPage() {
   const router = useRouter();
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const studentId = localStorage.getItem("current_student_id");
-    if (!studentId) { router.push("/login"); return; }
-
-    fetch(`/api/applications?studentId=${studentId}`)
-      .then((r) => r.json())
-      .then((data) => setApplications(data.applications ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [router]);
+  const load = useCallback(() => fetchJson<{ applications: Application[] }>("/api/applications"), []);
+  const resource = useRemoteData(load);
+  const applications = resource.data?.applications ?? [];
+  const loading = resource.loading;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -80,7 +76,8 @@ export default function AthleteStatusPage() {
           </div>
         </div>
 
-        {loading ? (
+        <RequestState error={resource.error} retry={resource.retry} />
+        {resource.error ? null : loading ? (
           <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
         ) : applications.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
@@ -182,7 +179,7 @@ export default function AthleteStatusPage() {
                         </div>
                         <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
                           <span className="text-slate-500 block">ชมรมสังกัด</span>
-                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">{app.competition.club.name}</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">{app.rosterClub?.name ?? "ยังไม่มีบัญชีชมรม"}</span>
                           <span className="text-slate-500 mt-1 block">สังกัดกองกิจการนิสิต มพ.</span>
                         </div>
                         <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">

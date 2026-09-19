@@ -1,106 +1,40 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { normalizeEmail } from "@/lib/validation";
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-type RouteParams = { params: Promise<{ id: string }> };
-
-/**
- * PUT /api/clubs/[id]
- * อัปเดตข้อมูลชมรม (Admin หรือ Club ตัวเอง)
- * Body: { name, sport, email, password?, isActive? }
- */
-export async function PUT(request: Request, { params }: RouteParams) {
-  try {
-    const session = await getSession(request as NextRequest);
-    const { id } = await params;
-    
-    // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN หรือเป็น Club ตัวเอง
-    if (!session || (session.role !== "ADMIN" && session.clubId !== id)) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง" },
-        { status: 403 }
-      );
+import { api, atomic, body, ensure, string } from "@/lib/phase4-server";
+import { reserveEmail } from "@/lib/account-service";
+type Context = { params: Promise<{ id: string }> };
+export async function PUT(request: Request, context: Context) {
+  return api(request, ["CLUB","ADMIN"], async session => {
+    const { id } = await context.params;
+    ensure(session.role === "ADMIN" || session.clubId === id, "ไม่มีสิทธิ์", 403);
+    const input = await body(request);
+    const data: Prisma.ClubUpdateInput = {};
+    if (input.name !== undefined) data.name = string(input.name,"name");
+    if (input.email !== undefined) data.email = normalizeEmail(input.email);
+    if (input.sport !== undefined) data.sport = string(input.sport,"sport");
+    if (input.isActive !== undefined) {
+      ensure(session.role === "ADMIN" && typeof input.isActive === "boolean","ไม่มีสิทธิ์เปลี่ยนสถานะบัญชี",403);
+      data.isActive = input.isActive;
     }
-
-    const body = await request.json();
-    const { name, sport, email, password, isActive } = body;
-
-    const updateData: any = {};
-    if (name) updateData.name = name;
-    if (sport) updateData.sport = sport;
-    if (email) updateData.email = email;
-    if (isActive !== undefined && session.role === "ADMIN") {
-        updateData.isActive = isActive;
-    }
-    
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
-    }
-
-    const club = await prisma.club.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        sport: true,
-        email: true,
-        isActive: true,
+    if (input.password) data.password = await bcrypt.hash(string(input.password,"password",72),10);
+    return atomic(async tx => {
+      const club = await tx.club.findUnique({ where:{id} });
+      ensure(club,"ไม่พบชมรม",404);
+      if (data.sport && data.sport !== club.sport) {
+        ensure(session.role === "ADMIN","เฉพาะผู้ดูแลเปลี่ยนกีฬาของชมรมได้",403);
+        const roster = await tx.clubRoster.count({where:{clubId:id}});
+        const officials = await tx.officialApplication.count({where:{clubId:id}});
+        ensure(!roster && !officials,"ชมรมมีบัญชีหรือใบสมัครแล้ว เปลี่ยนกีฬาไม่ได้",409);
       }
+      if (typeof data.email === "string") await reserveEmail(tx,data.email,id);
+      return { club: await tx.club.update({ where:{id},data,select:{id:true,name:true,sport:true,email:true,isActive:true} }),message:"อัปเดตข้อมูลชมรมสำเร็จ" };
     });
-
-    return NextResponse.json({
-      message: "อัปเดตข้อมูลชมรมสำเร็จ",
-      club,
-    });
-  } catch (error) {
-    console.error("[PUT /api/clubs/[id]]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการอัปเดตข้อมูลชมรม" },
-      { status: 500 }
-    );
-  }
+  });
 }
-
-/**
- * DELETE /api/clubs/[id]
- * ปิดการใช้งานชมรม (Soft delete - isActive = false) สำหรับ Admin
- */
-export async function DELETE(request: Request, { params }: RouteParams) {
-  try {
-    const session = await getSession(request as NextRequest);
-    
-    // ตรวจสอบสิทธิ์ว่าต้องเป็น ADMIN เท่านั้น
-    if (!session || session.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง (สำหรับผู้ดูแลระบบเท่านั้น)" },
-        { status: 403 }
-      );
-    }
-
-    const { id } = await params;
-
-    const club = await prisma.club.update({
-      where: { id },
-      data: { isActive: false },
-      select: {
-        id: true,
-        name: true,
-        isActive: true,
-      }
-    });
-
-    return NextResponse.json({
-      message: "ปิดการใช้งานชมรมสำเร็จ",
-      club,
-    });
-  } catch (error) {
-    console.error("[DELETE /api/clubs/[id]]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการปิดการใช้งานชมรม" },
-      { status: 500 }
-    );
-  }
+export async function DELETE(request: Request, context: Context) {
+  return api(request, ["ADMIN"], async () => {
+    const { id } = await context.params;
+    return atomic(async tx => ({ club: await tx.club.update({where:{id},data:{isActive:false},select:{id:true,name:true,isActive:true}}),message:"ปิดการใช้งานชมรมสำเร็จ" }));
+  });
 }

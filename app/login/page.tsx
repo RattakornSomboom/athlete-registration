@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { UP_FACULTIES } from "@/lib/up-faculties";
 
 const validatePassword = (password: string) => {
@@ -77,11 +78,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       // รองรับทั้ง studentId@up.ac.th และ email ชมรม
-      const isStudentEmail = loginForm.username.endsWith("@up.ac.th");
-      const isClubEmail = loginForm.username.includes("@") && !loginForm.username.endsWith("@up.ac.th");
 
       if (!loginForm.username.includes("@")) {
-        setError("กรุณาใช้ Username รูปแบบ รหัสนิสิต@up.ac.th หรือ email ชมรม");
+        setError("กรุณาใช้รหัสนิสิต@up.ac.th หรืออีเมลบัญชีของคุณ");
         return;
       }
       if (!loginForm.password) {
@@ -246,12 +245,12 @@ export default function LoginPage() {
         {mode === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อผู้ใช้งาน (Username ทางการ)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">รหัสนิสิต@up.ac.th / อีเมลบัญชี</label>
               <input
                 type="text"
                 value={loginForm.username}
                 onChange={(e) => setLoginForm((p) => ({ ...p, username: e.target.value }))}
-                placeholder="66xxxxxx@up.ac.th"
+                placeholder="66xxxxxx@up.ac.th หรืออีเมลของคุณ"
                 required
                 autoComplete="off"
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
@@ -290,6 +289,7 @@ export default function LoginPage() {
             <p className="text-center text-xs text-slate-500">
               ยังไม่มีบัญชีในระบบ?{" "}
               <button type="button" onClick={() => setMode("register")} className="text-blue-900 font-semibold hover:underline">ลงทะเบียนครั้งแรก</button>
+              <Link className="block mt-3 text-purple-700 underline" href="/team-official/signup">สมัครบัญชีเจ้าหน้าที่ทีมด้วยอีเมล</Link>
             </p>
 
             {/* ทางลัดเข้าสู่ระบบตามบทบาทสำหรับทดสอบ */}

@@ -1,71 +1,20 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
-
-/**
- * POST /api/staff/applications/announce
- * ประกาศผลการคัดเลือกนักกีฬา — เปลี่ยน STAFF_APPROVED → FINAL_SELECTED
- *
- * Body: { applicationIds?: string[] }
- * ถ้าไม่ส่ง applicationIds จะประกาศผลทุกใบที่ STAFF_APPROVED
- */
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession(request);
-
-    if (!session || (session.role !== "STAFF" && session.role !== "ADMIN")) {
-      return NextResponse.json(
-        { error: "เฉพาะเจ้าหน้าที่เท่านั้นที่สามารถประกาศผลได้" },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json().catch(() => ({}));
-    const { applicationIds } = body;
-
-    // ถ้าส่ง applicationIds มา ใช้เฉพาะ id เหล่านั้น
-    // ถ้าไม่ส่ง → เลือกทุกใบที่ STAFF_APPROVED
-    const where: any = applicationIds?.length
-      ? { id: { in: applicationIds as string[] }, status: "STAFF_APPROVED" }
-      : { status: "STAFF_APPROVED" };
-
-    const applications = await prisma.application.findMany({ where, select: { id: true } });
-
-    if (applications.length === 0) {
-      return NextResponse.json(
-        { error: "ไม่มีใบสมัครที่รอประกาศผล" },
-        { status: 400 }
-      );
-    }
-
-    const ids = applications.map((a) => a.id);
-
-    // อัปเดตสถานะเป็น FINAL_SELECTED
-    await prisma.application.updateMany({
-      where: { id: { in: ids } },
-      data: { status: "FINAL_SELECTED" },
+import { api, atomic, body, ensure, STAFF } from "@/lib/phase4-server";
+export async function POST(request: Request) {
+  return api(request, STAFF, async session => {
+    const data = await body(request);
+    const ids = data.applicationIds;
+    ensure(ids === undefined || (Array.isArray(ids) && ids.length > 0 && ids.every(id => typeof id === "string")), "applicationIds ไม่ถูกต้อง");
+    return atomic(async tx => {
+      const applications = await tx.application.findMany({
+        where: { status: "STAFF_APPROVED", ...(Array.isArray(ids) ? { id: { in: ids as string[] } } : {}) },
+        include: { rosterItem: { include: { roster: true } } },
+      });
+      ensure(applications.length, "ไม่มีใบสมัครที่รอประกาศผล");
+      ensure(applications.every(a => !a.rosterItem || a.rosterItem.roster.status === "SUBMITTED"), "บัญชีชมรมยังไม่ถูกส่ง", 409);
+      const selected = applications.map(a => a.id);
+      await tx.application.updateMany({ where: { id: { in: selected } }, data: { status: "FINAL_SELECTED" } });
+      await tx.statusHistory.createMany({ data: selected.map(applicationId => ({ applicationId, status: "FINAL_SELECTED", label: "ประกาศผลการคัดเลือก", by: session.id })) });
+      return { message: "ประกาศผลสำเร็จ " + selected.length + " ใบสมัคร", count: selected.length };
     });
-
-    // บันทึก StatusHistory ให้ทุกใบ
-    await prisma.statusHistory.createMany({
-      data: ids.map((id) => ({
-        applicationId: id,
-        status: "FINAL_SELECTED",
-        label: "ประกาศผลการคัดเลือก",
-        by: `staff:${session.id}`,
-      })),
-    });
-
-    return NextResponse.json({
-      message: `ประกาศผลสำเร็จ — ${ids.length} คน`,
-      count: ids.length,
-    });
-  } catch (error) {
-    console.error("[POST /api/staff/applications/announce]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
-    );
-  }
+  });
 }

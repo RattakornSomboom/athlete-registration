@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { fetchJson, HttpError } from "@/lib/http-client";
+import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { type AthleteProfile } from "@/lib/athlete-profile";
 import { getSportConfig } from "@/lib/sports-categories";
@@ -48,7 +50,8 @@ const MAX_SPORTS_PER_APPLICATION = 4;
 export default function AthleteRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const action = useRequestAction();
+  const loading = action.busy;
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
   const [studentCardFile, setStudentCardFile] = useState<File | null>(null);
@@ -61,71 +64,22 @@ export default function AthleteRegisterPage() {
     if (file && file.size <= maxMB * 1024 * 1024) setter(file);
   };
 
-  // โหลดข้อมูลส่วนตัวจาก localStorage (กรอกตอน Register ครั้งแรก)
-  const [studentProfile, setStudentProfile] = useState<AthleteProfile | null>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const studentId = localStorage.getItem("current_student_id");
-      if (!studentId) return;
-
-      try {
-        const res = await fetch(`/api/athletes/profile?studentId=${studentId}`);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        const p = data.profile;
-
-        const birthDateStr = p.birthDate
-          ? new Date(p.birthDate).toISOString().split("T")[0]
-          : "";
-        const birthYearCE = birthDateStr
-          ? parseInt(birthDateStr.split("-")[0], 10)
-          : new Date().getFullYear() - 20;
-
-        const profile: AthleteProfile = {
-          studentId,
-          firstName: p.firstName ?? "",
-          lastName: p.lastName ?? "",
-          faculty: p.faculty ?? "",
-          major: p.major ?? "",
-          studentLevel: p.studentLevel === "GRADUATE" ? "graduate" : "bachelor",
-          year: p.year ?? "",
-          nationalId: p.nationalId ?? "",
-          nationality: p.nationality ?? "ไทย",
-          birthDate: birthDateStr,
-          gpaSemester: p.gpaSemester ?? "",
-          gpaCumulative: p.gpaCumulative ?? "",
-          addressNo: p.addressNo ?? "",
-          subDistrict: p.subDistrict ?? "",
-          district: p.district ?? "",
-          province: p.province ?? "",
-          postalCode: p.postalCode ?? "",
-          phone: p.phone ?? "",
-          photoName: p.photoUrl ?? undefined,
-          birthYearCE,
-          previousEntriesCount: 0,
-        };
-
-        setStudentProfile(profile);
-      } catch (err) {
-        console.error("Failed to fetch athlete profile:", err);
-      }
-    };
-
-    fetchProfile();
-  }, []);
-
-  type OpenCompetition = { id: string; name: string; sport: string; round: string; year: number; club: { name: string } };
-  const [openCompetitions, setOpenCompetitions] = useState<OpenCompetition[]>([]);
+  type OpenCompetition = { id: string; name: string; round: string; year: number };
   const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
-
-  useEffect(() => {
-    fetch("/api/competitions?status=OPEN")
-      .then((r) => r.json())
-      .then((data) => setOpenCompetitions(data.competitions ?? []))
-      .catch(() => {});
+  const load = useCallback(async () => {
+    const [me, competitions] = await Promise.all([
+      fetchJson<{ user: { studentId: string; profile: (Omit<AthleteProfile, "studentLevel"> & { studentLevel: string; photoUrl?: string }) | null } }>("/api/auth/me"),
+      fetchJson<{ competitions: OpenCompetition[] }>("/api/competitions?status=OPEN"),
+    ]);
+    const p = me.user.profile;
+    if (!p) throw new HttpError(404, "ยังไม่มีข้อมูลประวัตินักกีฬา กรุณากรอกประวัติก่อนสมัคร");
+    const birthDate = p.birthDate ? new Date(p.birthDate).toISOString().split("T")[0] : "";
+    const profile: AthleteProfile = { ...p, studentId: me.user.studentId, studentLevel: p.studentLevel === "GRADUATE" ? "graduate" : "bachelor", birthDate, birthYearCE: Number(birthDate.slice(0, 4)), photoName: p.photoUrl, previousEntriesCount: 0 };
+    return { profile, competitions: competitions.competitions };
   }, []);
+  const resource = useRemoteData(load);
+  const studentProfile = resource.data?.profile;
+  const openCompetitions = resource.data?.competitions ?? [];
 
   const [form, setForm] = useState({
     round: "" as "qualifier" | "final" | "",
@@ -186,20 +140,11 @@ export default function AthleteRegisterPage() {
 
   const isWithinTwoYears = (year: string) => parseInt(year) >= CURRENT_YEAR_BE - 2;
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      if (!selectedCompetitionId) {
-        alert("กรุณาเลือกรายการแข่งขัน");
-        return;
-      }
-
-      const studentId = localStorage.getItem("current_student_id");
-      if (!studentId) {
-        alert("ไม่พบข้อมูล session กรุณา login ใหม่");
-        router.push("/login");
-        return;
-      }
+  const handleSubmit = () => action.run(async () => {
+      if (!selectedCompetitionId) throw new HttpError(400, "กรุณาเลือกรายการแข่งขัน");
+      if (!photoFile || !idCardFile || !studentCardFile || !studentCertFile || !upAcademyFile || !fitnessTestFile) throw new HttpError(400, "กรุณาแนบเอกสารบังคับให้ครบ");
+      const me = await fetchJson<{ user: { studentId: string } }>("/api/auth/me");
+      const studentId = me.user.studentId;
 
       // Upload files to Supabase Storage
       const uploadFile = async (file: File, prefix: string) => {
@@ -235,7 +180,7 @@ export default function AthleteRegisterPage() {
       ]);
 
       // ส่งใบสมัครไป API จริง
-      const res = await fetch("/api/applications", {
+      await fetchJson("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -266,20 +211,8 @@ export default function AthleteRegisterPage() {
         }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || "ส่งใบสมัครไม่สำเร็จ");
-        return;
-      }
-
       router.push("/athlete/status");
-    } catch {
-      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
-    } finally {
-      setLoading(false);
-    }
-  };
+  });
 
   // Step validation — 3 ขั้นตอนใหม่
   const step1Valid = !!(form.round && hasClub && (hasClub === "yes" || (supervisorName && supervisorPosition && noClubFile)));
@@ -318,6 +251,9 @@ export default function AthleteRegisterPage() {
           </div>
         </div>
 
+        <RequestState loading={resource.loading} error={resource.error} retry={resource.retry} />
+        <RequestState error={action.error} retry={resource.retry} />
+        {!resource.loading && !resource.error && openCompetitions.length === 0 && <p role="status">ยังไม่มีการแข่งขันที่เปิดรับสมัคร</p>}
         {/* Profile Card — ข้อมูลนิสิตจาก Register ครั้งแรก */}
         {studentProfile ? (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
@@ -365,12 +301,7 @@ export default function AthleteRegisterPage() {
               )}
             </div>
           </div>
-        ) : (
-          // กรณีไม่มีข้อมูลใน localStorage (ยังไม่ได้ลงทะเบียน)
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
-            <p className="text-xs text-amber-700">⚠️ ไม่พบข้อมูลส่วนตัว กรุณา<button onClick={() => router.push("/login")} className="underline font-medium">ลงทะเบียนครั้งแรก</button>ก่อนสมัครแข่งขัน</p>
-          </div>
-        )}
+        ) : null}
 
         {/* แจ้งเตือนสิทธิ์ */}
         {isOverMaxStrict && (
@@ -411,7 +342,7 @@ export default function AthleteRegisterPage() {
           {step === 1 && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">รายการแข่งขันที่เปิดรับสมัคร</label>
-              {openCompetitions.length > 0 ? (
+              {resource.loading ? <p>กำลังโหลดการแข่งขัน…</p> : resource.error ? <p>โหลดรายการแข่งขันไม่สำเร็จ</p> : openCompetitions.length > 0 ? (
                 <select
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   value={selectedCompetitionId}
@@ -420,7 +351,7 @@ export default function AthleteRegisterPage() {
                   <option value="">-- เลือกรายการแข่งขัน --</option>
                   {openCompetitions.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.sport} · {c.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {c.year} BE)
+                      {c.name} ({c.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} {c.year} BE)
                     </option>
                   ))}
                 </select>
@@ -491,7 +422,7 @@ export default function AthleteRegisterPage() {
 
               <button
                 onClick={() => setStep(2)}
-                disabled={!step1Valid || !isAgeEligible || !isEntryCountEligible || !selectedCompetitionId}
+                disabled={resource.loading || !!resource.error || !step1Valid || !isAgeEligible || !isEntryCountEligible || !selectedCompetitionId}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2"
               >
                 ถัดไป
@@ -652,7 +583,7 @@ export default function AthleteRegisterPage() {
                       <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{fitnessTestFile ? fitnessTestFile.name : "แนบไฟล์ผลทดสอบ (PDF/JPG)"}</span>
                       <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setFitnessTestFile)} />
                     </label>
-                    <p className="text-[10px] text-gray-500 mt-1">อ้างอิงประกาศ: ต้องมีผลทดสอบระดับ "ปานกลาง" ขึ้นไป</p>
+                    <p className="text-[10px] text-gray-500 mt-1">อ้างอิงประกาศ: ต้องมีผลทดสอบระดับ &quot;ปานกลาง&quot; ขึ้นไป</p>
                   </div>
                 </div>
               </div>
@@ -664,7 +595,7 @@ export default function AthleteRegisterPage() {
 
               <div className="flex gap-3 mt-2">
                 <button onClick={() => setStep(2)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ย้อนกลับ</button>
-                <button onClick={handleSubmit} disabled={!step3Valid || loading} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+                <button onClick={handleSubmit} disabled={resource.loading || !!resource.error || !step3Valid || loading} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
                   {loading ? "กำลังส่งข้อมูล..." : "ส่งใบสมัคร"}
                 </button>
               </div>

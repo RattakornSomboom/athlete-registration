@@ -1,0 +1,70 @@
+{
+  "date": "2026-09-19T13:35:01.209Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "Existing athlete/club login and athlete submission regression",
+      "status": "PASS"
+    },
+    {
+      "name": "Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas",
+      "status": "PASS"
+    },
+    {
+      "name": "Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled",
+      "status": "PASS"
+    },
+    {
+      "name": "Private documents validate content, size and owner; draft deletion and legacy bypass denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Roster rejects cross-sport, missing documents and unconfirmed submissions",
+      "status": "PASS"
+    },
+    {
+      "name": "Roster draft persists main/reserve, checks version and submits once with approval histories",
+      "status": "PASS"
+    },
+    {
+      "name": "Submitted roster locks new and legacy APIs; retained documents cannot be deleted",
+      "status": "PASS"
+    },
+    {
+      "name": "Staff return resets application states, preserves histories and permits resubmit",
+      "status": "PASS"
+    },
+    {
+      "name": "Concurrent rosters from different clubs cannot exceed shared sport quota",
+      "status": "PASS"
+    },
+    {
+      "name": "Official signup normalizes email, prevents namespace collisions and ignores caller role",
+      "status": "PASS"
+    },
+    {
+      "name": "Official drafts persist, require plan/id-card/other detail and ownership",
+      "status": "PASS"
+    },
+    {
+      "name": "Official submit routes through club before staff; cross-club review/read denied",
+      "status": "PASS"
+    },
+    {
+      "name": "Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit",
+      "status": "PASS"
+    },
+    {
+      "name": "Disabled accounts, changed roles, expired sessions and direct APIs are rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "All new pages render with role cookies, public signup is accessible and routes guard roles",
+      "status": "PASS"
+    },
+    {
+      "name": "Exact fixture cleanup (database and private storage)",
+      "status": "PASS"
+    }
+  ]
+}

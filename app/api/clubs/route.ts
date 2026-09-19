@@ -1,18 +1,23 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { normalizeEmail } from "@/lib/validation";
+import { reserveEmail } from "@/lib/account-service";
+import { api, atomic, body, string } from "@/lib/phase4-server";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 /**
  * GET /api/clubs
  * ดูรายชื่อชมรมทั้งหมด
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await getSession(request);
+    const management = !!session && ["ADMIN", "SUPERADMIN"].includes(session.role);
     const clubs = await prisma.club.findMany({
-      where: { isActive: true },
+      where: management ? {} : { isActive: true },
       select: {
+        ...(management ? { presidentName: true, presidentPhone: true, advisors: true, status: true } : {}),
         id: true,
         name: true,
         sport: true,
@@ -45,60 +50,19 @@ export async function GET() {
  * Body: { name: string, sport: string, email: string, password: string }
  */
 export async function POST(request: Request) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || (session.role !== "ADMIN" && session.role !== "SUPERADMIN")) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const { name, sport, email, password } = body;
-
-    if (!name || !sport || !email || !password) {
-      return NextResponse.json(
-        { error: "กรุณากรอกข้อมูลให้ครบถ้วน" },
-        { status: 400 }
-      );
-    }
-
-    const existing = await prisma.club.findFirst({
-      where: {
-        OR: [{ name }, { email }],
-      },
+  return api(request, ["ADMIN", "SUPERADMIN"], async () => {
+    const input = await body(request);
+    const name = string(input.name, "ชื่อชมรม");
+    const sport = string(input.sport, "กีฬา");
+    const email = normalizeEmail(input.email);
+    const password = string(input.password, "รหัสผ่าน", 72);
+    const presidentName = input.presidentName === undefined ? undefined : string(input.presidentName, "ชื่อประธาน");
+    const presidentPhone = input.presidentPhone === undefined || input.presidentPhone === "" ? undefined : string(input.presidentPhone, "เบอร์โทรศัพท์");
+    const hash = await bcrypt.hash(password, 10);
+    return atomic(async tx => {
+      await reserveEmail(tx, email);
+      const club = await tx.club.create({ data: { name, sport, email, password: hash, presidentName, presidentPhone }, select: { id:true,name:true,sport:true,email:true,isActive:true } });
+      return { club, message: "สร้างชมรมสำเร็จ" };
     });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "ชื่อชมรมหรืออีเมลนี้มีอยู่แล้ว" },
-        { status: 409 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const club = await prisma.club.create({
-      data: {
-        name,
-        sport,
-        email,
-        password: hashedPassword,
-      },
-    });
-
-    const { password: _, ...safeClub } = club;
-
-    return NextResponse.json(
-      { message: "สร้างชมรมสำเร็จ", club: safeClub },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("[POST /api/clubs]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
-    );
-  }
+  });
 }

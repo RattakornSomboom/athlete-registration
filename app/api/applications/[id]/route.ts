@@ -2,7 +2,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { api, atomic, body, ensure, string, STAFF } from "@/lib/phase4-server";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -25,6 +25,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const application = await prisma.application.findUnique({
       where: { id },
       include: {
+        rosterItem: { select: { roster: { select: { club: { select: { id: true, name: true, sport: true } } } } } },
         user: {
           select: {
             id: true,
@@ -61,9 +62,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       if (session.clubId) {
         const club = await prisma.club.findUnique({ where: { id: session.clubId } });
         if (club) {
-          const hasMatchingSport = application.competition.quotas.some(
-            (q) => q.sport === club.sport
-          );
+          const hasMatchingSport = application.sport === club.sport;
           isAuthorized = hasMatchingSport;
         }
       }
@@ -78,7 +77,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json({ application });
+    const { rosterItem, ...safeApplication } = application;
+    return NextResponse.json({ application: { ...safeApplication, rosterClub: rosterItem?.roster.club ?? null } });
   } catch (error) {
     console.error("[GET /api/applications/[id]]", error);
     return NextResponse.json(
@@ -95,84 +95,32 @@ export async function GET(_request: Request, { params }: RouteParams) {
  * Body: { status: string, label: string, by: string, squadType?: string }
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง" },
-        { status: 403 }
-      );
-    }
-
-    const { id } = await params;
-    const body = await request.json();
-    const { status, label, by, squadType } = body;
-
-    if (!status || !label || !by) {
-      return NextResponse.json(
-        { error: "กรุณาระบุ status, label, และ by" },
-        { status: 400 }
-      );
-    }
-
-    // For CLUB role: verify they manage this sport
-    if (session.role === "CLUB") {
-      if (!session.clubId) {
-        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
+  return api(request, ["CLUB", ...STAFF], async session => {
+    const { id } = await params; const data = await body(request);
+    const status = string(data.status, "status").toUpperCase();
+    const label = string(data.label, "เหตุผล/ผลพิจารณา", 2000);
+    return atomic(async tx => {
+      const app = await tx.application.findUnique({ where: { id }, include: { rosterItem: { include: { roster: true } } } });
+      ensure(app, "ไม่พบใบสมัคร", 404);
+      if (session.role === "CLUB") {
+        ensure(session.clubId, "ไม่พบชมรม", 403);
+        const club = await tx.club.findUnique({ where: { id: session.clubId } });
+        ensure(club?.isActive && club.sport === app.sport, "ไม่มีสิทธิ์พิจารณากีฬานี้", 403);
+        const roster = await tx.clubRoster.findUnique({ where: { clubId_competitionId: { clubId: club.id, competitionId: app.competitionId } } });
+        ensure(roster?.status !== "SUBMITTED" && !app.rosterItem, "บัญชีถูกล็อก หรือรายการต้องแก้ผ่านหน้าบัญชีชมรม", 409);
+        ensure(status === "CLUB_REJECTED" && ["SUBMITTED", "CLUB_APPROVED", "CLUB_REJECTED"].includes(app.status), "การอนุมัติต้องส่งบัญชีพร้อมเอกสารลงนามผ่านหน้าบัญชีชมรม", 409);
+        ensure(data.squadType === undefined, "จัดตัวจริง/สำรองผ่านบัญชีชมรมเท่านั้น", 400);
+      } else {
+        ensure(["STAFF_APPROVED", "STAFF_REJECTED"].includes(status) && app.status === "CLUB_APPROVED", "ต้องผ่านชมรมก่อนกองกิจฯ", 409);
+        ensure(!app.rosterItem || app.rosterItem.roster.status === "SUBMITTED", "บัญชีชมรมยังไม่ถูกส่ง", 409);
+        ensure(data.squadType === undefined || data.squadType === app.squadType, "เปลี่ยนบัญชีที่ชมรมรับรองไม่ได้", 409);
       }
-      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
-      if (!club) {
-        return NextResponse.json({ error: "ไม่พบข้อมูลชมรม" }, { status: 403 });
-      }
-      const app = await prisma.application.findUnique({
-        where: { id },
-        include: { competition: { include: { quotas: true } } },
-      });
-      if (!app) {
-        return NextResponse.json({ error: "ไม่พบใบสมัคร" }, { status: 404 });
-      }
-      const hasMatchingSport = app.competition.quotas.some(
-        (q) => q.sport === club.sport
-      );
-      if (!hasMatchingSport) {
-        return NextResponse.json(
-          { error: "ไม่มีสิทธิ์อนุมัติใบสมัครประเภทกีฬานี้" },
-          { status: 403 }
-        );
-      }
-    }
-
-    const application = await prisma.application.update({
-      where: { id },
-      data: {
-        status: status.toUpperCase(),
-        ...(squadType !== undefined && { squadType }),
-        statusHistory: {
-          create: {
-            status: status.toUpperCase(),
-            label,
-            by,
-          },
-        },
-      },
-      include: {
-        statusHistory: {
-          orderBy: { createdAt: "asc" },
-        },
-      },
+      return { application: await tx.application.update({ where: { id }, data: {
+        status: status as "CLUB_APPROVED" | "CLUB_REJECTED" | "STAFF_APPROVED" | "STAFF_REJECTED",
+        statusHistory: { create: { status: status as "CLUB_APPROVED" | "CLUB_REJECTED" | "STAFF_APPROVED" | "STAFF_REJECTED", label, by: session.id } },
+      }, include: { statusHistory: { orderBy: { createdAt: "asc" } } } }), message: "อัปเดตสถานะสำเร็จ" };
     });
-
-    return NextResponse.json({
-      message: "อัปเดตสถานะสำเร็จ",
-      application,
-    });
-  } catch (error) {
-    console.error("[PATCH /api/applications/[id]]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 /**
@@ -180,87 +128,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
  * ยกเลิก/ลบใบสมัคร
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || !["ATHLETE", "ADMIN"].includes(session.role)) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์ลบใบสมัคร" },
-        { status: 403 }
-      );
-    }
-
+  return api(request, ["ATHLETE", "ADMIN"], async session => {
     const { id } = await params;
-
-    const application = await prisma.application.findUnique({
-      where: { id },
+    return atomic(async tx => {
+      const app = await tx.application.findUnique({ where: { id }, include: { rosterItem: true } });
+      ensure(app, "ไม่พบใบสมัคร", 404);
+      ensure(session.role === "ADMIN" || app.userId === session.id, "ไม่มีสิทธิ์", 403);
+      ensure(!app.rosterItem && app.status === "SUBMITTED", "ลบรายการที่อยู่ในบัญชีหรือพิจารณาแล้วไม่ได้", 409);
+      // Legacy uploads may be shared between applications; do not destroy shared files here.
+      await tx.application.delete({ where: { id } });
+      return { message: "ยกเลิกใบสมัครสำเร็จ" };
     });
-
-    if (!application) {
-      return NextResponse.json(
-        { error: "ไม่พบใบสมัคร" },
-        { status: 404 }
-      );
-    }
-
-    // Check ownership for athlete
-    if (session.role === "ATHLETE" && application.userId !== session.id) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์ลบใบสมัครของผู้อื่น" },
-        { status: 403 }
-      );
-    }
-
-    // Check status
-    if (session.role === "ATHLETE" && application.status !== "SUBMITTED") {
-      return NextResponse.json(
-        { error: "ไม่สามารถลบใบสมัครที่ถูกพิจารณาแล้วได้" },
-        { status: 400 }
-      );
-    }
-
-    // Delete files from Supabase Storage
-    const fileUrls = [
-      application.photoFileUrl,
-      application.idCardFileUrl,
-      application.studentCardFileUrl,
-      application.studentCertFileUrl,
-      application.upAcademyFileUrl,
-      application.fitnessTestFileUrl,
-      application.noClubFileUrl,
-    ].filter(Boolean) as string[];
-
-    if (fileUrls.length > 0) {
-      const pathsToDelete = fileUrls.map((url) => {
-        try {
-          const urlObj = new URL(url);
-          const pathParts = urlObj.pathname.split("/public/athlete-docs/");
-          if (pathParts.length > 1) {
-            return decodeURIComponent(pathParts[1]);
-          }
-        } catch {
-          // ignore
-        }
-        return null;
-      }).filter(Boolean) as string[];
-
-      if (pathsToDelete.length > 0) {
-        await supabaseAdmin.storage.from("athlete-docs").remove(pathsToDelete);
-      }
-    }
-
-    // Delete application from DB
-    await prisma.application.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ message: "ยกเลิกใบสมัครสำเร็จ" });
-  } catch (error) {
-    console.error("[DELETE /api/applications/[id]]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 /**
@@ -279,8 +158,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const { id } = await params;
 
-    const application = await prisma.application.findUnique({
+    return await atomic(async tx => {
+    const application = await tx.application.findUnique({
       where: { id },
+      include: { rosterItem: true },
     });
 
     if (!application) {
@@ -297,7 +178,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       );
     }
 
-    if (application.status !== "SUBMITTED") {
+    if (application.rosterItem || application.status !== "SUBMITTED") {
       return NextResponse.json(
         { error: "ไม่สามารถแก้ไขใบสมัครได้ เนื่องจากใบสมัครถูกประมวลผลไปแล้ว" },
         { status: 400 }
@@ -318,7 +199,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (sport !== undefined) updateData.sport = sport;
     if (category !== undefined) updateData.category = category;
     if (division !== undefined) updateData.division = division;
-    if (squadType !== undefined) updateData.squadType = squadType;
+    if (squadType !== undefined && squadType !== application.squadType) {
+      return NextResponse.json({ error: "จัดตัวจริง/สำรองผ่านบัญชีชมรมเท่านั้น" }, { status: 403 });
+    }
     if (note !== undefined) updateData.note = note;
     if (photoFileUrl !== undefined) updateData.photoFileUrl = photoFileUrl;
     if (idCardFileUrl !== undefined) updateData.idCardFileUrl = idCardFileUrl;
@@ -353,7 +236,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       };
     }
 
-    const updatedApp = await prisma.application.update({
+    const updatedApp = await tx.application.update({
       where: { id },
       data: updateData,
       include: {
@@ -365,6 +248,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({
       message: "อัปเดตใบสมัครสำเร็จ",
       application: updatedApp,
+    });
     });
   } catch (error) {
     console.error("[PUT /api/applications/[id]]", error);
