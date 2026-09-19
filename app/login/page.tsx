@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import { UP_FACULTIES } from "@/lib/up-faculties";
 import {
   saveAthleteProfile,
@@ -249,29 +250,29 @@ export default function LoginPage() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => router.push("/athlete/status")}
+                  onClick={() => router.push("/athlete/register")}
                   className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                 >
                   นิสิต / นักกีฬา
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/club/athletes")}
+                  onClick={() => router.push("/club/competitions")}
                   className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                 >
                   ประธานชมรมกีฬา
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/team-official/status")}
+                  onClick={() => router.push("team-official/register")}
                   className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                 >
                   เจ้าหน้าที่ทีม / โค้ช
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push("/staff/analytics")}
-                  className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 rounded text-[11px] font-semibold transition-colors text-center cursor-pointer"
+                  onClick={() => router.push("/staff/applications")}
+                  className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                 >
                   เจ้าหน้าที่กองกิจการนิสิต
                 </button>
@@ -391,13 +392,10 @@ export default function LoginPage() {
                 <p className="text-sm font-bold text-slate-900">บันทึกข้อมูลประวัตินิสิต (ขั้นตอนที่ 2)</p>
                 <p className="text-[11px] text-slate-500">ข้อมูลนี้จะถูกบันทึกเป็นฐานข้อมูลประวัตินักกีฬาทางการของสถาบัน</p>
               </div>
-              <button
-                type="button"
+              <BackButton
                 onClick={() => { setRegisterStep("account"); setError(""); }}
-                className="text-xs text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 py-1 rounded cursor-pointer"
-              >
-                ← ย้อนกลับ
-              </button>
+                label="ย้อนกลับขั้นตอนที่ 1"
+              />
             </div>
 
             {/* Mini step indicator */}

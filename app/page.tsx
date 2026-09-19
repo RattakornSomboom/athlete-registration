@@ -39,9 +39,6 @@ export default function Home() {
 
         {/* Title Section */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-200 text-slate-700 border border-slate-300 uppercase tracking-wider">
-            การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
-          </span>
           <h1 className="text-3xl font-extrabold text-slate-900 leading-tight">
             ระบบพัฒนาเพื่อความเป็นเลิศด้านกีฬา มหาวิทยาลัยพะเยา
           </h1>

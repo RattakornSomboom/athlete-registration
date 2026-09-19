@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 
 const MOCK_ATHLETES = [
   {
@@ -28,7 +29,13 @@ const MOCK_ATHLETES = [
       },
     ],
     currentStatus: "submitted",
-    files: ["ผลงาน_สมชาย.pdf"],
+    files: [
+      "สำเนาบัตรประชาชน_สมชาย.pdf",
+      "สำเนาบัตรนิสิต_สมชาย.pdf",
+      "ใบรับรองการเป็นนิสิต_UP02.pdf",
+      "ผลการทดสอบสมรรถภาพ_ผ่านเกณฑ์ดี.pdf",
+      "ใบผ่านการอบรม_UP_Academy.pdf",
+    ],
   },
 
   {
@@ -56,7 +63,11 @@ const MOCK_ATHLETES = [
       },
     ],
     currentStatus: "submitted",
-    files: [],
+    files: [
+      "สำเนาบัตรประชาชน_สมหญิง.pdf",
+      "ใบรับรองการเป็นนิสิต_UP02.pdf",
+      "ผลการทดสอบสมรรถภาพ_ระดับดี.pdf",
+    ],
   },
 
   {
@@ -90,7 +101,13 @@ const MOCK_ATHLETES = [
       },
     ],
     currentStatus: "club_approved",
-    files: ["certificate.pdf"],
+    files: [
+      "สำเนาบัตรประชาชน_มานะ.pdf",
+      "สำเนาบัตรนิสิต_มานะ.pdf",
+      "ใบรับรองการเป็นนิสิต_UP02.pdf",
+      "ผลการทดสอบสมรรถภาพ_ระดับดีเยี่ยม.pdf",
+      "ใบผ่านการอบรม_UP_Academy.pdf",
+    ],
   },
 
   {
@@ -202,18 +219,13 @@ export default function AthleteDetailPage() {
         <div className="max-w-full lg:max-w-6xl mx-auto">
 
           <div className="flex items-center justify-between mb-6 no-print">
-            <button
-              onClick={() => router.back()}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              ← ย้อนกลับ
-            </button>
+            <BackButton />
 
             <button
               onClick={handlePrint}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              🖨️ พิมพ์ / บันทึก PDF
+              พิมพ์เอกสาร / บันทึก PDF
             </button>
           </div>
 
@@ -339,20 +351,25 @@ export default function AthleteDetailPage() {
 
               {athlete.files.length > 0 && (
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3 pb-2 border-b border-gray-100">
-                    ไฟล์แนบ
-                  </h2>
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                    <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                      เอกสารหลักฐานแนบประกอบการสมัคร ({athlete.files.length} ฉบับ)
+                    </h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      ตรวจสอบเอกสารแล้ว
+                    </span>
+                  </div>
 
                   <div className="space-y-2">
                     {athlete.files.map((file, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-2 text-sm"
+                        className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
                       >
-                        <span>
-                          {file.endsWith(".pdf") ? "📄" : "🖼️"}
+                        <span className="font-medium text-slate-800 font-mono">{file}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">
+                          PDF สมบูรณ์
                         </span>
-                        <span>{file}</span>
                       </div>
                     ))}
                   </div>

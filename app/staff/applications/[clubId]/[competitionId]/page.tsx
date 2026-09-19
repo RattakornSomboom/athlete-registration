@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
 
@@ -103,27 +104,55 @@ const MOCK_APPLICANTS: AthleteApplication[] = [
     ],
     note: "ผ่านการคัดเลือกระดับชาติ", status: "approved", squadType: "main",
   },
+  {
+    id: "4", firstName: "ธนวัฒน์", lastName: "เก่งกาจ", gender: "ชาย", studentId: "63051011",
+    faculty: "คณะนิติศาสตร์", major: "สาขานิติศาสตร์", year: "4", studentLevel: "bachelor",
+    nationalId: "1-2345-67893-78-9", nationality: "ไทย", birthDate: "1996-03-10",
+    gpaSemester: "2.80", gpaCumulative: "2.75",
+    addressNo: "88", subDistrict: "แม่กา", district: "เมือง", province: "พะเยา", postalCode: "56000",
+    phone: "089-999-8888", category: "กองหลัง", division: "-",
+    hasPreviousEntry: "has", previousBachelorCount: "5", previousGraduateCount: "", previousLastYear: "2567",
+    competitions: [
+      { competitionName: "ฟุตบอลกีฬามหาวิทยาลัยฯ ครั้งที่ 47-51", year: "2563-2567", result: "เหรียญเงิน" },
+    ],
+    note: "เคยแข่งขันครบ 5 ครั้งแล้ว", status: "rejected", squadType: "",
+    rejectReason: "เคยแข่งขันครบ 5 ครั้งแล้วตามระเบียบ กกมท. ข้อ 7.2 และอายุเกิน 28 ปี",
+  },
 ];
 
-// ฟังก์ชันตรวจสอบคุณสมบัติอัตโนมัติตามระเบียบ กกมท. ครั้งที่ 52
+function calculateAthleteAge(birthDate: string): number {
+  if (!birthDate) return 22;
+  const birthYear = parseInt(birthDate.split("-")[0], 10);
+  return 2026 - birthYear;
+}
+
+// ฟังก์ชันตรวจสอบคุณสมบัติอัตโนมัติตามระเบียบ กกมท. ครั้งที่ 52 (ข้อ 11)
 function evaluateEligibility(a: AthleteApplication) {
-  const issues: string[] = [];
   const gpa = parseFloat(a.gpaCumulative) || 0;
+  const isGpaEligible = gpa >= 2.00;
 
-  // 1. ตรวจสอบ GPA
-  if (gpa < 2.00) {
-    issues.push(`เกรดเฉลี่ยสะสมต่ำกว่าเกณฑ์ (${gpa.toFixed(2)} < 2.00)`);
-  }
-
-  // 2. ตรวจสอบประวัติการเข้าแข่งขัน
   const prevCount = parseInt(a.previousBachelorCount || "0", 10) + parseInt(a.previousGraduateCount || "0", 10);
-  if (prevCount >= 5) {
-    issues.push(`เคยแข่งขันครบ 5 ครั้งแล้วตามระเบียบ กกมท. ข้อ 7.2`);
-  }
+  const isCountEligible = prevCount < 5;
+
+  const age = calculateAthleteAge(a.birthDate);
+  const isAgeEligible = age <= 28;
+
+  const isEligible = isGpaEligible && isCountEligible && isAgeEligible;
+
+  const issues: string[] = [];
+  if (!isGpaEligible) issues.push(`GPAX ${gpa.toFixed(2)} (< 2.00)`);
+  if (!isCountEligible) issues.push(`แข่งครบ ${prevCount} ครั้ง`);
+  if (!isAgeEligible) issues.push(`อายุ ${age} ปี (> 28)`);
 
   return {
-    isEligible: issues.length === 0,
+    isEligible,
     issues,
+    gpa,
+    isGpaEligible,
+    prevCount,
+    isCountEligible,
+    age,
+    isAgeEligible,
   };
 }
 
@@ -138,6 +167,7 @@ export default function StaffCompetitionApplicantsPage() {
 
   const [applicants, setApplicants] = useState<AthleteApplication[]>(MOCK_APPLICANTS);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; filename: string; category: string } | null>(null);
   const [squadModalId, setSquadModalId] = useState<string | null>(null);
   const [squadChoice, setSquadChoice] = useState<"main" | "reserve" | "">("");
   const [rejectReasonInput, setRejectReasonInput] = useState<Record<string, string>>({});
@@ -196,7 +226,13 @@ export default function StaffCompetitionApplicantsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* Top navigation: Backward */}
+        <div className="flex items-center justify-between">
+          <BackButton />
+          <LogoutButton />
+        </div>
 
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -216,13 +252,6 @@ export default function StaffCompetitionApplicantsPage() {
             >
               ดาวน์โหลดบัญชีรายชื่อ (Excel / CSV)
             </button>
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
-            </button>
-            <LogoutButton />
           </div>
         </div>
 
@@ -289,20 +318,39 @@ export default function StaffCompetitionApplicantsPage() {
                         </span>
                       )}
 
-                      {/* Rule Checker Badge */}
+                      {/* Rule Checker Badge (ข้อ 11) */}
                       {ruleCheck.isEligible ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          คุณสมบัติตรงตามเกณฑ์ กกมท.
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          ✓ ผ่านเกณฑ์ กกมท. ครบ 3 ด้าน
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
-                          เสี่ยงผิดระเบียบ กกมท. ({ruleCheck.issues.join(", ")})
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                          ⚠️ เสี่ยงผิดระเบียบ กกมท. ({ruleCheck.issues.join(", ")})
                         </span>
                       )}
                     </div>
 
-                    <div className="text-xs text-slate-500">
-                      {a.faculty} · ตำแหน่ง: {a.category} · เกรดเฉลี่ยสะสม: <strong className={parseFloat(a.gpaCumulative) < 2 ? "text-rose-600" : "text-slate-800"}>{a.gpaCumulative}</strong>
+                    {/* รายละเอียดการตรวจสอบ 3 เกณฑ์ กกมท. (ข้อ 11: Rule Checker Badges) */}
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                        ruleCheck.isGpaEligible ? "bg-slate-50 text-slate-700 border-slate-200" : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                      }`}>
+                        เกณฑ์ 1: GPAX {ruleCheck.gpa.toFixed(2)} ({ruleCheck.isGpaEligible ? "≥ 2.00 ผ่าน" : "ตกเกณฑ์"})
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                        ruleCheck.isCountEligible ? "bg-slate-50 text-slate-700 border-slate-200" : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                      }`}>
+                        เกณฑ์ 2: แข่งสะสม {ruleCheck.prevCount}/5 ครั้ง ({ruleCheck.isCountEligible ? "≤ 5 ผ่าน" : "ครบโควตา"})
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium border ${
+                        ruleCheck.isAgeEligible ? "bg-slate-50 text-slate-700 border-slate-200" : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                      }`}>
+                        เกณฑ์ 3: อายุ {ruleCheck.age} ปี ({ruleCheck.isAgeEligible ? "≤ 28 ปี ผ่าน" : "เกินเกณฑ์"})
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-500 pt-0.5">
+                      {a.faculty} · ตำแหน่ง: <strong className="text-slate-700">{a.category}</strong> · เบอร์ติดต่อ: {a.phone}
                     </div>
                   </div>
 
@@ -474,12 +522,113 @@ export default function StaffCompetitionApplicantsPage() {
                 )}
               </div>
 
+              {/* ตรวจสอบเอกสารแนบรายบุคคล (ข้อ 12: หน้าตรวจเอกสารแนบ) */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    เอกสารหลักฐานแนบประกอบการสมัคร (ข้อ 12: ตรวจสอบเอกสาร)
+                  </h4>
+                  <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    แนบครบถ้วน 5/5 ฉบับ
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {[
+                    { id: "1", title: "สำเนาบัตรประจำตัวประชาชน", filename: `id_card_${detailAthlete.studentId}.pdf`, category: "บัตรประจำตัวประชาชน" },
+                    { id: "2", title: "สำเนาบัตรประจำตัวนิสิต", filename: `student_card_${detailAthlete.studentId}.pdf`, category: "บัตรประจำตัวนิสิต มพ." },
+                    { id: "3", title: "ใบรับรองการเป็นนิสิต (UP 02)", filename: `UP02_cert_${detailAthlete.studentId}.pdf`, category: "เอกสารรับรองสภาพนิสิต UP 02" },
+                    { id: "4", title: "ผลการทดสอบสมรรถภาพทางกาย", filename: `fitness_test_${detailAthlete.studentId}.pdf`, category: "ผลการทดสอบสมรรถภาพ (ระดับดี)" },
+                    { id: "5", title: "ใบผ่านการอบรม UP Academy", filename: `UP_Academy_${detailAthlete.studentId}.pdf`, category: "วุฒิบัตร UP Academy กีฬา" },
+                  ].map((doc) => (
+                    <div key={doc.id} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-semibold text-slate-900 block">{doc.title}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">{doc.filename} · {doc.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          เอกสารสมบูรณ์ ✓
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(doc)}
+                          className="px-3 py-1 bg-blue-900 hover:bg-blue-800 text-white rounded text-xs font-medium cursor-pointer transition-colors shadow-2xs"
+                        >
+                          เปิดดูเอกสาร / Preview
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex justify-end pt-3 border-t border-slate-100">
                 <button
                   onClick={() => setDetailId(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg cursor-pointer"
                 >
                   ปิดหน้าต่าง
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Document Preview Drawer/Modal (ข้อ 12) */}
+        {previewDoc && (
+          <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-xl border border-slate-300 max-w-xl w-full p-6 shadow-2xl space-y-4">
+              <div className="flex items-start justify-between border-b border-slate-200 pb-3">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    ระบบตรวจสอบเอกสารราชการออนไลน์ · มหาวิทยาลัยพะเยา
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900 mt-1.5">{previewDoc.title}</h3>
+                  <p className="text-[11px] text-slate-500 font-mono">{previewDoc.filename}</p>
+                </div>
+                <button
+                  onClick={() => setPreviewDoc(null)}
+                  className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Simulated Official Document Sheet */}
+              <div className="p-6 bg-slate-50 border-2 border-slate-200 rounded-lg space-y-4 relative overflow-hidden text-xs font-sans">
+                <div className="text-center border-b border-slate-200 pb-3">
+                  <div className="w-9 h-9 bg-blue-900 text-white rounded flex items-center justify-center font-bold text-xs mx-auto mb-1">
+                    UP
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-sm">{previewDoc.title}</h4>
+                  <p className="text-[11px] text-slate-500">มหาวิทยาลัยพะเยา · University of Phayao</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-slate-700">
+                  <div>รหัสนิสิต: <strong className="font-mono text-slate-900">{detailAthlete?.studentId}</strong></div>
+                  <div>ชื่อ - นามสกุล: <strong className="text-slate-900">{detailAthlete?.firstName} {detailAthlete?.lastName}</strong></div>
+                  <div>คณะ: <strong className="text-slate-900">{detailAthlete?.faculty}</strong></div>
+                  <div>สาขาวิชา: <strong className="text-slate-900">{detailAthlete?.major}</strong></div>
+                  <div>เกรดเฉลี่ยสะสม (GPAX): <strong className="font-mono text-blue-900">{detailAthlete?.gpaCumulative}</strong></div>
+                  <div>สถานะการรับรอง: <strong className="text-emerald-700">รับรองความถูกต้องครบถ้วน ✓</strong></div>
+                </div>
+
+                <div className="p-3 bg-white border border-slate-200 rounded text-center text-[11px] text-slate-500 space-y-1">
+                  <p className="font-semibold text-slate-800">เอกสารนี้ได้รับการรับรองผ่านระบบสารสนเทศทะเบียนกลาง มหาวิทยาลัยพะเยา</p>
+                  <p className="text-[10px] text-slate-400 font-mono">Doc Reference: UP-KKMT52-{detailAthlete?.studentId}-VERIFIED</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[11px] text-emerald-800 font-semibold flex items-center gap-1">
+                  ✓ เอกสารถูกต้องตามเกณฑ์ กกมท. ครั้งที่ 52
+                </span>
+                <button
+                  onClick={() => setPreviewDoc(null)}
+                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg cursor-pointer transition-colors"
+                >
+                  ปิดหน้าต่างพรีวิว
                 </button>
               </div>
             </div>
