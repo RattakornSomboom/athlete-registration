@@ -365,3 +365,31 @@ TypeScript ยังพบ SUPERADMIN ไม่ตรง JWTPayload, clubId อ�
 #### หมายเหตุการทดสอบ
 - Integration tests (`npm run test:integration`) ต้องการ `TEST_BASE_URL`, `TEST_DATABASE_URL`, `TEST_ALLOW_WRITE=yes` และ dev server ที่รันอยู่ — ยังไม่ได้รันในรอบนี้
 - Unit tests ครอบคลุม logic ทั้งหมดของ `lib/validation.ts` และ `lib/http-client.ts`
+
+### ✅ Regression Phase 4 (ผลทดสอบยืนยันหลังรวม Phase 5)
+
+**ผลทดสอบยืนยัน** (โดย Antigravity AI — 19 ก.ย. 2026 รอบสุดท้าย)
+
+#### ผลการตรวจสอบโค้ดและการทดสอบ (automated)
+
+| ตัวชี้วัด | ผล | หมายเหตุ |
+| --- | --- | --- |
+| Integration tests | **25/25 pass** | แบ่งเป็น Phase 4 (15 ข้อ) + Phase 5 (10 ข้อ) ยืนยัน regression รันผ่าน 100% |
+| Unit tests | **12/12 pass** | ครอบคลุม rules หลัก |
+| TypeScript | **0 errors** | ยืนยันจากการรัน `npx tsc --noEmit` |
+| Production build | **ผ่าน (61 pages)** | `npm run build` สำเร็จ |
+| ESLint (Phase 5) | **0 errors, 0 warnings** | ส่วนไฟล์นอกขอบเขตเหลือ 38 errors, 22 warnings เก็บเป็นยอดคงเหลือ |
+
+#### สิ่งที่ยืนยันว่าทำงานถูกต้องแล้ว (จาก Browser Smoke & Integration)
+
+**การรักษาข้อจำกัดและเสถียรภาพเดิม (Phase 4 Regression)**
+- **บัญชีชมรมและเจ้าหน้าที่ทีม:** ระบบ signup ป้องกันอีเมลชน, ร่างคงอยู่ข้าม session, บังคับข้อมูลสำคัญครบ, ควบคุมสิทธิ์การส่งผ่านชมรมไปยังเจ้าหน้าที่อย่างถูกต้อง
+- **Analytics/Snapshot:** คำนวณสถิติยอดตรงกันตามฟิลเตอร์, บันทึก snapshot นิ่งแม้ข้อมูลจริงเปลี่ยน, ป้องกันแก้ไข/ลบข้ามสิทธิ์
+- **เอกสารและสิทธิ์ (Storage):** ตรวจสอบขนาด/ชนิด, การเข้าถึงข้ามบัญชีถูกบล็อก, สามารถลบเอกสารที่ยังเป็นร่างแต่ลบไม่ได้เมื่อยื่นใบสมัครแล้ว
+- **Roster & Quota:** ป้องกันกีฬาสลับกัน, เช็คโควตาแบบ real-time รวมกันหลายชมรมไม่เกินโควตากลาง
+- **Session Protection:** บัญชีถูกปิดเปลี่ยนบทบาท session หมดอายุ ไม่สามารถทะลุเข้าไปทำรายการผ่าน API ตรงได้
+
+**เสถียรภาพ UI เบื้องต้น (Browser Smoke)**
+- หน้าเว็บที่จำเป็นต้องเปิดได้แบบ public (`/login`) ตอบกลับเป็น 200 OK
+- หน้า protected ภายใน (`/athlete/status`) สั่ง redirect (307) เมื่อไม่พบ session ทำงานได้ถูกต้องตามหลัก route guarding
+- API เส้นสำคัญทำงาน Validate ตรวจจับ 400 Bad Request ใน Login Payload และ 401/403/404 ในจุดที่ไม่มีสิทธิ์เข้าถึง หรือค้นหาข้อมูลชมรม/การแข่งขันไม่พบ
