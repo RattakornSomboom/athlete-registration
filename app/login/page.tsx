@@ -42,7 +42,8 @@ export default function LoginPage() {
 
   // Register step 2 — personal profile
   const [photo, setPhoto] = useState<File | null>(null);
-  const [profileForm, setProfileForm] = useState<Omit<AthleteProfile, "studentId" | "birthYearCE" | "previousEntriesCount" | "photoName">>({
+  const [photoUrl, setPhotoUrl] = useState<string>("");
+  const [profileForm, setProfileForm] = useState<Omit<AthleteProfile, "studentId" | "birthYearCE" | "previousEntriesCount" | "photoName" | "photoUrl">>({
     firstName: "",
     lastName: "",
     faculty: "",
@@ -146,6 +147,7 @@ export default function LoginPage() {
         birthYearCE,
         previousEntriesCount: 0,
         photoName: photo?.name,
+        photoUrl: photoUrl || undefined,
       };
 
       saveAthleteProfile(profile);
@@ -413,19 +415,58 @@ export default function LoginPage() {
 
             {/* รูปถ่าย */}
             <div>
-              <p className="text-xs font-semibold text-slate-700 mb-1.5">รูปถ่ายหน้าตรงชุดนิสิต (ขนาด 1 นิ้ว สำหรับทำบัตรประจำตัว)</p>
-              <label className="flex flex-col items-center justify-center w-28 h-28 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-slate-50 transition-colors">
-                <span className="text-xs text-slate-500 text-center px-2">{photo ? photo.name : "คลิกแนบรูปถ่าย"}</span>
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file && file.size <= 5 * 1024 * 1024) setPhoto(file);
-                  }}
-                />
-              </label>
+              <p className="text-xs font-semibold text-slate-700 mb-1.5">
+                รูปถ่ายหน้าตรงชุดนิสิต (ขนาด 1 นิ้ว สำหรับทำบัตรประจำตัว)
+              </p>
+              <div className="flex items-center gap-4">
+                <label className="flex flex-col items-center justify-center w-28 h-36 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-slate-50 transition-colors overflow-hidden relative bg-slate-50 shrink-0">
+                  {photoUrl ? (
+                    <>
+                      <img src={photoUrl} alt="รูปถ่ายนิสิต" className="w-full h-full object-cover object-top" />
+                      <div className="absolute inset-0 bg-slate-900/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-medium text-center px-1">
+                        คลิกเพื่อเปลี่ยนรูป
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                      <svg className="w-8 h-8 mb-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="text-[11px] text-slate-600 font-medium">แนบรูปถ่าย</span>
+                      <span className="text-[9px] text-slate-400">ขนาด 1 นิ้ว</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && file.size <= 5 * 1024 * 1024) {
+                        setPhoto(file);
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setPhotoUrl(event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p className="font-medium text-slate-700">คำแนะนำรูปถ่ายทางการ:</p>
+                  <ul className="text-[11px] text-slate-500 list-disc list-inside space-y-0.5">
+                    <li>รูปถ่ายหน้าตรง สวมชุดนิสิตถูกระเบียบ</li>
+                    <li>พื้นหลังสีขาวหรือสีฟ้า ไม่สวมหมวกหรือแว่นตาดำ</li>
+                    <li>ขนาดไฟล์ไม่เกิน 5 MB (JPG หรือ PNG)</li>
+                  </ul>
+                  {photo && (
+                    <p className="text-[11px] text-emerald-700 font-semibold pt-1">
+                      ✓ แนบไฟล์: {photo.name}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* ข้อมูลนิสิต */}

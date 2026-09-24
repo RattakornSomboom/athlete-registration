@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
-import { getAthleteProfile, type AthleteProfile } from "@/lib/athlete-profile";
+import { getAthleteProfile, DEFAULT_MOCK_PHOTO, type AthleteProfile } from "@/lib/athlete-profile";
 import { getSportConfig } from "@/lib/sports-categories";
 
 const SPORTS = [
@@ -78,7 +78,10 @@ export default function AthleteRegisterPage() {
     // TODO: เปลี่ยนเป็น fetch /api/athletes/profile เมื่อ Backend พร้อม
     const profile = getAthleteProfile();
     if (profile) {
-      setStudentProfile(profile);
+      setStudentProfile({
+        ...profile,
+        photoUrl: profile.photoUrl || DEFAULT_MOCK_PHOTO,
+      });
     } else {
       // ข้อมูลตัวอย่างเริ่มต้นสำหรับนำเสนองานและบันทึกภาพหน้าจอ
       setStudentProfile({
@@ -102,6 +105,8 @@ export default function AthleteRegisterPage() {
         postalCode: "56000",
         phone: "081-234-5678",
         previousEntriesCount: 0,
+        photoName: "photo_somchai.jpg",
+        photoUrl: DEFAULT_MOCK_PHOTO,
       });
     }
   }, []);
@@ -179,7 +184,7 @@ export default function AthleteRegisterPage() {
         supervisorPosition: hasClub === "no" ? supervisorPosition : null,
         noClubFile: hasClub === "no" ? noClubFile?.name : null,
         files: {
-          photoFile: photoFile?.name,
+          photoFile: photoFile?.name || studentProfile?.photoName || "photo_profile.jpg",
           idCardFile: idCardFile?.name,
           studentCardFile: studentCardFile?.name,
           studentCertFile: studentCertFile?.name,
@@ -200,7 +205,7 @@ export default function AthleteRegisterPage() {
   const step3Valid = !!(
     form.hasPreviousEntry &&
     (form.hasPreviousEntry === "none" || (form.previousBachelorCount || form.previousGraduateCount) && form.previousLastYear) &&
-    photoFile && idCardFile && studentCardFile && studentCertFile && upAcademyFile && fitnessTestFile
+    (photoFile || studentProfile?.photoUrl) && idCardFile && studentCardFile && studentCertFile && upAcademyFile && fitnessTestFile
   );
 
   return (
@@ -239,67 +244,95 @@ export default function AthleteRegisterPage() {
         {/* Profile Card — ข้อมูลนิสิตจาก Register ครั้งแรก */}
         {studentProfile ? (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง มหาวิทยาลัยพะเยา)
-              </p>
-              <span className="text-[11px] px-2.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <div className="flex items-center justify-between mb-4 pb-2.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-900"></span>
+                <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง มหาวิทยาลัยพะเยา)
+                </p>
+              </div>
+              <span className="text-[11px] px-2.5 py-0.5 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                 สถานะ: นิสิตปัจจุบัน มีสิทธิ์สมัคร
               </span>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 text-xs border-b border-slate-100 pb-4">
-              <div>
-                <span className="text-slate-400 block">ชื่อ - นามสกุล</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 block">รหัสประจำตัวนิสิต</span>
-                <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.studentId}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 block">คณะ / วิทยาลัย</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.faculty}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 block">สาขาวิชา</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.major}</p>
-              </div>
-              <div>
-                <span className="text-slate-400 block">ระดับการศึกษา / ชั้นปี</span>
-                <p className="font-semibold text-slate-900 mt-0.5">
-                  {studentProfile.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปีที่ {studentProfile.year}
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400 block">อายุ (ปีปฏิทิน กกมท.)</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="font-semibold text-slate-900">{athleteAge} ปี</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${isAgeEligible ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
-                    {isAgeEligible ? "≤ 28 ปี" : "เกินเกณฑ์"}
-                  </span>
+            <div className="flex flex-col sm:flex-row gap-5 items-start">
+              {/* รูปถ่ายประจำตัวนิสิต (ขนาด 1 นิ้ว) จากที่กรอกตอนแรก */}
+              <div className="flex flex-col items-center shrink-0 mx-auto sm:mx-0">
+                <div className="w-24 h-32 sm:w-28 sm:h-36 rounded-lg border-2 border-slate-200 overflow-hidden bg-slate-100 shadow-xs relative flex items-center justify-center">
+                  <img
+                    src={studentProfile.photoUrl || DEFAULT_MOCK_PHOTO}
+                    alt={`รูปถ่ายของ ${studentProfile.firstName} ${studentProfile.lastName}`}
+                    className="w-full h-full object-cover object-top"
+                  />
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-900/75 to-transparent pt-3 pb-1 px-1 text-center">
+                    <span className="text-[9px] text-white/95 font-medium block">
+                      รูปขนาด 1 นิ้ว
+                    </span>
+                  </div>
                 </div>
+                <span className="text-[10px] text-slate-500 font-medium mt-1.5 text-center max-w-[110px] truncate" title={studentProfile.photoName || "รูปถ่ายหน้าตรงชุดนิสิต"}>
+                  {studentProfile.photoName || "รูปถ่ายหน้าตรงชุดนิสิต"}
+                </span>
               </div>
-              <div>
-                <span className="text-slate-400 block">เกรดเฉลี่ยสะสม (GPAX)</span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="font-bold text-blue-900 font-mono text-sm">{studentProfile.gpaCumulative || "3.50"}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    ≥ 2.00 ผ่านเกณฑ์
-                  </span>
-                </div>
-              </div>
-              <div>
-                <span className="text-slate-400 block">เกรดเฉลี่ยภาคล่าสุด (GPA)</span>
-                <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.gpaSemester || "3.45"}</p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] pt-3 text-slate-500">
-              <div>เบอร์ติดต่อ: <span className="font-medium text-slate-700">{studentProfile.phone || "081-234-5678"}</span></div>
-              <div>สัญชาติ: <span className="font-medium text-slate-700">{studentProfile.nationality || "ไทย"}</span></div>
-              <div>สิทธิ์แข่งสะสม: <span className="font-medium text-slate-700">{previousEntriesCount}/{maxEntries} ครั้ง</span></div>
-              <div>โควตาคงเหลือ: <span className="font-semibold text-emerald-700">{remainingEntries} ครั้ง</span></div>
+              {/* รายละเอียดข้อมูลส่วนตัว */}
+              <div className="flex-1 min-w-0 w-full space-y-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 text-xs border-b border-slate-100 pb-3">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">ชื่อ - นามสกุล</span>
+                    <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">รหัสประจำตัวนิสิต</span>
+                    <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.studentId}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">คณะ / วิทยาลัย</span>
+                    <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.faculty}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">สาขาวิชา</span>
+                    <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.major}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">ระดับการศึกษา / ชั้นปี</span>
+                    <p className="font-semibold text-slate-900 mt-0.5">
+                      {studentProfile.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา"} ปีที่ {studentProfile.year}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">อายุ (ปีปฏิทิน กกมท.)</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="font-semibold text-slate-900">{athleteAge} ปี</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${isAgeEligible ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"}`}>
+                        {isAgeEligible ? "≤ 28 ปี" : "เกินเกณฑ์"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">เกรดเฉลี่ยสะสม (GPAX)</span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="font-bold text-blue-900 font-mono text-sm">{studentProfile.gpaCumulative || "3.50"}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ≥ 2.00 ผ่านเกณฑ์
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">เกรดเฉลี่ยภาคล่าสุด (GPA)</span>
+                    <p className="font-semibold text-slate-900 mt-0.5 font-mono">{studentProfile.gpaSemester || "3.45"}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[11px] pt-1 text-slate-500">
+                  <div>เบอร์ติดต่อ: <span className="font-medium text-slate-700">{studentProfile.phone || "081-234-5678"}</span></div>
+                  <div>สัญชาติ: <span className="font-medium text-slate-700">{studentProfile.nationality || "ไทย"}</span></div>
+                  <div>สิทธิ์แข่งสะสม: <span className="font-medium text-slate-700">{previousEntriesCount}/{maxEntries} ครั้ง</span></div>
+                  <div>โควตาคงเหลือ: <span className="font-semibold text-emerald-700">{remainingEntries} ครั้ง</span></div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -354,11 +387,11 @@ export default function AthleteRegisterPage() {
                   <button type="button" onClick={() => set("round", "final")} className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${form.round === "final" ? "bg-blue-600 text-white border-blue-600" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}>รอบมหกรรม</button>
                 </div>
               </div>
-              
+
               {form.round && (
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
-                  {form.round === "qualifier" 
-                    ? "📅 กำหนดการทดสอบสมรรถภาพรอบคัดเลือก: วันพุธที่ 2 ก.ย. 2569 (สำหรับ เปตอง, วอลเลย์บอล, บาสเกตบอล, ฟุตซอล)" 
+                  {form.round === "qualifier"
+                    ? "📅 กำหนดการทดสอบสมรรถภาพรอบคัดเลือก: วันพุธที่ 2 ก.ย. 2569 (สำหรับ เปตอง, วอลเลย์บอล, บาสเกตบอล, ฟุตซอล)"
                     : "📅 กำหนดการทดสอบสมรรถภาพรอบมหกรรม: วันอังคารที่ 1 ธ.ค. 2569 (สำหรับกีฬา 11 ชนิด และกีฬาที่ผ่านรอบคัดเลือก)"}
                 </div>
               )}
@@ -435,24 +468,25 @@ export default function AthleteRegisterPage() {
                 {sportEntries.length < MAX_SPORTS_PER_APPLICATION && (() => {
                   const config = newSportEntry.sport ? getSportConfig(newSportEntry.sport) : null;
                   return (
-                  <div className="border border-gray-200 rounded-lg p-3 space-y-2">
-                    <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.sport} onChange={(e) => setNewSportEntry({ sport: e.target.value, category: "", division: "" })}>
-                      <option value="">เลือกชนิดกีฬา</option>
-                      {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.category} onChange={(e) => setNewSportEntry((p) => ({ ...p, category: e.target.value }))} disabled={!newSportEntry.sport}>
-                        <option value="">เลือกประเภท</option>
-                        {config?.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                      <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.sport} onChange={(e) => setNewSportEntry({ sport: e.target.value, category: "", division: "" })}>
+                        <option value="">เลือกชนิดกีฬา</option>
+                        {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.division} onChange={(e) => setNewSportEntry((p) => ({ ...p, division: e.target.value }))} disabled={!newSportEntry.sport}>
-                        <option value="">เลือกรุ่น</option>
-                        {config?.divisions.map((d) => <option key={d} value={d}>{d}</option>)}
-                      </select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.category} onChange={(e) => setNewSportEntry((p) => ({ ...p, category: e.target.value }))} disabled={!newSportEntry.sport}>
+                          <option value="">เลือกประเภท</option>
+                          {config?.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.division} onChange={(e) => setNewSportEntry((p) => ({ ...p, division: e.target.value }))} disabled={!newSportEntry.sport}>
+                          <option value="">เลือกรุ่น</option>
+                          {config?.divisions.map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={addSportEntry} disabled={!newSportEntry.sport || !newSportEntry.category || !newSportEntry.division} className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors">+ เพิ่มชนิดกีฬา</button>
                     </div>
-                    <button onClick={addSportEntry} disabled={!newSportEntry.sport || !newSportEntry.category || !newSportEntry.division} className="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 disabled:text-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg transition-colors">+ เพิ่มชนิดกีฬา</button>
-                  </div>
-                )})()}
+                  )
+                })()}
               </div>
 
               <div className="flex gap-3 mt-4 pt-4 border-t border-slate-100">
@@ -544,11 +578,21 @@ export default function AthleteRegisterPage() {
                       <label className="text-xs font-semibold text-slate-800">
                         1. รูปถ่ายชุดนิสิตถูกระเบียบ (ขนาด 1 นิ้ว) <span className="text-rose-600">*</span>
                       </label>
-                      {photoFile && <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">แนบแล้ว</span>}
+                      {(photoFile || studentProfile?.photoUrl) && (
+                        <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
+                          {photoFile ? "แนบไฟล์ใหม่แล้ว" : "ใช้จากประวัตินิสิต"}
+                        </span>
+                      )}
                     </div>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-white transition-colors">
                       <span className="text-xs text-slate-600 text-center px-2 truncate max-w-full font-medium">
-                        {photoFile ? photoFile.name : "คลิกแนบไฟล์รูปถ่าย (JPG/PNG)"}
+                        {photoFile
+                          ? photoFile.name
+                          : studentProfile?.photoName
+                            ? `${studentProfile.photoName} (ดึงจากข้อมูลประวัตินิสิต)`
+                            : studentProfile?.photoUrl
+                              ? "ใช้รูปถ่ายจากข้อมูลประวัตินิสิตแล้ว (คลิกเพื่อเปลี่ยน)"
+                              : "คลิกแนบไฟล์รูปถ่าย (JPG/PNG)"}
                       </span>
                       <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setPhotoFile, 5)} />
                     </label>
