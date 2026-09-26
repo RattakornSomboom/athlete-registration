@@ -37,9 +37,17 @@ export default function Home() {
 
             {/* Center Title */}
             <div className="flex-1 min-w-0 space-y-2">
-              <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-blue-200 font-semibold">
-                มหาวิทยาลัยพะเยา · กองกิจการนิสิต
-              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-blue-500/25 border border-blue-400/40 text-blue-200 text-[11px] font-mono font-bold tracking-wider">
+                  SMED
+                </span>
+                <span className="text-xs uppercase tracking-[0.2em] text-blue-200 font-semibold">
+                  มหาวิทยาลัยพะเยา · กองกิจการนิสิต
+                </span>
+                <span className="text-[11px] font-mono text-blue-300/80">
+                  smed.up.ac.th
+                </span>
+              </div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-tight drop-shadow-lg">
                 ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
               </h1>
@@ -50,11 +58,11 @@ export default function Home() {
 
             {/* Sports System Emblem (right) */}
             <div className="shrink-0 flex items-center justify-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center shadow-lg overflow-hidden p-1">
+              <div className="w-18 h-20 sm:w-22 sm:h-24 md:w-26 md:h-28 flex items-center justify-center">
                 <img
-                  src="/images/system-logo.jpg"
+                  src="/images/system-logo.png"
                   alt="ตราสัญลักษณ์ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ"
-                  className="w-full h-full object-contain rounded-full"
+                  className="w-full h-full object-contain drop-shadow-xl"
                 />
               </div>
             </div>
@@ -215,8 +223,13 @@ export default function Home() {
 
       {/* University Footer */}
       <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 py-6 text-center">
-        <p>กองกิจการนิสิต มหาวิทยาลัยพะเยา · งานกีฬาและนันทนาการ</p>
-        <p className="text-[11px] text-slate-500 mt-1">
+        <p className="font-semibold text-slate-300">
+          SMED · ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
+        </p>
+        <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
+          smed.up.ac.th · งานกีฬาและนันทนาการ กองกิจการนิสิต มหาวิทยาลัยพะเยา
+        </p>
+        <p className="text-[10px] text-slate-500 mt-1">
           19 หมู่ 2 ตำบลแม่กา อำเภอเมืองพะเยา จังหวัดพะเยา 56000
         </p>
       </footer>
