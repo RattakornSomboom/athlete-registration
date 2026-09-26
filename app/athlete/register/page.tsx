@@ -88,6 +88,7 @@ export default function AthleteRegisterPage() {
         studentId: "66027012",
         firstName: "สมชาย",
         lastName: "ใจดี",
+        gender: "male",
         faculty: "คณะวิทยาศาสตร์",
         major: "สาขาวิทยาการคอมพิวเตอร์",
         studentLevel: "bachelor",
@@ -283,6 +284,12 @@ export default function AthleteRegisterPage() {
                   <div>
                     <span className="text-slate-400 block text-[11px]">ชื่อ - นามสกุล</span>
                     <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">เพศ</span>
+                    <p className="font-semibold text-slate-900 mt-0.5">
+                      {studentProfile.gender === "male" ? "ชาย" : studentProfile.gender === "female" ? "หญิง" : studentProfile.gender === "other" ? "อื่นๆ" : "-"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">รหัสประจำตัวนิสิต</span>
