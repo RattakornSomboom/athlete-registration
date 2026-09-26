@@ -8,6 +8,7 @@ export type AthleteProfile = {
   studentId: string;
   firstName: string;
   lastName: string;
+  gender: "male" | "female" | "other" | "";
   faculty: string;
   major: string;
   studentLevel: "bachelor" | "graduate";

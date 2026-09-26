@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Prompt } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const prompt = Prompt({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["thai", "latin"],
+  variable: "--font-prompt",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ระบบพัฒนาเพื่อความเป็นเลิศด้านกีฬา มหาวิทยาลัยพะเยา",
-  description: "ระบบบริหารจัดการการรับสมัคร การคัดเลือก และรายงานตัวนักกีฬาตัวแทนมหาวิทยาลัยพะเยา ในการแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52",
+  title: "ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา",
+  description: "ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา (Information System for Sports Management and Excellence Development, University of Phayao)",
 };
 
 export default function RootLayout({
@@ -25,9 +22,9 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${prompt.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className={`${prompt.className} min-h-full flex flex-col font-sans`}>{children}</body>
     </html>
   );
 }
