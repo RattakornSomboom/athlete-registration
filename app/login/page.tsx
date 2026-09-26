@@ -184,17 +184,20 @@ export default function LoginPage() {
             <div>
               {/* Logo และหัวเรื่อง */}
               <div className="text-center mb-5">
-                <div className="w-20 h-20 rounded-full mx-auto mb-3 shadow-md border-2 border-slate-200 overflow-hidden bg-white p-1">
+                <div className="w-20 h-20 rounded-full mx-auto mb-2 shadow-md border-2 border-slate-200 overflow-hidden bg-white p-1">
                   <img
-                    src="/images/system-logo.jpg"
+                    src="/images/system-logo.png"
                     alt="Logo ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ"
                     className="w-full h-full object-contain rounded-full"
                   />
                 </div>
+                <div className="inline-block px-2.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-900 text-[10px] font-mono font-bold tracking-wider mb-1">
+                  SMED · smed.up.ac.th
+                </div>
                 <h1 className="text-2xl font-extrabold text-slate-900">
                   ยินดีต้อนรับ
                 </h1>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-slate-500 mt-0.5">
                   เข้าสู่ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ
                 </p>
                 <p className="text-[10px] text-blue-900 font-semibold mt-0.5">
@@ -225,7 +228,7 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin} className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      ชื่อผู้ใช้งาน (Username ทางการ)
+                      Username
                     </label>
                     <input
                       type="text"
@@ -239,7 +242,7 @@ export default function LoginPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">รหัสผ่าน</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -272,7 +275,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full bg-[#e11d48] hover:bg-[#be123c] active:scale-[0.99] text-white font-bold py-2.5 rounded-full text-xs transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <span>{loading ? "กำลังตรวจสอบสิทธิ์..." : "เข้าสู่ระบบด้วย UP Account"}</span>
+                    <span>{loading ? "กำลังตรวจสอบสิทธิ์..." : "Login"}</span>
                   </button>
 
                   {/* ทางลัดเข้าสู่ระบบตามบทบาท */}

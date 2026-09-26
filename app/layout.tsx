@@ -10,8 +10,8 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา",
-  description: "ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา (Information System for Sports Management and Excellence Development, University of Phayao)",
+  title: "SMED | ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา",
+  description: "SMED (smed.up.ac.th) - ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา (Information System for Sports Management and Excellence Development, University of Phayao)",
 };
 
 export default function RootLayout({
