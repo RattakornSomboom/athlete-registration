@@ -21,6 +21,12 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   rejected: { label: "ไม่ผ่าน",      className: "bg-red-100 text-red-800" },
 };
 
+const loadActivities = async () => {
+  const res = await fetch("/api/activities");
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.json();
+};
+
 export default function StaffActivitiesPage() {
   const router = useRouter();
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -29,19 +35,29 @@ export default function StaffActivitiesPage() {
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
-  const fetchActivities = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/activities");
-      const data = await res.json();
-      setActivities(data.activities ?? []);
+      return await loadActivities();
     } catch {
-      setActivities([]);
-    } finally {
-      setLoading(false);
+      return null;
     }
   }, []);
 
-  useEffect(() => { fetchActivities(); }, [fetchActivities]);
+  useEffect(() => {
+    let mounted = true;
+    fetchData().then(data => {
+      if (mounted) {
+        setActivities(data?.activities ?? []);
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, [fetchData]);
+
+  const refreshData = async () => {
+    const data = await fetchData();
+    setActivities(data?.activities ?? []);
+  };
 
   const handleAction = async (id: string, status: "approved" | "rejected") => {
     if (status === "rejected" && !rejectReason[id]) {
@@ -60,7 +76,7 @@ export default function StaffActivitiesPage() {
       });
       if (res.ok) {
         setShowRejectInput(null);
-        await fetchActivities();
+        await refreshData();
       } else {
         const data = await res.json();
         alert(data.error || "ดำเนินการไม่สำเร็จ");

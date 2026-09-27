@@ -33,7 +33,7 @@ export default function ClubRequestsPage() {
       .then(res => res.json())
       .then(data => {
         if (data.requests) {
-          const mapped = data.requests.map((r: any) => ({
+          const mapped = data.requests.map((r: { createdAt: string; documentUrl?: string | null; [key: string]: unknown }) => ({
             ...r,
             date: new Date(r.createdAt).toLocaleDateString("th-TH"),
             document: r.documentUrl || "ดูเอกสารแนบ"

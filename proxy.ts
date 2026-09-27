@@ -6,12 +6,13 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (path === "/team-official/signup") return NextResponse.next();
   const session = await getSession(request);
-  const allowed = path.startsWith("/athlete") ? ["ATHLETE", "SUPERADMIN"]
-    : path.startsWith("/club") ? ["CLUB", "SUPERADMIN"]
-    : path.startsWith("/staff") ? ["STAFF", "ADMIN", "SUPERADMIN"]
-    : path.startsWith("/admin") ? ["ADMIN", "SUPERADMIN"]
-    : ["TEAM_OFFICIAL", "SUPERADMIN"];
-  if (!session || !allowed.includes(session.role)) {
+  const allowed = path.startsWith("/athlete") ? ["ATHLETE"]
+    : path.startsWith("/club") ? ["CLUB"]
+    : path.startsWith("/staff") ? ["STAFF", "ADMIN"]
+    : path.startsWith("/admin") ? ["ADMIN"]
+    : ["TEAM_OFFICIAL"];
+  if (session && !allowed.includes(session.role)) return new NextResponse("ไม่มีสิทธิ์เข้าถึง", { status: 403 });
+  if (!session) {
     const response = NextResponse.redirect(new URL("/login", request.url));
     if (!session) { response.cookies.delete("token"); response.cookies.delete("role"); }
     return response;

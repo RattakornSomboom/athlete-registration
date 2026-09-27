@@ -17,7 +17,7 @@ export default function LogoutButton() {
     <div className="flex justify-end">
       <button
         onClick={handleLogout}
-        className="text-sm text-red-500 hover:text-red-600 font-medium border border-red-300 hover:border-red-300 px-4 py-2 rounded-lg transition-colors"
+        className="text-sm text-red-700 hover:text-red-800 font-medium border border-red-300 hover:border-red-400 px-4 py-2 rounded-lg transition-colors"
       >
         ออกจากระบบ
       </button>

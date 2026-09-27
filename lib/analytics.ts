@@ -1,4 +1,4 @@
-export type AnalyticsRow = {
+export type AnalyticsRow = { competitionId?: string; competitionName?: string;
   id: string; userId: string; studentId: string | null; firstName: string; lastName: string;
   faculty: string; sport: string; status: string; squadType: string | null;
 };
@@ -26,7 +26,7 @@ export function summarize(rows: AnalyticsRow[], quotas: AnalyticsQuota[]) {
       approved: passed.length, acceptanceRate: rows.length ? passed.length / rows.length * 100 : 0,
       main: passed.filter(r => r.squadType === "main").length, reserve: passed.filter(r => r.squadType === "reserve").length,
       totalQuota, fillRate: totalQuota ? passed.length / totalQuota * 100 : 0,
-    }, sports, faculties, statuses, unavailable: ["gender", "budget", "compliance"],
+    }, competitions: [...new Set(rows.map(r => r.competitionId).filter(Boolean))].map(id => ({ id, name: rows.find(r => r.competitionId === id)?.competitionName, applications: rows.filter(r => r.competitionId === id).length })), sports, faculties, statuses, unavailable: ["gender", "budget", "compliance"],
   };
 }
 export type AnalyticsSummary = ReturnType<typeof summarize>;

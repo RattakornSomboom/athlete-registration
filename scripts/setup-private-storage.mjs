@@ -12,4 +12,11 @@ if(!existing){
  if(error) throw new Error("Unable to create private bucket");
 }
 console.log("Private document bucket verified.");
-
+if (process.argv.includes("--privatize-legacy")) {
+  const legacy = data.find(b => b.name === "athlete-docs");
+  if (legacy?.public) {
+    const { error } = await client.storage.updateBucket("athlete-docs", { public: false });
+    if (error) throw new Error("Unable to make legacy document bucket private");
+  }
+  console.log("Legacy bucket privacy updated; verify direct-access policies and anonymous URLs before release.");
+}

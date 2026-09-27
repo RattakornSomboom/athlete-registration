@@ -2,31 +2,15 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { documentReference } from "@/lib/athlete-document-policy";
 import { fetchJson, HttpError } from "@/lib/http-client";
 import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
-import { type AthleteProfile } from "@/lib/athlete-profile";
+import { type AthleteProfile } from "@/lib/athlete-profile-types";
 import { getSportConfig } from "@/lib/sports-categories";
 
-const SPORTS = [
-  // กีฬาบังคับ (7 ชนิด)
-  "กรีฑา", "กีฬาทางน้ำ", "วอลเลย์บอล", "เทควันโด", "มวยไทยสมัครเล่น", "ฟุตบอล", "บาสเกตบอล",
-  // กีฬาเลือกสากล (28 ชนิด)
-  "เปตอง", "จักรยาน", "เซปักตะกร้อ", "ยูยิตสู", "เทเบิลเทนนิส", "ปันจักสีลัต", "แบดมินตัน", "เทนนิส",
-  "ฟุตซอล", "ฮับกิโด", "อีสปอร์ต", "จานร่อน", "ปีนหน้าผา", "วู้ดบอล", "สควอช", "คิกบ็อกซิ่ง",
-  "ซอฟท์บอล", "ปัญจกีฬา", "เรือพาย", "โอเรียนเทียริ่ง", "คาราเต้", "ฟันดาบสากล", "เชียร์",
-  "แฮนด์บอล", "ฮอกกี้", "รักบี้ฟุตบอล", "คอร์ฟบอล", "วูซู",
-  // กีฬาเลือกทั่วไป (3 ชนิด)
-  "หมากรุกสากล", "บริดจ์", "หมากล้อม",
-  // กีฬาไทย (1 ชนิด)
-  "ดาบไทย",
-  // กีฬาสาธิต (3 ชนิด)
-  "ซอฟท์เทนนิส", "กาบัดดี้", "พิกเคิลบอล",
-];
-
-const CURRENT_YEAR_BE = 2569;
-const CURRENT_YEAR_CE = 2026;
+const CURRENT_YEAR_CE = new Date().getFullYear();
+const CURRENT_YEAR_BE = CURRENT_YEAR_CE + 543;
 
 type CompetitionResult = {
   id: string;
@@ -59,12 +43,12 @@ export default function AthleteRegisterPage() {
   const [upAcademyFile, setUpAcademyFile] = useState<File | null>(null);
   const [fitnessTestFile, setFitnessTestFile] = useState<File | null>(null);
 
-  const fileHandler = (setter: (f: File | null) => void, maxMB = 10) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fileHandler = (setter: (f: File | null) => void, maxMB = 5) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.size <= maxMB * 1024 * 1024) setter(file);
   };
 
-  type OpenCompetition = { id: string; name: string; round: string; year: number };
+  type OpenCompetition = { id: string; name: string; round: string; year: number; quotas: { sport: string; ageLimit: number | null }[] };
   const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
   const load = useCallback(async () => {
     const [me, competitions] = await Promise.all([
@@ -108,7 +92,8 @@ export default function AthleteRegisterPage() {
   const birthYearCE = studentProfile?.birthYearCE ?? CURRENT_YEAR_CE - 20;
   const calculateAge = (year: number) => CURRENT_YEAR_CE - year;
   const athleteAge = calculateAge(birthYearCE);
-  const isAgeEligible = athleteAge <= 28;
+  const selectedQuotas = openCompetitions.find(c => c.id === selectedCompetitionId)?.quotas ?? [];
+  const isAgeEligible = !selectedCompetitionId || selectedQuotas.some(q => athleteAge <= (q.ageLimit ?? 28));
 
   const studentLevel = studentProfile?.studentLevel ?? "bachelor";
   const maxEntries = MAX_ENTRIES[studentLevel];
@@ -119,7 +104,7 @@ export default function AthleteRegisterPage() {
 
   const handleNoClubFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.size <= 10 * 1024 * 1024) setNoClubFile(file);
+    if (file && file.size <= 5 * 1024 * 1024) setNoClubFile(file);
   };
 
   const addSportEntry = () => {
@@ -146,21 +131,15 @@ export default function AthleteRegisterPage() {
       const me = await fetchJson<{ user: { studentId: string } }>("/api/auth/me");
       const studentId = me.user.studentId;
 
-      // Upload files to Supabase Storage
-      const uploadFile = async (file: File, prefix: string) => {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${studentId}_${prefix}_${Date.now()}.${fileExt}`;
-        const filePath = `${studentId}/${fileName}`;
-        
-        const { error } = await supabase.storage.from("athlete-docs").upload(filePath, file);
-        if (error) throw error;
-        
-        return supabase.storage.from("athlete-docs").getPublicUrl(filePath).data.publicUrl;
+      const uploadFile = async (file: File) => {
+        const form = new FormData(); form.set("file", file);
+        const result = await fetchJson<{ document: { id: string } }>("/api/documents", { method: "POST", body: form });
+        return documentReference(result.document.id);
       };
 
       let noClubFileUrl = null;
       if (hasClub === "no" && noClubFile) {
-        noClubFileUrl = await uploadFile(noClubFile, "noclub");
+        noClubFileUrl = await uploadFile(noClubFile);
       }
 
       const [
@@ -171,12 +150,12 @@ export default function AthleteRegisterPage() {
         upAcademyFileUrl,
         fitnessTestFileUrl
       ] = await Promise.all([
-        uploadFile(photoFile!, "photo"),
-        uploadFile(idCardFile!, "idcard"),
-        uploadFile(studentCardFile!, "studentcard"),
-        uploadFile(studentCertFile!, "studentcert"),
-        uploadFile(upAcademyFile!, "upacademy"),
-        uploadFile(fitnessTestFile!, "fitness")
+        uploadFile(photoFile!),
+        uploadFile(idCardFile!),
+        uploadFile(studentCardFile!),
+        uploadFile(studentCertFile!),
+        uploadFile(upAcademyFile!),
+        uploadFile(fitnessTestFile!)
       ]);
 
       // ส่งใบสมัครไป API จริง
@@ -313,7 +292,7 @@ export default function AthleteRegisterPage() {
         {!isOverMaxStrict && (!isAgeEligible || !isEntryCountEligible) && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <p className="text-sm font-medium text-red-800 mb-1">⚠️ ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
-            {!isAgeEligible && <p className="text-sm text-red-600">อายุของท่าน ({athleteAge} ปี) เกิน 28 ปี ตามระเบียบ กกมท. ข้อ 6.5</p>}
+            {!isAgeEligible && <p className="text-sm text-red-600">อายุของท่าน ({athleteAge} ปี) ไม่ผ่านเกณฑ์อายุของกีฬาในการแข่งขันที่เลือก</p>}
             {!isEntryCountEligible && <p className="text-sm text-red-600">ท่านสมัครครบ {maxEntries} ครั้งแล้ว ตามระเบียบ กกมท. ข้อ 7.2</p>}
           </div>
         )}
@@ -328,7 +307,7 @@ export default function AthleteRegisterPage() {
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-blue-900 text-white" : "bg-slate-200 text-slate-500"}`}>{s}</div>
-              <span className={`text-xs ${step >= s ? "text-slate-900 font-semibold" : "text-slate-400"}`}>
+              <span className={`text-xs ${step >= s ? "text-slate-900 font-semibold" : "text-slate-500"}`}>
                 {s === 1 ? "1. ชมรมและรอบการแข่งขัน" : s === 2 ? "2. ชนิดกีฬาและรายการ" : "3. ผลงานและเอกสารแนบ"}
               </span>
               {s < 3 && <div className={`w-12 h-0.5 ${step > s ? "bg-blue-900" : "bg-slate-200"}`} />}
@@ -346,7 +325,7 @@ export default function AthleteRegisterPage() {
                 <select
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   value={selectedCompetitionId}
-                  onChange={(e) => setSelectedCompetitionId(e.target.value)}
+                  onChange={(e) => { setSelectedCompetitionId(e.target.value); setSportEntries([]); setNewSportEntry({ sport: "", category: "", division: "" }); }}
                 >
                   <option value="">-- เลือกรายการแข่งขัน --</option>
                   {openCompetitions.map((c) => (
@@ -457,7 +436,7 @@ export default function AthleteRegisterPage() {
                   <div className="border border-gray-200 rounded-lg p-3 space-y-2">
                     <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.sport} onChange={(e) => setNewSportEntry({ sport: e.target.value, category: "", division: "" })}>
                       <option value="">เลือกชนิดกีฬา</option>
-                      {SPORTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      {selectedQuotas.filter(q => athleteAge <= (q.ageLimit ?? 28)).map(q => q.sport).map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <div className="grid grid-cols-2 gap-2">
                       <select className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={newSportEntry.category} onChange={(e) => setNewSportEntry((p) => ({ ...p, category: e.target.value }))} disabled={!newSportEntry.sport}>

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import LogoutButton from "@/components/shared/LogoutButton";
 import Link from "next/link";
 
@@ -26,9 +25,13 @@ type TrainingProgram = {
   reports: TrainingReport[];
 };
 
+const fetchTrainingData = async () => {
+  const res = await fetch("/api/club/training");
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.json();
+};
+
 export default function ClubTrainingPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
 
@@ -37,22 +40,40 @@ export default function ClubTrainingPage() {
   const [programForm, setProgramForm] = useState({ goal: "", schedule: "" });
   const [reportForm, setReportForm] = useState({ programId: "", date: "", progress: "", issues: "", photoUrl: "" });
 
-  const fetchData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const res = await fetch("/api/club/training");
-      const data = await res.json();
-      setCoaches(data.coaches ?? []);
-      setPrograms(data.programs ?? []);
+      return await fetchTrainingData();
     } catch {
       console.error("Fetch failed");
-    } finally {
-      setLoading(false);
+      return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let mounted = true;
+    loadData().then(data => {
+      if (mounted) {
+        if (data) {
+          setCoaches(data.coaches ?? []);
+          setPrograms(data.programs ?? []);
+        } else {
+          setCoaches([]);
+        }
+      }
+    });
+    return () => { mounted = false; };
+  }, [loadData]);
+
+  const refreshData = async () => {
+    const data = await loadData();
+    if (data) {
+      setCoaches(data.coaches ?? []);
+      setPrograms(data.programs ?? []);
+    } else {
+      setCoaches([]);
+      setPrograms([]);
+    }
+  };
 
   const handleAddCoach = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +85,7 @@ export default function ClubTrainingPage() {
     });
     if (res.ok) {
       setCoachForm({ name: "", phone: "" });
-      fetchData();
+      refreshData();
     }
   };
 
@@ -78,7 +99,7 @@ export default function ClubTrainingPage() {
     });
     if (res.ok) {
       setProgramForm({ goal: "", schedule: "" });
-      fetchData();
+      refreshData();
     }
   };
 
@@ -92,7 +113,7 @@ export default function ClubTrainingPage() {
     });
     if (res.ok) {
       setReportForm({ programId: "", date: "", progress: "", issues: "", photoUrl: "" });
-      fetchData();
+      refreshData();
     }
   };
 

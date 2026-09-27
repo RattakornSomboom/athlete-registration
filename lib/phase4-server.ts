@@ -4,7 +4,7 @@ import { getSession, type JWTPayload } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isDatabaseConflict } from "@/lib/db-errors";
 import { ValidationError, parseJsonObject } from "@/lib/validation";
-export const STAFF = ["STAFF", "ADMIN", "SUPERADMIN"] as const;
+export const STAFF = ["STAFF", "ADMIN"] as const;
 export type Tx = Prisma.TransactionClient;
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }

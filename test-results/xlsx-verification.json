@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-09-27T19:21:57.803Z",
+  "file": "test-results/staff-export-actual.xlsx",
+  "fileSizeBytes": 17135,
+  "sheetName": "Applicants",
+  "rowCount": 1,
+  "headers": [
+    "รหัสใบสมัคร",
+    "รหัสนิสิต",
+    "ชื่อ",
+    "นามสกุล",
+    "คณะ",
+    "สาขาวิชา",
+    "เบอร์โทรศัพท์",
+    "การแข่งขัน",
+    "ชนิดกีฬา",
+    "ประเภท",
+    "สถานะ",
+    "วันที่สมัคร"
+  ],
+  "sampleRow": {
+    "รหัสใบสมัคร": "cmuk7g78t00043kc7uvnsu6qq",
+    "รหัสนิสิต": "86916137",
+    "ชื่อ": "สมชาย",
+    "นามสกุล": "ใจดี",
+    "คณะ": "คณะวิทยาศาสตร์",
+    "สาขาวิชา": "วิทยาการคอมพิวเตอร์",
+    "เบอร์โทรศัพท์": "0812345678",
+    "การแข่งขัน": "การแข่งขันกีฬาประเพณี มพ. 2569",
+    "ชนิดกีฬา": "ฟุตบอล",
+    "ประเภท": "ชาย",
+    "สถานะ": "รอการพิจารณา",
+    "วันที่สมัคร": "28/9/2569 02:21:56"
+  },
+  "checks": {
+    "sheetNameCorrect": true,
+    "columnCount12": true,
+    "columnOrderAndNamesMatch": true,
+    "thaiEncodingValid": true,
+    "statusLabelTranslated": true,
+    "dateFormatted": true
+  },
+  "passed": true
+}

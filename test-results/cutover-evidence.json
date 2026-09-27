@@ -1,0 +1,90 @@
+{
+  "timestamp": "2026-09-27T19:19:36.196Z",
+  "environment": {
+    "productionDatabaseTarget": "postgresql://***:***@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres",
+    "testDatabaseTarget": "postgresql://***:***@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres",
+    "productionSupabaseOrigin": "https://hbyucaygmuaglslkktuq.supabase.co",
+    "testSupabaseOrigin": "https://tofylpvxuejyaztgjjzj.supabase.co"
+  },
+  "preflight": {
+    "roles": [
+      {
+        "role": "ATHLETE",
+        "count": 3
+      },
+      {
+        "role": "STAFF",
+        "count": 3
+      },
+      {
+        "role": "TEAM_OFFICIAL",
+        "count": 2
+      },
+      {
+        "role": "ADMIN",
+        "count": 3
+      }
+    ],
+    "documents": [],
+    "duplicateQuotaGroups": 0,
+    "activeAdminsAfterConversion": 3,
+    "passed": true
+  },
+  "prismaMigrateStatus": {
+    "exitCode": 0,
+    "output": "Datasource \"db\": PostgreSQL database \"postgres\", schema \"public\" at \"aws-0-ap-northeast-1.pooler.supabase.com:5432\"\n\n4 migrations found in prisma/migrations\n\nDatabase schema is up to date!"
+  },
+  "productionStorageBuckets": [
+    {
+      "name": "athlete-private",
+      "public": false,
+      "fileSizeLimit": 5242880,
+      "allowedMimeTypes": [
+        "application/pdf",
+        "image/jpeg",
+        "image/png"
+      ]
+    },
+    {
+      "name": "athlete-docs",
+      "public": false,
+      "fileSizeLimit": 5242880,
+      "allowedMimeTypes": [
+        "image/jpeg",
+        "image/png",
+        "application/pdf"
+      ]
+    }
+  ],
+  "legacyFileLiveSecurityTest": {
+    "testFileName": "legacy-audit-1790536784738.pdf",
+    "directAnonymousAccess": {
+      "urlSanitized": "https://tofylpvxuejyaztgjjzj.supabase.co/storage/v1/object/public/athlete-docs/legacy-audit-1790536784738.pdf",
+      "httpStatus": 400,
+      "blocked": true,
+      "responseBody": "{\"statusCode\":\"404\",\"error\":\"Bucket not found\",\"message\":\"Bucket not found\",\"code\":\"NoSuchBucket\"}"
+    },
+    "authorizedAccessViaApi": {
+      "httpStatus": 302,
+      "redirectedToSignedUrl": true,
+      "signedUrlDownloadHttpStatus": 200,
+      "success": true
+    },
+    "unauthorizedAccessViaApi": {
+      "httpStatus": 404,
+      "rejected": true
+    },
+    "anonymousAccessViaApi": {
+      "httpStatus": 401,
+      "rejected": true
+    }
+  },
+  "signedUrlLifecycleTest": {
+    "bucket": "athlete-private",
+    "probeFile": "private-audit-1790536787096.pdf",
+    "uploadSuccess": true,
+    "signSuccess": true,
+    "downloadHttpStatus": 200,
+    "cleanupSuccess": true
+  }
+}

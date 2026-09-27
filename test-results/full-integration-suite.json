@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-09-27T18:29:29.000Z",
+  "command": "node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs",
+  "environment": {
+    "server": "localhost:3138",
+    "testDatabase": "aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres",
+    "testSupabase": "tofylpvxuejyaztgjjzj.supabase.co"
+  },
+  "summary": {
+    "total": 39,
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 106650
+  },
+  "suites": [
+    {
+      "file": "tests/integration/account-smoke.test.mjs",
+      "passed": 6,
+      "failed": 0,
+      "artifact": "test-results/account-smoke-integration.json"
+    },
+    {
+      "file": "tests/integration/competition-status-gate.test.mjs",
+      "passed": 6,
+      "failed": 0,
+      "artifact": "test-results/competition-status-gate-integration.json"
+    },
+    {
+      "file": "tests/integration/phase4.test.mjs",
+      "passed": 15,
+      "failed": 0,
+      "artifact": "test-results/phase4-integration.json"
+    },
+    {
+      "file": "tests/integration/phase5.test.mjs",
+      "passed": 8,
+      "failed": 0,
+      "artifact": "test-results/phase5-integration.json"
+    },
+    {
+      "file": "tests/integration/release-core.test.mjs",
+      "passed": 4,
+      "failed": 0,
+      "artifact": "test-results/release-core-integration.json"
+    }
+  ]
+}

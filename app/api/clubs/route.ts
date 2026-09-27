@@ -13,7 +13,7 @@ import bcrypt from "bcryptjs";
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession(request);
-    const management = !!session && ["ADMIN", "SUPERADMIN"].includes(session.role);
+    const management = !!session && ["ADMIN"].includes(session.role);
     const clubs = await prisma.club.findMany({
       where: management ? {} : { isActive: true },
       select: {
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
  * Body: { name: string, sport: string, email: string, password: string }
  */
 export async function POST(request: Request) {
-  return api(request, ["ADMIN", "SUPERADMIN"], async () => {
+  return api(request, ["ADMIN"], async () => {
     const input = await body(request);
     const name = string(input.name, "ชื่อชมรม");
     const sport = string(input.sport, "กีฬา");

@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const auth = await requireAuth(request as NextRequest, "STAFF", "ADMIN", "SUPERADMIN");
+    const auth = await requireAuth(request as NextRequest, "ADMIN");
     if ("error" in auth) return auth.error;
 
     const data = await request.json();
@@ -159,10 +159,10 @@ export async function POST(request: Request) {
           });
           successCount++;
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(`Error importing student ${studentId}:`, err);
         errorCount++;
-        errors.push(`Failed for ${studentId}: ${err.message}`);
+        errors.push(`Failed for ${studentId}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
       errorCount,
       errors,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Import Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

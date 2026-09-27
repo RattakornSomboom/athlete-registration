@@ -1,4 +1,8 @@
-﻿import { NextResponse } from "next/server";
+import { api, atomic, body, ensure } from "@/lib/phase4-server";
+import { athleteApplicationInput } from "@/lib/validation";
+import { retainAthleteDocuments, assertPrivateBucket } from "@/lib/document-service";
+import { protectedApplication } from "@/lib/athlete-document-policy";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -46,7 +50,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ applications: applications.map(({ rosterItem, ...application }) => ({ ...application, rosterClub: rosterItem?.roster.club ?? null })) });
+    return NextResponse.json({ applications: applications.map(({ rosterItem, ...application }) => ({ ...protectedApplication(application), rosterClub: rosterItem?.roster.club ?? null })) });
   } catch (error) {
     console.error("[GET /api/applications]", error);
     return NextResponse.json(
@@ -61,198 +65,40 @@ export async function GET(request: Request) {
  * ส่งใบสมัครเข้าร่วมการแข่งขัน (เฉพาะนักกีฬา)
  */
 export async function POST(request: Request) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || (session.role !== "ATHLETE" && session.role !== "SUPERADMIN")) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะนักกีฬา)" },
-        { status: 403 }
-      );
-    }
-
-    const body = await request.json();
-    const {
-      studentId,
-      competitionId,
-      sport,
-      category,
-      division,
-      note,
-      sportEntries,
-      competitionResults,
-      photoFileUrl,
-      idCardFileUrl,
-      studentCardFileUrl,
-      studentCertFileUrl,
-      upAcademyFileUrl,
-      fitnessTestFileUrl,
-      noClubFileUrl,
-      supervisorName,
-      supervisorPosition,
-      previousBachelorCount,
-      previousGraduateCount,
-    } = body;
-
-    if (!studentId || !competitionId || !sport || !category) {
-      return NextResponse.json(
-        { error: "กรุณากรอกข้อมูลให้ครบถ้วน" },
-        { status: 400 }
-      );
-    }
-    
-    // Mandatory document check (not empty strings)
-    if (!photoFileUrl?.trim() || !idCardFileUrl?.trim() || !studentCardFileUrl?.trim() || !studentCertFileUrl?.trim() || !upAcademyFileUrl?.trim() || !fitnessTestFileUrl?.trim()) {
-      return NextResponse.json(
-        { error: "กรุณาแนบเอกสารบังคับให้ครบถ้วน" },
-        { status: 400 }
-      );
-    }
-
-    // Prevent spoofing: ATHLETE can only submit for themselves
-    if (session.role === "ATHLETE" && session.studentId && studentId !== session.studentId) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์ส่งใบสมัครแทนผู้อื่น" },
-        { status: 403 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { studentId },
-      include: { profile: true },
-    });
-
-    if (!user || !user.profile) {
-      return NextResponse.json(
-        { error: "ไม่พบบัญชีผู้ใช้ หรือยังไม่ได้ลงทะเบียนประวัตินักกีฬา" },
-        { status: 404 }
-      );
-    }
-
-    // Validate Competition Status & Deadline
-    const competition = await prisma.competition.findUnique({ where: { id: competitionId } });
-    if (!competition) {
-      return NextResponse.json({ error: "ไม่พบการแข่งขัน" }, { status: 404 });
-    }
-    if (competition.status === "CLOSED") {
-      return NextResponse.json({ error: "รายการแข่งขันนี้ปิดรับสมัครแล้ว" }, { status: 400 });
-    }
-    if (competition.deadline && new Date(competition.deadline) < new Date()) {
-      return NextResponse.json({ error: "หมดเขตรับสมัครแล้ว" }, { status: 400 });
-    }
-
-    // Duplicate Check
-    const existingApp = await prisma.application.findUnique({
-      where: {
-        userId_competitionId_sport: {
-          userId: user.id,
-          competitionId,
-          sport
-        }
-      }
-    });
-    
-    if (existingApp) {
-      return NextResponse.json({ error: "ท่านได้ส่งใบสมัครสำหรับชนิดกีฬานี้ในรายการแข่งขันนี้ไปแล้ว" }, { status: 409 });
-    }
-
-    // ─── การตรวจสอบสิทธิ์ (Validation) ───
-    const CURRENT_YEAR_CE = 2026;
-    const birthYearCE = user.profile.birthDate.getFullYear();
-    const athleteAge = CURRENT_YEAR_CE - birthYearCE;
-    
-    // Check if Staff set a custom age limit for this sport
-    const quota = await prisma.sportQuota.findFirst({
-      where: { competitionId, sport }
-    });
-    const maxAge = quota?.ageLimit || 28;
-
-    if (athleteAge > maxAge) {
-      return NextResponse.json(
-        { error: `ไม่อนุญาตให้สมัคร เนื่องจากอายุเกิน ${maxAge} ปี (อายุ ${athleteAge} ปี)` },
-        { status: 400 }
-      );
-    }
-
-    const prevB = parseInt(previousBachelorCount || "0", 10);
-    const prevG = parseInt(previousGraduateCount || "0", 10);
-    const totalPreviousEntries = prevB + prevG;
-    const maxEntries = user.profile.studentLevel === "GRADUATE" ? 3 : 5;
-    
-    if (totalPreviousEntries >= maxEntries) {
-      return NextResponse.json(
-        { error: `ไม่อนุญาตให้สมัคร เนื่องจากเข้าร่วมการแข่งขันครบ ${maxEntries} ครั้งแล้ว` },
-        { status: 400 }
-      );
-    }
-
-    const application = await prisma.application.create({
-      data: {
-        userId: user.id,
-        competitionId,
-        sport,
-        category,
-        division: division || null,
-        note: note || null,
+  const response = await api(request, ["ATHLETE"], async session => {
+    const input = await body(request);
+    const parsed = athleteApplicationInput(input);
+    await assertPrivateBucket();
+    return atomic(async tx => {
+      const user = await tx.user.findUnique({ where: { id: session.id }, include: { profile: true } });
+      ensure(user?.isActive && user.profile && user.studentId, "กรุณากรอกประวัตินักกีฬาให้ครบ", 409);
+      ensure(input.studentId === undefined || input.studentId === user.studentId, "ส่งใบสมัครได้เฉพาะตนเอง", 403);
+      const competition = await tx.competition.findUnique({ where: { id: parsed.competitionId }, include: { quotas: true } });
+      ensure(competition, "ไม่พบการแข่งขัน", 404);
+      ensure(competition.status === "OPEN", "รายการแข่งขันนี้ไม่เปิดรับสมัคร");
+      ensure(!competition.deadline || competition.deadline >= new Date(), "หมดเขตรับสมัครแล้ว");
+      const quota = competition.quotas.find(q => q.sport === parsed.sport);
+      ensure(quota, "กีฬาไม่อยู่ในการแข่งขันนี้");
+      ensure(parsed.sportEntries.every(e => competition.quotas.some(q => q.sport === e.sport)), "กีฬาในใบสมัครไม่อยู่ในการแข่งขัน");
+      const age = new Date().getFullYear() - user.profile.birthDate.getFullYear();
+      ensure(age >= 0 && age <= (quota.ageLimit ?? 28), "อายุไม่ผ่านเกณฑ์การแข่งขัน");
+      ensure(parsed.previousBachelorCount + parsed.previousGraduateCount < (user.profile.studentLevel === "GRADUATE" ? 3 : 5), "จำนวนครั้งที่เข้าร่วมเกินเกณฑ์");
+      const existing = await tx.application.findUnique({ where: { userId_competitionId_sport: { userId: user.id, competitionId: competition.id, sport: parsed.sport } } });
+      ensure(!existing, "สมัครกีฬานี้ในการแข่งขันนี้แล้ว", 409);
+      await retainAthleteDocuments(tx, input, user.id);
+      const application = await tx.application.create({ data: {
+        userId: user.id, competitionId: competition.id, sport: parsed.sport, category: parsed.category,
+        division: parsed.division, note: parsed.note, supervisorName: parsed.supervisorName, supervisorPosition: parsed.supervisorPosition,
         status: "SUBMITTED",
-        photoFileUrl: photoFileUrl,
-        idCardFileUrl: idCardFileUrl,
-        studentCardFileUrl: studentCardFileUrl,
-        studentCertFileUrl: studentCertFileUrl,
-        upAcademyFileUrl: upAcademyFileUrl,
-        fitnessTestFileUrl: fitnessTestFileUrl,
-        noClubFileUrl: noClubFileUrl || null,
-        supervisorName: supervisorName || null,
-        supervisorPosition: supervisorPosition || null,
-        statusHistory: {
-          create: {
-            status: "SUBMITTED",
-            label: "ส่งใบสมัคร",
-            by: `${studentId}@up.ac.th`,
-          },
-        },
-        ...(sportEntries?.length
-          ? {
-              sportEntries: {
-                create: sportEntries.map(
-                  (entry: { sport: string; category: string; division?: string }) => ({
-                    sport: entry.sport,
-                    category: entry.category,
-                    division: entry.division || null,
-                  })
-                ),
-              },
-            }
-          : {}),
-        ...(competitionResults?.length
-          ? {
-              competitionResults: {
-                create: competitionResults.map(
-                  (result: { competitionName: string; year: string; result: string }) => ({
-                    competitionName: result.competitionName,
-                    year: result.year,
-                    result: result.result,
-                  })
-                ),
-              },
-            }
-          : {}),
-      },
-      include: {
-        statusHistory: true,
-        sportEntries: true,
-        competitionResults: true,
-      },
+        photoFileUrl: input.photoFileUrl as string, idCardFileUrl: input.idCardFileUrl as string,
+        studentCardFileUrl: input.studentCardFileUrl as string, studentCertFileUrl: input.studentCertFileUrl as string,
+        upAcademyFileUrl: input.upAcademyFileUrl as string, fitnessTestFileUrl: input.fitnessTestFileUrl as string,
+        noClubFileUrl: input.noClubFileUrl ? input.noClubFileUrl as string : null,
+        statusHistory: { create: { status: "SUBMITTED", label: "ส่งใบสมัคร", by: session.id } },
+        sportEntries: { create: parsed.sportEntries }, competitionResults: { create: parsed.competitionResults },
+      }, include: { statusHistory: true, sportEntries: true, competitionResults: true } });
+      return { application: protectedApplication(application), message: "ส่งใบสมัครสำเร็จ" };
     });
-
-    return NextResponse.json(
-      { message: "ส่งใบสมัครสำเร็จ", application },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("[POST /api/applications]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดภายในระบบ" },
-      { status: 500 }
-    );
-  }
+  });
+  return response.status === 200 ? new Response(response.body, { status: 201, headers: response.headers }) : response;
 }

@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-27T18:29:29.000Z",
+  "suite": "release-core",
+  "status": "PASS",
+  "target": "localhost:3138",
+  "checks": [
+    {
+      "name": "ADMIN configure competition with sport quotas and deadline",
+      "status": "PASS"
+    },
+    {
+      "name": "ATHLETE register, fill profile, attach documents, submit application",
+      "status": "PASS"
+    },
+    {
+      "name": "STAFF review, approve application, preview and publish results",
+      "status": "PASS"
+    },
+    {
+      "name": "ATHLETE view final selected result, status history, and signed document access",
+      "status": "PASS"
+    },
+    {
+      "name": "STAFF filtered CSV export includes only matching published applicants",
+      "status": "PASS"
+    },
+    {
+      "name": "Exact test fixture cleanup from database and storage",
+      "status": "PASS"
+    }
+  ]
+}

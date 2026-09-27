@@ -9,11 +9,31 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   rejected: { label: "ไม่ผ่าน", className: "bg-rose-100 text-rose-800" },
 };
 
+type ActivityDetail = {
+  id: string;
+  clubId: string;
+  title: string;
+  description?: string;
+  date: string;
+  location?: string;
+  status: string;
+  rejectionReason?: string;
+  createdAt: string;
+  clubName: string;
+  submittedBy: string;
+  submittedAt: string;
+  participants: number;
+  documents: string[];
+  images: string[];
+  note: string;
+  [key: string]: unknown;
+};
+
 export default function StaffActivityDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  const [activity, setActivity] = useState<any>(null);
+  const [activity, setActivity] = useState<ActivityDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -69,7 +89,7 @@ export default function StaffActivityDetailPage() {
         body: JSON.stringify({ status: "approved" })
       });
       if (res.ok) {
-        setActivity((prev: any) => ({ ...prev, status: "approved" }));
+        setActivity((prev) => (prev ? { ...prev, status: "approved" } : null));
       }
     } catch (err) {
       console.error(err);
@@ -88,7 +108,7 @@ export default function StaffActivityDetailPage() {
         body: JSON.stringify({ status: "rejected", rejectionReason: rejectReason })
       });
       if (res.ok) {
-        setActivity((prev: any) => ({ ...prev, status: "rejected", rejectionReason: rejectReason }));
+        setActivity((prev) => (prev ? { ...prev, status: "rejected", rejectionReason: rejectReason } : null));
         setShowRejectInput(false);
       }
     } catch (err) {

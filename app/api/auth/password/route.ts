@@ -22,7 +22,7 @@ export async function PUT(request: Request) {
 
     // เฉพาะ User (Athlete, Staff, Admin) ใช้ API นี้
     // Club จะมี API เปลี่ยนรหัสผ่านของตัวเองที่ PUT /api/clubs/[id]
-    if (session.role === "CLUB") {
+    if (session.role === "CLUB" && session.id === session.clubId) {
         return NextResponse.json(
             { error: "ชมรมกรุณาเปลี่ยนรหัสผ่านที่เมนูจัดการโปรไฟล์ชมรม" },
             { status: 400 }
@@ -32,16 +32,16 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { oldPassword, newPassword } = body;
 
-    if (!oldPassword || !newPassword) {
+    if (typeof oldPassword !== "string" || typeof newPassword !== "string" || !oldPassword || !newPassword) {
       return NextResponse.json(
         { error: "กรุณาระบุรหัสผ่านเดิมและรหัสผ่านใหม่" },
         { status: 400 }
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8 || Buffer.byteLength(newPassword, "utf8") > 72) {
         return NextResponse.json(
-            { error: "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร" },
+            { error: "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์" },
             { status: 400 }
         );
     }

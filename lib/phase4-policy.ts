@@ -16,7 +16,7 @@ export function officialProfileValid(profile: Record<string, string>) {
 }
 export function canReviewOfficial(role: string, status: string) {
   return role === "CLUB" ? status === "SUBMITTED"
-    : ["STAFF", "ADMIN", "SUPERADMIN"].includes(role) && status === "CLUB_APPROVED";
+    : ["STAFF", "ADMIN"].includes(role) && status === "CLUB_APPROVED";
 }
 export function withinQuota(main: number, reserve: number, maxMain: number, maxReserve: number) {
   return main >= 0 && reserve >= 0 && main <= maxMain && reserve <= maxReserve;

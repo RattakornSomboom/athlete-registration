@@ -37,10 +37,15 @@ export async function POST(request: Request) {
       }
 
       // Sign JWT
+      if (user.role === "CLUB") {
+        const club = user.clubId ? await prisma.club.findUnique({ where: { id: user.clubId } }) : null;
+        if (!club?.isActive) return NextResponse.json({ error: "บัญชียังไม่ได้ผูกกับชมรมที่ใช้งานได้" }, { status: 403 });
+      }
       const token = signToken({
         id: user.id,
         role: user.role,
         studentId: user.studentId ?? undefined,
+        clubId: user.role === "CLUB" ? user.clubId ?? undefined : undefined,
       });
 
       const safeUser = publicUser(user);
@@ -55,6 +60,7 @@ export async function POST(request: Request) {
       response.cookies.set("token", token, {
         path: "/",
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24, // 24h
         sameSite: "lax",
       });
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
       response.cookies.set("role", user.role.toLowerCase(), {
         path: "/",
         httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
         maxAge: 60 * 60 * 24,
       });
 
@@ -109,6 +116,7 @@ export async function POST(request: Request) {
         response.cookies.set("token", token, {
           path: "/",
           httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
           maxAge: 60 * 60 * 24,
           sameSite: "lax",
         });
@@ -116,6 +124,7 @@ export async function POST(request: Request) {
         response.cookies.set("role", "club", {
           path: "/",
           httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
           maxAge: 60 * 60 * 24,
         });
 

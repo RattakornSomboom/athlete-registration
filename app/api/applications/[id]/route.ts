@@ -1,8 +1,11 @@
+import { athleteApplicationInput } from "@/lib/validation";
+import { retainAthleteDocuments, assertPrivateBucket } from "@/lib/document-service";
+import { ATHLETE_DOCUMENT_FIELDS, documentId, protectedApplication } from "@/lib/athlete-document-policy";
 ﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { api, atomic, body, ensure, string, STAFF } from "@/lib/phase4-server";
+import { api, atomic, body, ensure, string, STAFF, openCompetition } from "@/lib/phase4-server";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -55,15 +58,15 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     // Check authorization
     let isAuthorized = false;
-    if (session.role === "STAFF" || session.role === "ADMIN" || session.role === "SUPERADMIN") {
+    if (session.role === "STAFF" || session.role === "ADMIN") {
       isAuthorized = true;
     } else if (session.role === "CLUB") {
-      // Club can access if the competition has a sport quota matching their sport
+      // Club can only access applications rostered by their club
       if (session.clubId) {
         const club = await prisma.club.findUnique({ where: { id: session.clubId } });
         if (club) {
           const hasMatchingSport = application.sport === club.sport;
-          isAuthorized = hasMatchingSport;
+          isAuthorized = hasMatchingSport && !!application.rosterItem && application.rosterItem.roster.club.id === club.id;
         }
       }
     } else if (session.role === "ATHLETE" && application.userId === session.id) {
@@ -78,7 +81,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const { rosterItem, ...safeApplication } = application;
-    return NextResponse.json({ application: { ...safeApplication, rosterClub: rosterItem?.roster.club ?? null } });
+    return NextResponse.json({ application: { ...protectedApplication(safeApplication), rosterClub: rosterItem?.roster.club ?? null } });
   } catch (error) {
     console.error("[GET /api/applications/[id]]", error);
     return NextResponse.json(
@@ -111,14 +114,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         ensure(status === "CLUB_REJECTED" && ["SUBMITTED", "CLUB_APPROVED", "CLUB_REJECTED"].includes(app.status), "การอนุมัติต้องส่งบัญชีพร้อมเอกสารลงนามผ่านหน้าบัญชีชมรม", 409);
         ensure(data.squadType === undefined, "จัดตัวจริง/สำรองผ่านบัญชีชมรมเท่านั้น", 400);
       } else {
-        ensure(["STAFF_APPROVED", "STAFF_REJECTED"].includes(status) && app.status === "CLUB_APPROVED", "ต้องผ่านชมรมก่อนกองกิจฯ", 409);
+        ensure(["STAFF_APPROVED", "STAFF_REJECTED"].includes(status) && ["SUBMITTED", "CLUB_APPROVED"].includes(app.status), "สถานะนี้ไม่สามารถพิจารณาได้", 409);
         ensure(!app.rosterItem || app.rosterItem.roster.status === "SUBMITTED", "บัญชีชมรมยังไม่ถูกส่ง", 409);
         ensure(data.squadType === undefined || data.squadType === app.squadType, "เปลี่ยนบัญชีที่ชมรมรับรองไม่ได้", 409);
       }
-      return { application: await tx.application.update({ where: { id }, data: {
+      return { application: protectedApplication(await tx.application.update({ where: { id }, data: {
         status: status as "CLUB_APPROVED" | "CLUB_REJECTED" | "STAFF_APPROVED" | "STAFF_REJECTED",
         statusHistory: { create: { status: status as "CLUB_APPROVED" | "CLUB_REJECTED" | "STAFF_APPROVED" | "STAFF_REJECTED", label, by: session.id } },
-      }, include: { statusHistory: { orderBy: { createdAt: "asc" } } } }), message: "อัปเดตสถานะสำเร็จ" };
+      }, include: { statusHistory: { orderBy: { createdAt: "asc" } } } })), message: "อัปเดตสถานะสำเร็จ" };
     });
   });
 }
@@ -147,114 +150,38 @@ export async function DELETE(request: Request, { params }: RouteParams) {
  * อัปเดตข้อมูลใบสมัคร (เฉพาะนักกีฬาเจ้าของใบสมัคร และสถานะต้องเป็น SUBMITTED)
  */
 export async function PUT(request: Request, { params }: RouteParams) {
-  try {
-    const session = await getSession(request as NextRequest);
-    if (!session || !session.id || session.role !== "ATHLETE") {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์เข้าถึง (สำหรับนักกีฬาเท่านั้น)" },
-        { status: 403 }
-      );
-    }
-
+  return api(request, ["ATHLETE"], async session => {
     const { id } = await params;
-
-    return await atomic(async tx => {
-    const application = await tx.application.findUnique({
-      where: { id },
-      include: { rosterItem: true },
+    const input = await body(request);
+    return atomic(async tx => {
+      const application = await tx.application.findUnique({ where: { id }, include: { rosterItem: true } });
+      ensure(application, "ไม่พบใบสมัคร", 404);
+      ensure(application.userId === session.id, "ไม่มีสิทธิ์", 403);
+      ensure(!application.rosterItem && application.status === "SUBMITTED", "ใบสมัครถูกพิจารณาหรืออยู่ในบัญชีแล้ว", 409);
+      ensure(input.competitionId === undefined || input.competitionId === application.competitionId, "เปลี่ยนการแข่งขันไม่ได้");
+      ensure(input.squadType === undefined || input.squadType === application.squadType, "ไม่อนุญาตให้จัดบัญชีเอง", 403);
+      const parsed = athleteApplicationInput({ ...application, status: undefined, userId: undefined, ...input });
+      const c = await openCompetition(tx, application.competitionId);
+      ensure(c.quotas.some(q => q.sport === parsed.sport) && parsed.sportEntries.every(e => c.quotas.some(q => q.sport === e.sport)), "กีฬาไม่อยู่ในการแข่งขัน");
+      const documents: Record<string, string | null> = {};
+      for (const field of ATHLETE_DOCUMENT_FIELDS) {
+        if (input[field] === undefined || input[field] === application[field]
+          || input[field] === "/api/applications/" + id + "/documents/" + field) continue;
+        if (field === "noClubFileUrl" && (input[field] === null || input[field] === "")) { documents[field] = null; continue; }
+        ensure(documentId(input[field]), "เอกสารไม่ถูกต้อง");
+        documents[field] = input[field] as string;
+      }
+      if (Object.keys(documents).length) {
+        await assertPrivateBucket();
+        await retainAthleteDocuments(tx, documents, session.id, true);
+      }
+      const updated = await tx.application.update({ where: { id }, data: {
+        sport: parsed.sport, category: parsed.category, division: parsed.division, note: parsed.note,
+        supervisorName: parsed.supervisorName, supervisorPosition: parsed.supervisorPosition, ...documents,
+        ...(input.sportEntries !== undefined ? { sportEntries: { deleteMany: {}, create: parsed.sportEntries } } : {}),
+        ...(input.competitionResults !== undefined ? { competitionResults: { deleteMany: {}, create: parsed.competitionResults } } : {}),
+      }, include: { sportEntries: true, competitionResults: true } });
+      return { application: protectedApplication(updated), message: "บันทึกแล้ว" };
     });
-
-    if (!application) {
-      return NextResponse.json(
-        { error: "ไม่พบข้อมูลใบสมัคร" },
-        { status: 404 }
-      );
-    }
-
-    if (application.userId !== session.id) {
-      return NextResponse.json(
-        { error: "ไม่มีสิทธิ์แก้ไขใบสมัครของผู้อื่น" },
-        { status: 403 }
-      );
-    }
-
-    if (application.rosterItem || application.status !== "SUBMITTED") {
-      return NextResponse.json(
-        { error: "ไม่สามารถแก้ไขใบสมัครได้ เนื่องจากใบสมัครถูกประมวลผลไปแล้ว" },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-
-    // ดึงเฉพาะฟิลด์ที่สามารถแก้ไขได้ (ยกเว้นสถานะและข้อมูลสำคัญที่เกี่ยวกับชมรม)
-    const {
-      sport, category, division, squadType, note,
-      photoFileUrl, idCardFileUrl, studentCardFileUrl, studentCertFileUrl,
-      upAcademyFileUrl, fitnessTestFileUrl, noClubFileUrl, supervisorName, supervisorPosition,
-      sportEntries, competitionResults,
-    } = body;
-
-    const updateData: Record<string, unknown> = {};
-    if (sport !== undefined) updateData.sport = sport;
-    if (category !== undefined) updateData.category = category;
-    if (division !== undefined) updateData.division = division;
-    if (squadType !== undefined && squadType !== application.squadType) {
-      return NextResponse.json({ error: "จัดตัวจริง/สำรองผ่านบัญชีชมรมเท่านั้น" }, { status: 403 });
-    }
-    if (note !== undefined) updateData.note = note;
-    if (photoFileUrl !== undefined) updateData.photoFileUrl = photoFileUrl;
-    if (idCardFileUrl !== undefined) updateData.idCardFileUrl = idCardFileUrl;
-    if (studentCardFileUrl !== undefined) updateData.studentCardFileUrl = studentCardFileUrl;
-    if (studentCertFileUrl !== undefined) updateData.studentCertFileUrl = studentCertFileUrl;
-    if (upAcademyFileUrl !== undefined) updateData.upAcademyFileUrl = upAcademyFileUrl;
-    if (fitnessTestFileUrl !== undefined) updateData.fitnessTestFileUrl = fitnessTestFileUrl;
-    if (noClubFileUrl !== undefined) updateData.noClubFileUrl = noClubFileUrl;
-    if (supervisorName !== undefined) updateData.supervisorName = supervisorName;
-    if (supervisorPosition !== undefined) updateData.supervisorPosition = supervisorPosition;
-
-    // ถ้ามีการส่ง sportEntries หรือ competitionResults ใหม่มา จะลบของเก่าแล้วสร้างใหม่ทั้งหมด
-    if (sportEntries !== undefined) {
-      updateData.sportEntries = {
-        deleteMany: {},
-        create: sportEntries.map((entry: { sport: string; category: string; division?: string }) => ({
-          sport: entry.sport,
-          category: entry.category,
-          division: entry.division || null,
-        })),
-      };
-    }
-
-    if (competitionResults !== undefined) {
-      updateData.competitionResults = {
-        deleteMany: {},
-        create: competitionResults.map((result: { competitionName: string; year: string; result: string }) => ({
-          competitionName: result.competitionName,
-          year: result.year,
-          result: result.result,
-        })),
-      };
-    }
-
-    const updatedApp = await tx.application.update({
-      where: { id },
-      data: updateData,
-      include: {
-        sportEntries: true,
-        competitionResults: true,
-      },
-    });
-
-    return NextResponse.json({
-      message: "อัปเดตใบสมัครสำเร็จ",
-      application: updatedApp,
-    });
-    });
-  } catch (error) {
-    console.error("[PUT /api/applications/[id]]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการแก้ไขใบสมัคร" },
-      { status: 500 }
-    );
-  }
+  });
 }

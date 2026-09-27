@@ -2,10 +2,11 @@ import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
+const PRODUCTION_ROLES = ["ATHLETE", "CLUB", "STAFF", "ADMIN", "TEAM_OFFICIAL"] as const;
 
 export type JWTPayload = {
   id: string;
-  role: "ATHLETE" | "CLUB" | "STAFF" | "ADMIN" | "SUPERADMIN" | "TEAM_OFFICIAL";
+  role: "ATHLETE" | "CLUB" | "STAFF" | "ADMIN" | "TEAM_OFFICIAL";
   studentId?: string;
   clubId?: string;
 };
@@ -22,7 +23,10 @@ export function signToken(payload: JWTPayload): string {
  * Throws if invalid or expired
  */
 export function verifyToken(token: string): JWTPayload {
-  return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  const payload = jwt.verify(token, JWT_SECRET);
+  if (typeof payload === "string" || typeof payload.id !== "string" || !payload.id || payload.id === "dev-user-id"
+    || !PRODUCTION_ROLES.includes(payload.role)) throw new Error("Invalid session");
+  return payload as JWTPayload;
 }
 
 /**
@@ -34,12 +38,14 @@ export async function getSession(request: NextRequest): Promise<JWTPayload | nul
     const token = request.cookies.get("token")?.value;
     if (!token) return null;
     const session = verifyToken(token);
-    // Development identities remain available only in development.
-    if (process.env.NODE_ENV === "development" && session.id === "dev-user-id") return session;
     const { prisma } = await import("@/lib/prisma");
     if (session.role === "CLUB") {
-      const club = await prisma.club.findUnique({ where: { id: session.id } });
-      return club?.isActive && session.clubId === club.id ? session : null;
+      if (!session.clubId) return null;
+      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
+      if (!club?.isActive) return null;
+      if (session.id === club.id) return session;
+      const user = await prisma.user.findUnique({ where: { id: session.id } });
+      return user?.isActive && user.role === "CLUB" && user.clubId === club.id ? session : null;
     }
     const user = await prisma.user.findUnique({ where: { id: session.id } });
     return user?.isActive && user.role === session.role

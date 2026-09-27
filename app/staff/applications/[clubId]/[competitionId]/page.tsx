@@ -103,13 +103,13 @@ export default function StaffCompetitionApplicantsPage() {
   const handleApprove = () => action.run(async () => {
     if (!squadModalId) return;
     await fetchJson(`/api/applications/${squadModalId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "STAFF_APPROVED", label: "อนุมัติโดยเจ้าหน้าที่", by: "staff" }) });
-    resource.update(data => ({ ...data, applications: data.applications.map(a => a.id === squadModalId ? { ...a, status: "STAFF_APPROVED" } : a) }));
+    resource.retry();
     setSquadModalId(null);
   });
   const handleReject = (id: string, reason: string) => action.run(async () => {
     if (!reason.trim()) throw new Error("กรุณาระบุเหตุผลที่ไม่ผ่าน");
     await fetchJson(`/api/applications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "STAFF_REJECTED", label: `ปฏิเสธ: ${reason}`, by: "staff" }) });
-    resource.update(data => ({ ...data, applications: data.applications.map(a => a.id === id ? { ...a, status: "STAFF_REJECTED" } : a) }));
+    resource.retry();
     setShowRejectInput(null);
   });
 
@@ -137,7 +137,7 @@ export default function StaffCompetitionApplicantsPage() {
 
   const mainCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "main").length;
   const reserveCount = applications.filter(a => (a.status === "STAFF_APPROVED" || a.status === "FINAL_SELECTED") && a.squadType === "reserve").length;
-  const pendingCount = applications.filter(a => a.status === "CLUB_APPROVED").length;
+  const pendingCount = applications.filter(a => ["SUBMITTED", "CLUB_APPROVED"].includes(a.status)).length;
   const detailAthlete = applications.find(a => a.id === detailId);
 
   return (

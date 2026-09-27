@@ -82,19 +82,19 @@ export default function StaffSettingsPage() {
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
           const jsonData = XLSX.utils.sheet_to_json(firstSheet);
           
-          const students = jsonData.map((row: any) => {
-            // แยกชื่อ-นามสกุล
-            const fullName = row["ชื่อ-นามสกุล"] || row["ชื่อ"] || row["First Name"] || row.firstName || "";
+          const students = jsonData.map((row: unknown) => {
+            if (typeof row !== "object" || row === null) return null;
+            const record = row as Record<string, unknown>;
+
+            const fullName = String(record["ชื่อ-นามสกุล"] || record["ชื่อ"] || record["First Name"] || record.firstName || "");
             const nameParts = fullName.trim().split(/\s+/);
             const firstName = nameParts[0] || "";
             const lastName = nameParts.slice(1).join(" ") || "";
 
-            // จัดการวันที่ (Excel Date หรือ Text)
             let birthDateStr = "";
-            const rawDate = row["วันเดือนปีเกิด"];
+            const rawDate = record["วันเดือนปีเกิด"];
             if (rawDate) {
               if (typeof rawDate === "number") {
-                // Excel serial date format
                 const date = new Date((rawDate - 25569) * 86400 * 1000);
                 birthDateStr = date.toISOString();
               } else {
@@ -102,51 +102,47 @@ export default function StaffSettingsPage() {
               }
             }
 
-            // จัดการระดับการศึกษา
-            const levelRaw = String(row["ระดับการศึกษา"] || "").toLowerCase();
+            const levelRaw = String(record["ระดับการศึกษา"] || "").toLowerCase();
             const studentLevel = (levelRaw.includes("โท") || levelRaw.includes("เอก") || levelRaw.includes("grad")) ? "GRADUATE" : "BACHELOR";
 
-            // ฟังก์ชันช่วยดึงคีย์ด้วยคำค้นหาบางส่วน
             const findValue = (keyword: string) => {
-              const key = Object.keys(row).find(k => k.includes(keyword));
-              return key ? row[key] : null;
+              const key = Object.keys(record).find(k => k.includes(keyword));
+              return key ? record[key] : null;
             };
 
             const pastCompetitions = [];
             for (let i = 1; i <= 3; i++) {
               const res = findValue(`ผลงานรายการที่ ${i}`);
-              if (res) pastCompetitions.push(res);
+              if (res) pastCompetitions.push(String(res));
             }
             const extraRes = findValue("ผลงานเพิ่มเติม");
-            if (extraRes) pastCompetitions.push(extraRes);
+            if (extraRes) pastCompetitions.push(String(extraRes));
 
             const hasParticipated = String(findValue("เคยเข้าร่วมการแข่งขันกีฬามหาวิทยาลัย")).includes("เคย");
             const isNationalTeam = String(findValue("เคยเป็นผู้แทนประเทศไทย")).includes("เคย");
 
             return {
-              studentId: row["รหัสนิสิต"] || row["Student ID"] || row.studentId,
+              studentId: String(record["รหัสนิสิต"] || record["Student ID"] || record.studentId || ""),
               firstName: firstName,
               lastName: lastName,
-              faculty: row["คณะ"] || row.faculty,
-              major: row["ภาควิชา"] || row["สาขา"] || row.major,
-              nationalId: row["เลขประจำตัวประชาชน"],
-              nationality: row["สัญชาติ"],
+              faculty: String(record["คณะ"] || record.faculty || ""),
+              major: String(record["ภาควิชา"] || record["สาขา"] || record.major || ""),
+              nationalId: String(record["เลขประจำตัวประชาชน"] || ""),
+              nationality: String(record["สัญชาติ"] || ""),
               birthDate: birthDateStr,
-              year: row["ชั้นปี"],
-              gpaSemester: row["GPA ภาคการศึกษา"] || row["GPA"],
-              gpaCumulative: row["GPAX สะสม"] || row["GPAX"],
+              year: String(record["ชั้นปี"] || ""),
+              gpaSemester: String(record["GPA ภาคการศึกษา"] || record["GPA"] || ""),
+              gpaCumulative: String(record["GPAX สะสม"] || record["GPAX"] || ""),
               studentLevel: studentLevel,
               // History fields
               hasParticipated: hasParticipated,
-              firstSport: findValue("ชนิดกีฬาที่สมัครเข้าร่วมครั้งแรก"),
-              participateCountBachelor: findValue("จำนวนครั้งที่เข้าร่วมระดับปริญญาตรี"),
-              participateCountMaster: findValue("จำนวนครั้งที่เข้าร่วมระดับปริญญาโท"),
-              participateCountPhd: findValue("จำนวนครั้งที่เข้าร่วมระดับปริญญาเอก"),
-              lastParticipateYear: findValue("ปี พ.ศ. ที่เข้าร่วมล่าสุด"),
+              participateCountMaster: findValue("จำนวนครั้งที่เคยเข้าร่วมกีฬามหาวิทยาลัยแห่งประเทศไทย (ป.โท)"),
+              participateCountPhd: findValue("จำนวนครั้งที่เคยเข้าร่วมกีฬามหาวิทยาลัยแห่งประเทศไทย (ป.เอก)"),
+              lastParticipateYear: findValue("ปี พ.ศ. ล่าสุดที่เข้าร่วมการแข่งขัน"),
               isNationalTeam: isNationalTeam,
               pastCompetitions: pastCompetitions.length > 0 ? pastCompetitions : null
             };
-          }).filter((s: any) => !!s.studentId);
+          }).filter((s) => s && s.studentId);
 
           if (students.length === 0) {
             setImportStatus({ loading: false, error: "ไม่พบข้อมูลรหัสนิสิตในไฟล์", success: "" });
@@ -165,12 +161,12 @@ export default function StaffSettingsPage() {
           } else {
             setImportStatus({ loading: false, error: result.error || "เกิดข้อผิดพลาดในการนำเข้า", success: "" });
           }
-        } catch (err: any) {
+        } catch {
           setImportStatus({ loading: false, error: "รูปแบบไฟล์ไม่ถูกต้อง", success: "" });
         }
       };
       reader.readAsArrayBuffer(importFile);
-    } catch (err: any) {
+    } catch {
       setImportStatus({ loading: false, error: "โหลดไลบรารีไม่สำเร็จ กรุณาลองใหม่", success: "" });
     }
   };
@@ -297,15 +293,17 @@ export default function StaffSettingsPage() {
               + เพิ่มชนิดกีฬา
             </button>
             <button
+              disabled title="ตั้งค่าผ่านหน้าการแข่งขันโดย ADMIN"
               onClick={handleSave}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              {saved ? "บันทึกข้อมูลแล้ว" : "บันทึกการตั้งค่า"}
+              {saved ? "บันทึกข้อมูลแล้ว" : "พักการตั้งค่ากีฬาเดิม"}
             </button>
             <LogoutButton />
           </div>
         </div>
 
+        <p className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">การตั้งค่ากีฬาเดิมพักใช้งานสำหรับ Release นี้ ผู้ดูแลระบบตั้งค่ากีฬา โควตา และวันรับสมัครผ่านหน้าการแข่งขัน</p>
         {/* Import Students Section */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -314,7 +312,7 @@ export default function StaffSettingsPage() {
           <div className="flex flex-col gap-3">
             <p className="text-xs text-slate-500">
               อัปโหลดไฟล์ข้อมูลนักศึกษา (.xlsx, .xls, .csv) เพื่อสร้างบัญชีและโปรไฟล์อัตโนมัติ 
-              ระบบจะใช้ "รหัสนิสิต" เป็นรหัสผ่านเริ่มต้น หัวคอลัมน์ที่รองรับ: <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">รหัสนิสิต</span>, <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">ชื่อ-นามสกุล</span>, <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">คณะ</span>, ฯลฯ
+              ระบบจะใช้ &quot;รหัสนิสิต&quot; เป็นรหัสผ่านเริ่มต้น หัวคอลัมน์ที่รองรับ: <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">รหัสนิสิต</span>, <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">ชื่อ-นามสกุล</span>, <span className="font-mono text-blue-600 bg-blue-50 px-1 rounded">คณะ</span>, ฯลฯ
             </p>
             <div className="flex items-center gap-3">
               <input

@@ -6,12 +6,12 @@ import { getSession } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const session = await getSession(request as NextRequest);
-    if (!session || session.role !== "CLUB") {
+    if (!session || session.role !== "CLUB" || !session.clubId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const club = await prisma.club.findUnique({
-      where: { id: session.id },
+      where: { id: session.clubId },
       select: { id: true }
     });
 
@@ -34,12 +34,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getSession(request as NextRequest);
-    if (!session || session.role !== "CLUB") {
+    if (!session || session.role !== "CLUB" || !session.clubId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const club = await prisma.club.findUnique({
-      where: { id: session.id },
+      where: { id: session.clubId },
       select: { id: true }
     });
 

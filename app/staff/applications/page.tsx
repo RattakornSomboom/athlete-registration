@@ -1,5 +1,6 @@
 "use client";
 
+import StaffReview from "@/components/shared/StaffReview";
 import { fetchJson } from "@/lib/http-client";
 import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 
@@ -42,6 +43,7 @@ export default function StaffApplicationsPage() {
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
 
+        <StaffReview />
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>

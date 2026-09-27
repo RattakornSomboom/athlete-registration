@@ -11,7 +11,7 @@ type RouteParams = { params: Promise<{ id: string }> };
  */
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const auth = await requireAuth(request as NextRequest, "CLUB", "STAFF", "ADMIN", "SUPERADMIN");
+    const auth = await requireAuth(request as NextRequest, "CLUB", "STAFF", "ADMIN");
     if ("error" in auth) return auth.error;
     const { session } = auth;
 

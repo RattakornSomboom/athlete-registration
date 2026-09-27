@@ -33,7 +33,7 @@ export default function ClubActivitiesPage() {
       .then(res => res.json())
       .then(data => {
         if (data.activities) {
-          const mapped = data.activities.map((a: any) => ({
+          const mapped = data.activities.map((a: { date: string; [key: string]: unknown }) => ({
             ...a,
             date: new Date(a.date).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }),
             participants: 0,

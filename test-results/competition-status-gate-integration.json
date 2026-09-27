@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-27T18:27:56.384Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "OPEN competition with future deadline accepts application (201)",
+      "status": "PASS"
+    },
+    {
+      "name": "OPEN competition with expired deadline rejects application (400)",
+      "status": "PASS"
+    },
+    {
+      "name": "CLOSED competition with future deadline rejects application (400)",
+      "status": "PASS"
+    },
+    {
+      "name": "COMPLETED competition rejects application (400)",
+      "status": "PASS"
+    },
+    {
+      "name": "OPEN competition with null deadline accepts application (201)",
+      "status": "PASS"
+    },
+    {
+      "name": "COMPLETED competition with null deadline rejects application (400)",
+      "status": "PASS"
+    },
+    {
+      "name": "Exact fixture cleanup",
+      "status": "PASS"
+    }
+  ]
+}

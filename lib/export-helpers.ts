@@ -39,7 +39,11 @@ export function exportAthletesToCSV(filename: string, data: AthleteExportRow[]) 
     row.status,
     row.gpaCumulative,
     row.phone,
-  ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+  ].map((v) => {
+    let cell = String(v ?? "").replace(/"/g, '""');
+    if (/^\s*[=+@-]/.test(cell)) cell = "'" + cell;
+    return `"${cell}"`;
+  }).join(","));
 
   const bom = "\uFEFF"; // BOM for Excel UTF-8
   const csvContent = bom + [headers.join(","), ...rows].join("\n");

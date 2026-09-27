@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-27T18:29:29.000Z",
+  "suite": "account-smoke",
+  "status": "PASS",
+  "target": "localhost:3138",
+  "checks": [
+    {
+      "name": "removed dev routes cannot render or issue credentials",
+      "status": "PASS"
+    },
+    {
+      "name": "release mutations and private files require authentication",
+      "status": "PASS"
+    },
+    {
+      "name": "public recovery pages render and protected account pages redirect",
+      "status": "PASS"
+    },
+    {
+      "name": "forgot password rejects malformed bodies and invalid emails before account lookup",
+      "status": "PASS"
+    },
+    {
+      "name": "reset password rejects missing, malformed, and forged tokens without database writes",
+      "status": "PASS"
+    },
+    {
+      "name": "every account management API rejects unauthenticated requests",
+      "status": "PASS"
+    }
+  ]
+}

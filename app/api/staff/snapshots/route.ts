@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request) {
   return api(request, STAFF, async s => ({ snapshots: (await prisma.analyticsSnapshot.findMany({
     orderBy: { createdAt: "desc" }, select: { id: true, title: true, notes: true, createdAt: true, authorId: true, schemaVersion: true },
-  })).map(row => ({ ...row, canDelete: row.authorId === s.id || s.role === "ADMIN" || s.role === "SUPERADMIN" })) }));
+  })).map(row => ({ ...row, canDelete: row.authorId === s.id || s.role === "ADMIN" })) }));
 }
 export async function POST(request: Request) {
   return api(request, STAFF, async s => {

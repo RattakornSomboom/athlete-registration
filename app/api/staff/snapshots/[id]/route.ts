@@ -14,7 +14,7 @@ export async function DELETE(request: Request, context: Context) {
     const { id } = await context.params;
     const snapshot = await prisma.analyticsSnapshot.findUnique({ where: { id } });
     ensure(snapshot, "ไม่พบรายงาน", 404);
-    ensure(snapshot.authorId === s.id || s.role === "ADMIN" || s.role === "SUPERADMIN", "ลบได้เฉพาะรายงานของตัวเอง", 403);
+    ensure(snapshot.authorId === s.id || s.role === "ADMIN", "ลบได้เฉพาะรายงานของตัวเอง", 403);
     await prisma.analyticsSnapshot.delete({ where: { id } });
     return { success: true };
   });

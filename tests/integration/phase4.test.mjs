@@ -52,7 +52,7 @@ async function makeCompetition(name,sports,maxStarters=2,maxSubstitutes=1) {
  const c=await prisma.competition.create({data:{name:tag+name,round:"Test",year:2026,status:"OPEN",deadline:new Date(Date.now()+86400000),quotas:{create:sports.map(sport=>({sport,maxStarters,maxSubstitutes}))}}});
  competitionIds.push(c.id);state();return c;
 }
-const athleteDocs=Object.fromEntries(["photoFileUrl","idCardFileUrl","studentCardFileUrl","studentCertFileUrl","upAcademyFileUrl","fitnessTestFileUrl"].map(k=>[k,"https://example.test/fixture.pdf"]));
+let athleteDocs=Object.fromEntries(["photoFileUrl","idCardFileUrl","studentCardFileUrl","studentCertFileUrl","upAcademyFileUrl","fitnessTestFileUrl"].map(k=>[k,"https://example.test/fixture.pdf"]));
 async function seedApplication(user,competition,sport,status="SUBMITTED"){
  return prisma.application.create({data:{userId:user.id,competitionId:competition.id,sport,category:"ทั่วไป",status,...athleteDocs}});
 }
@@ -70,6 +70,8 @@ test("Phase 4 real HTTP + PostgreSQL + private Storage", {timeout:1800000}, asyn
   let app1,app2,app3,wrongApp,doc,roster,official,officialCookie,officialId,officialDoc,officialCard,snapId;
   await step("Existing athlete/club login and athlete submission regression",async()=>{
    await call("/api/auth/me",cc);await call("/api/auth/me",c1);
+   const athleteDocumentId = await upload(c1);
+   athleteDocs = Object.fromEntries(Object.keys(athleteDocs).map(field => [field, "/api/documents/" + athleteDocumentId + "/download"]));
    const result=await call("/api/applications",c1,{studentId:a1.studentId,competitionId:comp.id,sport,category:"ทั่วไป",...athleteDocs},"POST",201);app1=result.json.application;
    app2=await seedApplication(a2,comp,sport);app3=await seedApplication(a3,comp,sport);
    wrongApp=await seedApplication(a1,comp,otherSport,"STAFF_REJECTED");
@@ -106,7 +108,7 @@ test("Phase 4 real HTTP + PostgreSQL + private Storage", {timeout:1800000}, asyn
    await call("/api/documents/"+doc,cs,undefined,"GET",403);
    await call("/api/documents/"+doc,cc2,{},"DELETE",403);
    const temp=await upload(cc);await call("/api/documents/"+temp,cc,{},"DELETE");await call("/api/documents/"+temp,cc,undefined,"GET",404);
-   await call("/api/upload",cc,{path:"anything",bucket},"DELETE",403);
+   await call("/api/upload",cc,{path:"anything",bucket},"DELETE",400);
    const stored=await prisma.privateDocument.findUnique({where:{id:doc}});
    const anon=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);assert.ok((await anon.storage.from(bucket).download(stored.path)).error,"Anonymous storage download must be denied");
    const publicResponse=await fetch(process.env.SUPABASE_URL+"/storage/v1/object/public/"+bucket+"/"+stored.path);assert.notEqual(publicResponse.status,200);
@@ -118,7 +120,7 @@ test("Phase 4 real HTTP + PostgreSQL + private Storage", {timeout:1800000}, asyn
    await call("/api/club/rosters",cc,{...input,advisorApproved:true,documentId:doc,items:[{applicationId:wrongApp.id,squadType:"main"}]},"POST",403);
    await call("/api/club/rosters",cc,{...input,advisorApproved:true,documentId:doc,items:[app1,app2,app3].map(a=>({applicationId:a.id,squadType:"main"}))},"POST",409);
    await call("/api/applications/"+app1.id,cc,{status:"CLUB_APPROVED",label:"skip signed roster"},"PATCH",409);
-   await call("/api/applications/"+app1.id,cs,{status:"STAFF_APPROVED",label:"skip"},"PATCH",409);
+   await call("/api/applications/"+app1.id,cs,{status:"FINAL_SELECTED",label:"skip publication"},"PATCH",409);
   });
   await step("Roster draft persists main/reserve, checks version and submits once with approval histories",async()=>{
    const items=[{applicationId:app1.id,squadType:"main"},{applicationId:app2.id,squadType:"reserve"}];
@@ -135,7 +137,7 @@ test("Phase 4 real HTTP + PostgreSQL + private Storage", {timeout:1800000}, asyn
    const items=[{applicationId:app1.id,squadType:"main"}];
    await call("/api/club/rosters",cc,{competitionId:comp.id,version:roster.version,action:"save",items,documentId:doc},"POST",409);
    for(const a of [app1,app3])await call("/api/applications/"+a.id,cc,{status:"CLUB_REJECTED",label:"bypass"},"PATCH",409);
-   await call("/api/applications/"+app1.id,c1,{note:"bypass"},"PUT",400);
+   await call("/api/applications/"+app1.id,c1,{note:"bypass"},"PUT",409);
    await call("/api/applications/"+app1.id,ca,{},"DELETE",409);
    await call("/api/documents/"+doc,cc,{},"DELETE",403);
    await call("/api/documents/"+doc,cs);
@@ -149,7 +151,7 @@ test("Phase 4 real HTTP + PostgreSQL + private Storage", {timeout:1800000}, asyn
    const history=await prisma.statusHistory.findMany({where:{applicationId:app1.id}});assert.ok(history.some(h=>h.status==="STAFF_APPROVED"));
    const result2=await call("/api/club/rosters",cc,{competitionId:comp.id,version:roster.version,action:"submit",items:[{applicationId:app1.id,squadType:"main"},{applicationId:app2.id,squadType:"reserve"}],documentId:doc,advisorApproved:true});roster=result2.json.roster;
    await call("/api/applications/"+app1.id,cs,{status:"STAFF_APPROVED",label:"approved again"},"PATCH");
-   await call("/api/staff/applications/announce",cs,{applicationIds:[app1.id]});
+   await call("/api/staff/applications/announce",cs,{competitionId:comp.id,applicationIds:[app1.id]});
    await call("/api/staff/rosters",cs,{id:roster.id,version:roster.version,reason:"must not return"},"POST",409);
   });
   await step("Concurrent rosters from different clubs cannot exceed shared sport quota",async()=>{

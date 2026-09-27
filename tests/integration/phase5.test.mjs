@@ -89,7 +89,8 @@ test("Phase 5 validation, ownership and UI data contracts",{timeout:900000},asyn
     await step("Club and competition filters intersect; roster club is real and nullable",async()=>{
       const comp=await competition(1,[sport,sport2]),comp2=await competition(2,[sport]);
       const apps=[];
-      for(const [u,competitionId,sp] of [[athlete,comp.id,sport],[other,comp.id,sport2],[athlete,comp2.id,sport],[other,comp.id,sport]]) apps.push(await db.application.create({data:{userId:u.id,competitionId,sport:sp,category:"general"}}));
+      const docFixture={photoFileUrl:"https://fixture/photo.pdf",idCardFileUrl:"https://fixture/id.pdf",studentCardFileUrl:"https://fixture/card.pdf",studentCertFileUrl:"https://fixture/cert.pdf",upAcademyFileUrl:"https://fixture/academy.pdf",fitnessTestFileUrl:"https://fixture/fitness.pdf"};
+      for(const [u,competitionId,sp] of [[athlete,comp.id,sport],[other,comp.id,sport2],[athlete,comp2.id,sport],[other,comp.id,sport]]) apps.push(await db.application.create({data:{userId:u.id,competitionId,sport:sp,category:"general",...docFixture}}));
       await db.clubRoster.create({data:{clubId:c.id,competitionId:comp.id,items:{create:{applicationId:apps[0].id,squadType:"main"}}}});
       await db.clubRoster.create({data:{clubId:same.id,competitionId:comp.id,items:{create:{applicationId:apps[3].id,squadType:"main"}}}});
       const query=new URLSearchParams({competitionId:comp.id,clubId:c.id});

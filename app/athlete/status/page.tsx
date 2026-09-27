@@ -7,6 +7,7 @@ import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import { clubReviewProgress } from "@/lib/phase4-client";
 
 type StatusHistory = {
   id: string;
@@ -33,7 +34,7 @@ type Application = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  SUBMITTED:      { label: "รอชมรมพิจารณา",           bg: "bg-yellow-50", text: "text-yellow-700" },
+  SUBMITTED:      { label: "รอการพิจารณา",           bg: "bg-yellow-50", text: "text-yellow-700" },
   CLUB_APPROVED:  { label: "ชมรมอนุมัติ — รอเจ้าหน้าที่", bg: "bg-blue-50", text: "text-blue-700" },
   CLUB_REJECTED:  { label: "ชมรมไม่อนุมัติ",           bg: "bg-red-50", text: "text-red-700" },
   STAFF_APPROVED: { label: "เจ้าหน้าที่อนุมัติ",       bg: "bg-green-50", text: "text-green-700" },
@@ -93,7 +94,7 @@ export default function AthleteStatusPage() {
             {applications.map((app) => {
               const cfg = STATUS_CONFIG[app.status] ?? { label: app.status, bg: "bg-slate-100", text: "text-slate-700" };
               
-              const isClubApproved = app.status !== "SUBMITTED" && app.status !== "CLUB_REJECTED";
+              const clubProgress = clubReviewProgress(app);
               const isStaffApproved = app.status === "STAFF_APPROVED" || app.status === "FINAL_SELECTED";
               const isFinal = app.status === "FINAL_SELECTED";
               const isRejected = app.status.includes("REJECTED");
@@ -114,11 +115,11 @@ export default function AthleteStatusPage() {
 
                       <div className="text-center">
                         <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
-                          isClubApproved ? "bg-emerald-700 text-white" : isRejected && app.status === "CLUB_REJECTED" ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
+                          clubProgress.approved ? "bg-emerald-700 text-white" : clubProgress.rejected ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
                         }`}>2</div>
                         <p className="text-xs font-semibold text-slate-900">พิจารณาคัดเลือก (ชมรม)</p>
-                        <p className={`text-[11px] mt-0.5 ${isClubApproved ? "text-emerald-700" : isRejected && app.status === "CLUB_REJECTED" ? "text-rose-700" : "text-slate-400"}`}>
-                          {isClubApproved ? "ผ่านเกณฑ์ชมรม" : isRejected && app.status === "CLUB_REJECTED" ? "ไม่ผ่าน" : "รอพิจารณา"}
+                        <p className={`text-[11px] mt-0.5 ${clubProgress.approved ? "text-emerald-700" : clubProgress.rejected ? "text-rose-700" : "text-slate-400"}`}>
+                          {clubProgress.label}
                         </p>
                       </div>
 

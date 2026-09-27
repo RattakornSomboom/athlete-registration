@@ -1,3 +1,6 @@
+import { applicationWhere } from "@/lib/application-query";
+import { ApiError } from "@/lib/phase4-server";
+import { ValidationError } from "@/lib/validation";
 ﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +14,7 @@ import { getSession } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const session = await getSession(request as NextRequest);
-    if (!session || !["CLUB", "STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
+    if (!session || !["CLUB", "STAFF", "ADMIN"].includes(session.role)) {
       return NextResponse.json(
         { error: "ไม่มีสิทธิ์เข้าถึง" },
         { status: 403 }
@@ -19,30 +22,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const clubIdParam = searchParams.get("clubId");
-    const sport = searchParams.get("sport");
-    const competitionId = searchParams.get("competitionId");
-
-    const where: Record<string, unknown> = {};
-
-    if (status) where.status = status.toUpperCase();
-    if (sport) where.sport = sport;
-    if (competitionId) {
-      where.competitionId = competitionId;
-    } else if (session.role === "CLUB" && session.clubId) {
-      // CLUB can only export their own sport's applications
-      const club = await prisma.club.findUnique({ where: { id: session.clubId } });
-      if (club) {
-        where.sport = club.sport;
-      }
-    } else if (clubIdParam && ["STAFF", "ADMIN", "SUPERADMIN"].includes(session.role)) {
-      // Staff/Admin can filter by clubId
-      const club = await prisma.club.findUnique({ where: { id: clubIdParam } });
-      if (club) {
-        where.sport = club.sport;
-      }
-    }
+    const where = await applicationWhere(session, searchParams);
 
     const applications = await prisma.application.findMany({
       where,
@@ -100,11 +80,16 @@ export async function GET(request: Request) {
         app.status,
         app.createdAt.toISOString()
       ];
-      // ป้องกันเครื่องหมายจุลภาคในข้อมูล ทำให้ CSV เพี้ยน
-      return row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      // ป้องกัน CSV formula injection และ double-quote escaping
+      return row.map(v => {
+        let cell = String(v ?? "").replace(/"/g, '""');
+        if (/^\s*[=+@-]/.test(cell)) cell = "'" + cell;
+        return `"${cell}"`;
+      }).join(",");
     });
 
-    const csvContent = [csvHeader, ...csvRows].join("\n");
+    const bom = "\uFEFF";
+    const csvContent = bom + [csvHeader, ...csvRows].join("\n");
 
     return new NextResponse(csvContent, {
       status: 200,
@@ -115,6 +100,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) return NextResponse.json({ error: error.message }, { status: error instanceof ApiError ? error.status : 400 });
     console.error("[GET /api/export/applications]", error);
     return NextResponse.json(
       { error: "เกิดข้อผิดพลาดในการดึงข้อมูลสำหรับส่งออก" },

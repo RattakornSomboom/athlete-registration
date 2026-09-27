@@ -2,6 +2,13 @@
 
 Next.js 16 / React 19 / Prisma 7 / PostgreSQL สำหรับนักกีฬา ชมรม กองกิจการนิสิต และเจ้าหน้าที่ทีม
 
+## การทำงานใน CI (Continuous Integration)
+
+ระบบได้ตั้งค่า GitHub Actions CI ไว้ที่ `.github/workflows/ci.yml` สำหรับตรวจสอบเมื่อมี Push หรือ Pull Request
+ในการรัน `npm run db:generate` และ `npm run build` บน CI นั้น ระบบจำเป็นต้องอ้างอิง Environment variables พื้นฐาน
+แต่เนื่องจาก CI เป็นเพียงการตรวจสอบโค้ด ไม่ได้เชื่อมระบบภายนอกจริง จึงใช้ **ค่า Dummy** แทนใน Workflow (เช่น `postgresql://dummy:dummy@localhost:5432/dummy`, `dummy-secret` ฯลฯ)
+เพื่อให้กระบวนการทำงานและตรวจสอบความถูกต้องสมบูรณ์ได้โดยไม่จำเป็นต้องแนบ Credentials จริง
+
 ## เริ่มพัฒนา
 
 ใช้ Node.js 22.18+ (ทดสอบด้วย 25.9) และตั้งค่าไฟล์ `.env` ที่ไม่ commit:
@@ -67,3 +74,11 @@ npm run test:integration
 ## Build และขอบเขตงาน
 
 `npm run build` แล้ว `npm start` สำหรับตรวจ production mode ในเครื่อง งานนี้ไม่ deploy และยังคงเครื่องมือ dev/superadmin ตามข้อตกลง Build ไม่ได้นำ route เหล่านี้ออกอัตโนมัติ ต้องจัดการก่อนเผยแพร่จริง ไม่รวมระบบงบประมาณ เกณฑ์กีฬาใหม่ หรือการส่งอีเมล ดูผลตรวจและข้อจำกัดใน `TEST-REPORT.md`
+
+## Regression Phase 4 + Phase 5
+
+สำหรับยืนยัน production mode ในเครื่อง ใช้ `npm run build` แล้ว `npm start -- --port 3101` กำหนด `TEST_BASE_URL=http://localhost:3101` พร้อม `TEST_DATABASE_URL` ที่ตรงกับ server และ `TEST_ALLOW_WRITE=yes` จากนั้นรัน `npm run test:integration` (Phase 4: 15 สถานการณ์, Phase 5: 8 สถานการณ์, Competition Status Gate: 6 สถานการณ์; runner นับ parent อีก 3 รวม 32 tests)
+
+Browser smoke ใช้ `node scripts/regression-ui-fixtures.mjs create` หลังตั้งตัวแปรฐานทดสอบข้างต้น; บัญชีชั่วคราวใช้รหัสผ่าน `Fixture!Ui2026` และอีเมล/ID ใน `test-results/regression-ui-fixtures.json` ตรวจ login, สถานะ/รายละเอียดทั้งมีและไม่มีบัญชีชมรม, ตัวกรอง/empty/error/retry ของเจ้าหน้าที่, Analytics/Snapshot และฟอร์มเปลี่ยนประธานเมื่ออีเมลชนกัน เมื่อจบรัน `node scripts/regression-ui-fixtures.mjs cleanup` ซึ่งล้างเฉพาะ ID ใน manifest ห้ามใช้กับ production หรือปล่อยบัญชีทดสอบค้างไว้
+
+หลักฐานรอบล่าสุด: `test-results/regression-validation.json` ระบุ revision/source hashes/build ID, `regression-integration.txt` เก็บผล HTTP และ `regression-ui.json` ระบุ browser checks/cleanup; อ่านข้อจำกัดใน TEST-REPORT.md

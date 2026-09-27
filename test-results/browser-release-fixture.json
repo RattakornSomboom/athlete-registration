@@ -1,0 +1,23 @@
+{
+  "tag": "browser-1790455070687",
+  "users": [
+    {
+      "id": "cmuiupykf0000w0c76ob29uyr",
+      "email": "browser-1790455070687-admin@example.test",
+      "role": "ADMIN",
+      "studentId": null
+    },
+    {
+      "id": "cmuiupyyh0001w0c7pxzs8ysp",
+      "email": "browser-1790455070687-staff@example.test",
+      "role": "STAFF",
+      "studentId": null
+    },
+    {
+      "id": "cmuiupz5f0002w0c79nipamg0",
+      "email": "browser-1790455070687-athlete@example.test",
+      "role": "ATHLETE",
+      "studentId": "95071709"
+    }
+  ]
+}

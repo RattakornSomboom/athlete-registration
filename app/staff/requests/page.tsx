@@ -21,35 +21,51 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   rejected: { label: "ไม่อนุมัติ", className: "bg-red-100 text-red-800" },
 };
 
+const loadRequests = async () => {
+  const res = await fetch("/api/staff/requests");
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.json();
+};
+
 export default function StaffRequestsPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<SpecialRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
-  const fetchRequests = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/staff/requests");
-      const data = await res.json();
-      if (data.requests) {
-        setRequests(data.requests.map((r: any) => ({
-          ...r,
-          clubName: r.club.name,
-          advisorName: r.club.presidentName || "ไม่ระบุ",
-          date: new Date(r.createdAt).toLocaleDateString("th-TH"),
-          document: "เอกสารแนบ"
-        })));
-      }
+      return await loadRequests();
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
+      return null;
     }
   }, []);
 
-  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+  useEffect(() => {
+    let mounted = true;
+    fetchData().then(data => {
+      if (mounted) {
+        if (data?.requests) {
+          setRequests(data.requests.map((r: { club: { name: string; presidentName?: string | null }; createdAt: string; [key: string]: unknown }) => ({
+            ...r,
+            clubName: r.club.name,
+            advisorName: r.club.presidentName || "ไม่ระบุ",
+            date: new Date(r.createdAt).toLocaleDateString("th-TH"),
+            document: "เอกสารแนบ"
+          })));
+        } else {
+          setRequests([]);
+        }
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, [fetchData]);
+
+
 
   const handleAction = async (id: string, status: "approved" | "rejected") => {
     if (status === "rejected" && !rejectReason[id]) return;

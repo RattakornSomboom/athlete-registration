@@ -33,7 +33,8 @@ type Application = {
       studentLevel: string;
     } | null;
   };
-  competition: { name: string; sport: string; round: string; year: number; club: { name: string } };
+  competition: { name: string; round: string; year: number };
+  rosterClub: { id: string; name: string; sport: string } | null;
   sportEntries: SportEntry[];
   competitionResults: CompetitionResult[];
   statusHistory: StatusHistory[];
@@ -57,7 +58,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  SUBMITTED:      "รอชมรมพิจารณา",
+  SUBMITTED:      "รอการพิจารณา",
   CLUB_APPROVED:  "ชมรมอนุมัติ",
   CLUB_REJECTED:  "ชมรมไม่อนุมัติ",
   STAFF_APPROVED: "เจ้าหน้าที่อนุมัติ",
@@ -145,7 +146,7 @@ export default function AthleteDetailPage() {
                   <div><span className="text-gray-500">ระดับ/ชั้นปี</span><p className="font-medium">{profile?.studentLevel === "GRADUATE" ? "บัณฑิตศึกษา" : "ปริญญาตรี"} ปี {profile?.year ?? "-"}</p></div>
                   <div><span className="text-gray-500">เบอร์โทรศัพท์</span><p className="font-medium">{profile?.phone ?? "-"}</p></div>
                   <div><span className="text-gray-500">อีเมล</span><p className="font-medium">{application.user.email}</p></div>
-                  <div><span className="text-gray-500">ชมรม</span><p className="font-medium">{application.competition.club.name}</p></div>
+                  <div><span className="text-gray-500">ชมรม</span><p className="font-medium">{application.rosterClub?.name ?? "ยังไม่มีบัญชีชมรม"}</p></div>
                 </div>
               </div>
 

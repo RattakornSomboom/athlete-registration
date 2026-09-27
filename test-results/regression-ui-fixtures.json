@@ -1,0 +1,54 @@
+{
+  "tag": "ui-5b3e51ae",
+  "users": [
+    {
+      "id": "cmuees2tx0000mcc7oc6gz2ab",
+      "email": "ui-5b3e51ae-admin@example.test",
+      "role": "ADMIN",
+      "studentId": null
+    },
+    {
+      "id": "cmuees3e60001mcc7ga5885qy",
+      "email": "ui-5b3e51ae-staff@example.test",
+      "role": "STAFF",
+      "studentId": null
+    },
+    {
+      "id": "cmuees3nm0002mcc7loylg5si",
+      "email": "ui-5b3e51ae-athlete@example.test",
+      "role": "ATHLETE",
+      "studentId": "66432248"
+    },
+    {
+      "id": "cmuees4380004mcc7ikfiofoy",
+      "email": "ui-5b3e51ae-team_official@example.test",
+      "role": "TEAM_OFFICIAL",
+      "studentId": null
+    }
+  ],
+  "clubs": [
+    {
+      "id": "cmuees46p0005mcc7hntqkbyv",
+      "email": "ui-5b3e51ae-club@example.test",
+      "name": "ui-5b3e51ae ชมรมทดสอบ"
+    }
+  ],
+  "competitions": [
+    {
+      "id": "cmuees4eb0006mcc7epre80wp",
+      "name": "ui-5b3e51ae มีบัญชีชมรม"
+    },
+    {
+      "id": "cmuees5g3000bmcc7867iusai",
+      "name": "ui-5b3e51ae ยังไม่มีบัญชีชมรม"
+    },
+    {
+      "id": "cmuees60q000emcc7pai1un9q",
+      "name": "ui-5b3e51ae ไม่มีใบสมัคร"
+    }
+  ],
+  "applications": [
+    "cmuees4s10008mcc7o7piplw0",
+    "cmuees5tu000dmcc74zosikb9"
+  ]
+}
