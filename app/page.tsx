@@ -38,21 +38,18 @@ export default function Home() {
             {/* Center Title */}
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-blue-500/25 border border-blue-400/40 text-blue-200 text-[11px] font-mono font-bold tracking-wider">
-                  SMED
-                </span>
                 <span className="text-xs uppercase tracking-[0.2em] text-blue-200 font-semibold">
                   มหาวิทยาลัยพะเยา · กองกิจการนิสิต
-                </span>
-                <span className="text-[11px] font-mono text-blue-300/80">
-                  smed.up.ac.th
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-tight drop-shadow-lg">
                 ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
               </h1>
               <p className="text-xs md:text-sm text-blue-100/90 font-medium">
-                Information System for Sports Management and Excellence Development, University of Phayao
+                Information System for Sports Management and Excellence Development
+              </p>
+              <p className="text-xs md:text-sm text-blue-100/90 font-medium">
+                University of Phayao
               </p>
             </div>
 
@@ -224,7 +221,7 @@ export default function Home() {
       {/* University Footer */}
       <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800 py-6 text-center">
         <p className="font-semibold text-slate-300">
-          SMED · ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
+          ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
         </p>
         <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
           smed.up.ac.th · งานกีฬาและนันทนาการ กองกิจการนิสิต มหาวิทยาลัยพะเยา
