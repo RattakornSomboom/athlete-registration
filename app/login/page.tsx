@@ -191,9 +191,6 @@ export default function LoginPage() {
                     className="w-full h-full object-contain rounded-full"
                   />
                 </div>
-                <div className="inline-block px-2.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-900 text-[10px] font-mono font-bold tracking-wider mb-1">
-                  SMED · smed.up.ac.th
-                </div>
                 <h1 className="text-2xl font-extrabold text-slate-900">
                   ยินดีต้อนรับ
                 </h1>
