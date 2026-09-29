@@ -339,3 +339,94 @@ export function validateUpdateUserInput(data: Record<string, unknown>): UpdateUs
 
   return output;
 }
+
+export const FITNESS_TEST_STATUSES = ["PENDING", "PASSED", "FAILED"] as const;
+export type FitnessTestStatusType = (typeof FITNESS_TEST_STATUSES)[number];
+
+export function validateFitnessTestStatus(value: unknown): FitnessTestStatusType {
+  if (typeof value !== "string" || !FITNESS_TEST_STATUSES.includes(value as FitnessTestStatusType)) {
+    throw new ValidationError({ status: "สถานะการทดสอบสมรรถภาพไม่ถูกต้อง (ต้องเป็น PENDING, PASSED หรือ FAILED)" });
+  }
+  return value as FitnessTestStatusType;
+}
+
+export type ValidatedFitnessInput = {
+  applicationId: string;
+  status: FitnessTestStatusType;
+  totalScore?: number | null;
+  scores?: Record<string, unknown> | null;
+  notes?: string | null;
+  testedAt?: Date | null;
+};
+
+export function validateFitnessTestItem(item: unknown, index?: number): ValidatedFitnessInput {
+  const prefix = index !== undefined ? "items[" + index + "]." : "";
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    throw new ValidationError({ [prefix ? prefix + "item" : "item"]: "ข้อมูลผลการทดสอบต้องเป็น object" });
+  }
+
+  const data = item as Record<string, unknown>;
+  const errors: Record<string, string> = {};
+
+  if (typeof data.applicationId !== "string" || !data.applicationId.trim() || data.applicationId.trim().length > 200) {
+    errors[prefix + "applicationId"] = "กรุณาระบุรหัสใบสมัคร (applicationId)";
+  }
+
+  const rawStatus = typeof data.status === "string" ? data.status.trim().toUpperCase() : "";
+  if (!FITNESS_TEST_STATUSES.includes(rawStatus as FitnessTestStatusType)) {
+    errors[prefix + "status"] = "สถานะต้องเป็น PENDING, PASSED หรือ FAILED";
+  }
+
+  let totalScore: number | null = null;
+  if (data.totalScore !== undefined && data.totalScore !== null && data.totalScore !== "") {
+    const parsed = Number(data.totalScore);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 10000) {
+      errors[prefix + "totalScore"] = "คะแนนรวมต้องเป็นตัวเลขที่ถูกต้อง (0 - 10000)";
+    } else {
+      totalScore = parsed;
+    }
+  }
+
+  let scores: Record<string, unknown> | null = null;
+  if (data.scores !== undefined && data.scores !== null) {
+    if (typeof data.scores !== "object" || Array.isArray(data.scores)) {
+      errors[prefix + "scores"] = "คะแนนรายข้อต้องเป็น object";
+    } else {
+      scores = data.scores as Record<string, unknown>;
+    }
+  }
+
+  let notes: string | null = null;
+  if (data.notes !== undefined && data.notes !== null) {
+    if (typeof data.notes !== "string") {
+      errors[prefix + "notes"] = "หมายเหตุต้องเป็นข้อความ";
+    } else if (data.notes.trim().length > 1000) {
+      errors[prefix + "notes"] = "หมายเหตุต้องไม่เกิน 1,000 ตัวอักษร";
+    } else {
+      notes = data.notes.trim() || null;
+    }
+  }
+
+  let testedAt: Date | null = null;
+  if (data.testedAt !== undefined && data.testedAt !== null && data.testedAt !== "") {
+    const date = new Date(String(data.testedAt));
+    if (Number.isNaN(date.getTime())) {
+      errors[prefix + "testedAt"] = "วันที่ทดสอบไม่ถูกต้อง";
+    } else {
+      testedAt = date;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError(errors);
+  }
+
+  return {
+    applicationId: (data.applicationId as string).trim(),
+    status: rawStatus as FitnessTestStatusType,
+    totalScore,
+    scores,
+    notes,
+    testedAt,
+  };
+}

@@ -1,85 +1,37 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { NextResponse, type NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import { getSession, credentialVersion } from "@/lib/auth";
+import { atomic, body, ensure, ApiError } from "@/lib/phase4-server";
+import { ValidationError } from "@/lib/validation";
+import { recordAudit } from "@/lib/audit-service";
 
-/**
- * PUT /api/auth/password
- * เปลี่ยนรหัสผ่านของผู้ใช้งาน (Athlete, Staff, Admin)
- * Body: { oldPassword, newPassword }
- */
 export async function PUT(request: Request) {
   try {
-    const session = await getSession(request as NextRequest);
-    
-    if (!session || !session.id) {
-      return NextResponse.json(
-        { error: "กรุณาเข้าสู่ระบบก่อนทำการเปลี่ยนรหัสผ่าน" },
-        { status: 401 }
-      );
-    }
-
-    // เฉพาะ User (Athlete, Staff, Admin) ใช้ API นี้
-    // Club จะมี API เปลี่ยนรหัสผ่านของตัวเองที่ PUT /api/clubs/[id]
-    if (session.role === "CLUB" && session.id === session.clubId) {
-        return NextResponse.json(
-            { error: "ชมรมกรุณาเปลี่ยนรหัสผ่านที่เมนูจัดการโปรไฟล์ชมรม" },
-            { status: 400 }
-        );
-    }
-
-    const body = await request.json();
-    const { oldPassword, newPassword } = body;
-
-    if (typeof oldPassword !== "string" || typeof newPassword !== "string" || !oldPassword || !newPassword) {
-      return NextResponse.json(
-        { error: "กรุณาระบุรหัสผ่านเดิมและรหัสผ่านใหม่" },
-        { status: 400 }
-      );
-    }
-
-    if (newPassword.length < 8 || Buffer.byteLength(newPassword, "utf8") > 72) {
-        return NextResponse.json(
-            { error: "รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์" },
-            { status: 400 }
-        );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: session.id },
+    const session = await getSession(request as NextRequest, true);
+    ensure(session, "กรุณาเข้าสู่ระบบ", 401);
+    const { oldPassword, newPassword, confirmPassword } = await body(request);
+    ensure(typeof oldPassword === "string" && typeof newPassword === "string", "กรุณาระบุรหัสผ่านเดิมและรหัสผ่านใหม่");
+    ensure(newPassword.length >= 8 && Buffer.byteLength(newPassword, "utf8") <= 72, "รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์");
+    ensure(confirmPassword === undefined || confirmPassword === newPassword, "รหัสผ่านไม่ตรงกัน");
+    const password = await bcrypt.hash(newPassword, 12);
+    await atomic(async tx => {
+      const legacyClub = session.role === "CLUB" && session.id === session.clubId;
+      const account = legacyClub ? await tx.club.findUnique({ where: { id: session.id } }) : await tx.user.findUnique({ where: { id: session.id } });
+      ensure(account?.isActive, "บัญชีไม่พร้อมใช้งาน", 403);
+      ensure(session.credentialVersion === credentialVersion(account.password), "กรุณาเข้าสู่ระบบใหม่", 401);
+      ensure(await bcrypt.compare(oldPassword, account.password), "รหัสผ่านเดิมไม่ถูกต้อง");
+      ensure(!(await bcrypt.compare(newPassword, account.password)), "รหัสผ่านใหม่ต้องต่างจากรหัสผ่านเดิม");
+      const data = { password, mustChangePassword: false };
+      if (legacyClub) await tx.club.update({ where: { id: session.id }, data });
+      else await tx.user.update({ where: { id: session.id }, data });
+      await recordAudit(tx, { actorId: session.id, entityId: session.id, entityType: legacyClub ? "CLUB" : "USER", action: "PASSWORD_CHANGED" });
     });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "ไม่พบข้อมูลผู้ใช้งาน" },
-        { status: 404 }
-      );
-    }
-
-    const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isPasswordMatch) {
-        return NextResponse.json(
-            { error: "รหัสผ่านเดิมไม่ถูกต้อง" },
-            { status: 400 }
-        );
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await prisma.user.update({
-        where: { id: session.id },
-        data: { password: hashedPassword },
-    });
-
-    return NextResponse.json({
-      message: "เปลี่ยนรหัสผ่านสำเร็จ",
-    });
+    const response = NextResponse.json({ message: "เปลี่ยนรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบใหม่" }, { headers: { "Cache-Control": "no-store" } });
+    response.cookies.delete("token");
+    response.cookies.delete("role");
+    return response;
   } catch (error) {
-    console.error("[PUT /api/auth/password]", error);
-    return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน" },
-      { status: 500 }
-    );
+    if (error instanceof ApiError || error instanceof ValidationError) return NextResponse.json({ error: error.message }, { status: error instanceof ApiError ? error.status : 400 });
+    return NextResponse.json({ error: "ไม่สามารถเปลี่ยนรหัสผ่านได้" }, { status: 500 });
   }
 }

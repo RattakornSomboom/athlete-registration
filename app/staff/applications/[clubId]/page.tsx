@@ -7,6 +7,7 @@ import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 import { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import BackButton from "@/components/shared/BackButton";
 
 type Competition = {
   id: string;
@@ -63,8 +64,9 @@ export default function StaffClubCompetitionsPage() {
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
           <div>
+            <div className="mb-3"><BackButton href="/staff/applications" /></div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา · รายการแข่งขันประจำชมรม
             </span>
@@ -81,12 +83,6 @@ export default function StaffClubCompetitionsPage() {
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
               แดชบอร์ดวิเคราะห์ผล
-            </button>
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
             </button>
             <LogoutButton />
           </div>

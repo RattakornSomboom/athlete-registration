@@ -1,0 +1,89 @@
+
+> athlete-registration@0.1.0 test:unit
+> node --test tests/unit/*.test.mjs
+
+(node:39760) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/thailand-addresses.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Thai address data cascades from province to postal code (4.022ms)
+✔ Thai address helpers fail closed for incomplete or unknown selections (0.5912ms)
+✔ only ADMIN with identity confirmation can reset User and legacy Club accounts (1411.4969ms)
+Phase 4 request failed Error
+✔ failed audit rolls back reset and never returns the temporary password (275.4047ms)
+✔ credential binding revokes old sessions and forces password change server-side (56.6699ms)
+✔ password change rejects reused credentials and commits flag plus audit atomically (2846.7782ms)
+✔ email reset pages, APIs and delivery implementation are removed (0.6024ms)
+✔ ADMIN cannot bypass temporary recovery through club profile password edits (63.425ms)
+✔ self-reset is rejected and a failed password-change audit preserves the temporary credential (376.8439ms)
+(node:22988) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ validateCreateUserInput accepts valid internal roles and normalizes email (2.1249ms)
+✔ validateCreateUserInput rejects missing name, short password, bad email, and athlete role (1.8244ms)
+✔ validateUpdateUserInput accepts partial updates and normalizes fields (1.8528ms)
+✔ validateUpdateUserInput rejects empty payload and invalid field types (0.6622ms)
+✔ production account policy protects self and last active admin (0.7578ms)
+✔ removed roles cannot be created or assigned (0.573ms)
+(node:15692) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/phase4-client.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ direct STAFF flow never claims club approval (2.1814ms)
+✔ club review uses recorded decisions and preserves legacy history (0.3551ms)
+✔ download inspection rejects old columns and accepts current columns without changing input (548.8545ms)
+(node:35456) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/analytics.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ analytics distinguishes applications and unique athletes across sports/statuses (3.8201ms)
+✔ empty analytics and zero quotas never produce NaN (0.8102ms)
+✔ quota accepts boundary and rejects overflow/negative (0.2968ms)
+✔ official approval cannot skip club, or repeat review (0.2918ms)
+✔ official profile requires actual required fields and other position detail (2.7929ms)
+✔ Prisma and PostgreSQL commit conflicts map to 409 without masking other errors (0.5337ms)
+(node:38068) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ JSON rejects malformed, null, arrays and primitive payloads (47.1145ms)
+✔ Login validates types and normalizes identifier without trimming password (0.6301ms)
+✔ Email normalization rejects non-email values (0.4649ms)
+✔ Profile create requires complete fields; partial update preserves unspecified values (3.0746ms)
+✔ Profile rejects forbidden fields, invalid dates, enums and types (0.7969ms)
+✔ HTTP mapping distinguishes auth, permission, conflict, server and invalid responses (2.6578ms)
+(node:40580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to D:\BBN\athlete-registration\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Phase 4 request failed Error
+✔ competition validation rejects duplicate sports, malformed integers, invalid status/date (3.088ms)
+✔ application input rejects self approval, malformed numbers and nested entries (0.4974ms)
+✔ document references never accept arbitrary URLs and responses hide legacy public links (0.3024ms)
+✔ dev and superadmin routes are absent (0.1883ms)
+✔ session checks reject legacy roles/dev identity and validate current CLUB associations (137.4453ms)
+✔ public registration rejects privileged roles and malformed payloads before DB access (100.6405ms)
+✔ competition mutations reject STAFF and CLUB before database access (163.7393ms)
+✔ CLUB scope intersects competition/sport filters, rejects forged club and missing association (23.3697ms)
+✔ CLUB scope excludes unrostered applications from other athletes (regression: rosterItem null) (18.9209ms)
+✔ STAFF/ADMIN club filter retains rosterItem:null for broader view (42.3761ms)
+✔ CLUB canReadDocument rejects documents from unrostered applications in same sport (32.7236ms)
+✔ CLUB GET application/[id] rejects unrostered applications and other clubs (36.4486ms)
+✔ club filters distinguish missing clubs from forbidden club scope and inactive clubs (115.3481ms)
+✔ search and status filters reach the database query (18.0888ms)
+✔ publication requires competition and rejects mixed/stale IDs atomically (33.411ms)
+✔ staff reviews submitted applications; athletes cannot approve themselves and repeat review fails (32.1228ms)
+✔ a failed transaction commit never produces review success (26.3441ms)
+✔ document deletion checks owner and retention for every allowed role (126.4839ms)
+✔ public buckets fail closed before signing private document URLs (19.5066ms)
+✔ submitted documents must belong to the athlete and be ready (67.9142ms)
+✔ application transaction enforces open competition, deadline, sport membership and duplicates (89.3916ms)
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5400.9848

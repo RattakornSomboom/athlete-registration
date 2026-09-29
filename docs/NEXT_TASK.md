@@ -1,3 +1,50 @@
+## Release Final Verification — 2026-09-28 (Run ID: run-20260928-191300)
+
+Final pre-release verification bundle established:
+- Full integration suite (all 6 files) rerun serially against localhost:3138 using `.env.release-test` and isolated Supabase PostgreSQL (`aws-0-ap-southeast-1`): **38 passed, 0 failed, 0 skipped, 0 cancelled**, duration 96877.0285 ms. Evidence: `test-results/release-final/run-20260928-191300/logs/integration-full-suite.log`.
+- Confirmed full integration with legacy Club temporary password recovery, suspension preservation, forced password change, and activation controls.
+- Code quality checks: `npx tsc --noEmit` passed (0 errors), `npm run lint` passed (0 errors, 0 warnings), `npm run test:unit` passed (51 passed), `npm run build` passed (62 static/dynamic routes).
+- Comprehensive report generated: `docs/RELEASE_FINAL_REPORT.md`, with traceable evidence artifacts in `test-results/release-final/run-20260928-191300/manifest.json` and `checks.json`.
+- This supersedes earlier notes that the full suite was pending after the Club suspension UI change.
+- Status: **LOCAL/TEST VERIFIED**. Production gates (migration `20260928010000_admin_temporary_password`, deployment, and backup restore to dedicated empty DB) remain BLOCKED awaiting explicit user authorization. Real athlete data import remains OUT OF SCOPE.
+
+## Club suspension controls and live recovery verification — 2026-09-28
+
+Added ADMIN club suspension/reactivation confirmation controls using the existing PUT /api/clubs/[id] endpoint. Account access is explicitly displayed from isActive, independently of club approval status. Success is shown after the mutation completes and data is reloaded. No schema or auth changes.
+
+Extended admin-password-reset integration coverage with a disposable legacy Club: STAFF/CLUB cannot change activation; ADMIN suspension rejects existing sessions and login; reset preserves suspension; reactivation permits temporary login with forced change; final password works and temporary credentials/session are rejected. Targeted integration passed (1 scenario, 12875.0523 ms); fixtures cleaned up. Typecheck, lint, all 51 unit tests and production build passed. Full suite was not repeated for this UI change. Build required network access for the existing Google font. No production changes or migrations. The manual Club fixture remains available for user testing; no existing account activation state was changed.
+
+## Full integration rerun after ADMIN recovery — 2026-09-28
+
+Ran all six tests/integration/*.test.mjs files serially against localhost:3138 using .env.release-test, with TEST_ALLOW_WRITE=yes enabled only for the runner. Result: 38 passed, 0 failed, 0 skipped, 0 cancelled; duration 101548.6736 ms. Raw evidence: test-results/integration-after-admin-reset.txt.
+
+Coverage includes ADMIN temporary-password recovery, invalidation of old credentials/sessions, forced password change, suspended-account preservation, removed recovery/dev endpoints, competition state/deadline gates, authorization, private documents, scoped reports/exports, quota concurrency and the persisted release core flow. Counts differ from the previous email-enabled suite because retired recovery tests were replaced.
+
+This supersedes earlier notes that the full integration rerun or isolated test schema verification was pending. Legacy Club temporary-password recovery still has unit coverage only; this run does not establish live coverage for that specific recovery path. No migration was run by the assistant, no email was sent, and no production database/storage was changed. Production rollout and backup/restore evidence remain separate open gates. Historical email-delivery requirements no longer apply to the replaced password-recovery flow.
+
+## Live ADMIN recovery integration follow-up
+
+The dedicated .env.release-test database now exposes mustChangePassword on both User and Club (read-only preflight passed). The user previously reported the manual recovery flow works. No migration was executed by the assistant in this follow-up.
+
+Ran admin-password-reset.test.mjs and account-smoke.test.mjs serially against localhost:3138 with isolated test writes enabled for the runner only: 5 passed, 0 failed, 0 skipped; duration 9395.6898 ms. Confirmed ADMIN-only reset and identity confirmation, old password/session rejection, forced-change page redirect and protected API rejection, successful change/new login, temporary password/session invalidation, suspended-account preservation, removed email recovery endpoints and unauthenticated guards. Generated fixture accounts and their audit records were cleaned up by the test. No email was sent, no production data/storage was changed.
+
+This supersedes the earlier pending test-schema and targeted integration notes. The full integration suite was NOT rerun in this follow-up, and live legacy Club recovery is not covered by this targeted test (unit coverage exists). Production migration/release readiness remains unverified. The test server remains running at localhost:3138.
+## ADMIN-only password recovery — 2026-09-28
+
+User-authorized replacement of email recovery: ADMIN verifies the requester, issues a random temporary password (shown once), and delivers it through a verified channel. The owner must change it before protected pages or APIs can be used. User and legacy Club accounts are supported; suspension is preserved. Reset and audit commit atomically; no password/token/hash is stored in audit events. All earlier email-delivery release gates below are historical and no longer apply to password recovery.
+
+Implementation is complete locally, but deployment/live verification is BLOCKED on explicit authorization to apply migration 20260928010000_admin_temporary_password to the isolated test database first. It adds mustChangePassword=false to User and Club. No migration or db:push has run. Do not run this new build against the old schema. Prisma Client generation only has run. Existing sessions without credential binding require a fresh login after rollout; password changes invalidate previous sessions.
+
+Verified: typecheck, lint, unit tests (51 passed) and production build. New integration test tests/integration/admin-password-reset.test.mjs is prepared but NOT run because the schema has not been migrated. Browser verification also remains pending. Tests for retired email recovery were removed/replaced; counts are not directly comparable to previous email-enabled suites. Unrelated workspace changes were preserved.
+
+Rollout: back up the chosen database, authorize/apply the new migration there, regenerate/build/restart, then verify ADMIN reset → old session rejected → temporary login → protected API denied → change password → new login, plus suspended accounts and legacy Club. Production needs a separate authorized rollout. Backup/restore and athlete-data import gates remain separate. Recovery for the sole ADMIN requires another established recovery operator; self-reset is rejected by this endpoint.
+
+## XLSX browser artifact verified — 2026-09-28
+
+The newly supplied Desktop/ก/applicants.xlsx passes both structure and known core-flow content verification: twelve headers in order; exactly one applicant cmujekjzd00079gc76u3x2fa1, student 95071709, Browser Core 1790455070687, football/team men, published status, submitted 27/9/2569 12:53:31. SHA-256: 77cbf12db6e282bbcdf16fb9a9afaf5f3256ef6ea723610ec38cadc0a3af9f47. Evidence: test-results/xlsx-download-verification.json. This supersedes earlier pending XLSX verification notes for this scenario. Production legacy access, email and backup/restore gates remain open. No workbook, database or storage contents were modified.
+## Latest verification — 2026-09-28
+Production readiness remains OPEN. Read-only metadata verified, but the stored legacy URL is example.test, and the actual downloaded XLSX is the old five-column version. Fresh workbook, authorized legacy access, production email and backup/restore evidence remain pending. See the latest HANDOFF correction. Historical claims below do not supersede these findings.
+
 # Current Task
 
 ## Status
@@ -8,17 +55,14 @@ Release implementation added on 2026-09-26. Follow-up on 2026-09-27: 44 unit tes
 ## Objective
 ระบบลืมรหัสผ่านและตั้งรหัสผ่านใหม่ (Forgot Password & Reset Password) และระบบจัดการบัญชีเจ้าหน้าที่/ผู้ดูแลระบบ (Staff & Admin Account Management) สำหรับมหาวิทยาลัยพะเยา
 
-## Requirements (Forgot Password & Reset Password)
-- [x] หน้า `/forgot-password`: กรอกอีเมล, ส่งคำขอ, ข้อความยืนยันแบบ anti-enumeration และปุ่มกลับหน้าเข้าสู่ระบบ
-- [x] หน้า `/reset-password?token=...`: ตรวจสอบ token, ฟอร์มตั้งรหัสผ่านใหม่พร้อมปุ่มแสดง/ซ่อนรหัสผ่าน, รายการตรวจสอบนโยบายรหัสผ่านแบบ real-time
-- [x] ลิงก์ "ลืมรหัสผ่าน?" ในหน้าเข้าสู่ระบบ (`/login`)
-- [x] ป้องกัน User Enumeration: ไม่ว่าจะพบอีเมลหรือไม่ ระบบจะส่งข้อความตอบกลับแบบเดียวกัน
-- [x] Single-use & Expirable Token: โทเคนใช้งานได้ครั้งเดียว มีอายุ 15 นาที และเป็นโมฆะทันทีเมื่อรหัสผ่านเปลี่ยน
-- [x] Account Status Preservation: บัญชีที่ถูกระงับ (SUSPENDED) เมื่อตั้งรหัสผ่านใหม่แล้ว สถานะยังคงถูกระงับเหมือนเดิม ไม่ถูกเปิดใช้งานโดยอัตโนมัติ
-- [x] Admin Recovery: แอดมินสามารถส่งลิงก์รีเซ็ตรหัสผ่านให้ผู้ใช้จากหน้า `/admin/users` ได้ โดยไม่สามารถเห็นรหัสผ่านเดิมของผู้ใช้
-- [x] Password Policy: ขั้นต่ำ 8 ตัวอักษร, ไม่เกิน 72 ไบต์, ตรวจสอบความตรงกันทั้ง client และ server-side
-- [x] Rate Limiting: จำกัดความถี่การขอรีเซ็ตรหัสผ่าน 60 วินาทีต่ออีเมล
-- [x] Audit Logging: บันทึกเหตุการณ์ `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`, `ADMIN_SENT_PASSWORD_RESET` โดยไม่มีการบันทึก plaintext password หรือ reset token
+## Requirements (ADMIN temporary password recovery)
+- [x] Only ADMIN can issue a random temporary password after confirming requester identity.
+- [x] Show plaintext only in the successful reset response/modal; no credential in audit logs.
+- [x] Reset and audit are atomic; suspended accounts remain suspended.
+- [x] Invalidate previous sessions using server-verified credential binding.
+- [x] Force change before protected UI/API access, including legacy Club logins.
+- [x] Remove public forgot/reset pages, email-token APIs and email-delivery implementation.
+- [ ] Apply the prepared migration only after explicit authorization; verify integration and browser flow.
 
 ## Requirements (Staff & Admin Account Management)
 - [x] ดูรายชื่อผู้ใช้งานทั้งหมด พร้อมระบบค้นหาและตัวกรองตามสิทธิ์ (Role) และสถานะ (Status)

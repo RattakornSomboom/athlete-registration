@@ -47,14 +47,14 @@ test("session checks reject legacy roles/dev identity and validate current CLUB 
   let active = true;
   try {
     const load = routeLoader({ "@/lib/prisma": { prisma: {
-      user: { findUnique: async () => account }, club: { findUnique: async () => ({ id: "club-a", isActive: active }) },
+      user: { findUnique: async () => account }, club: { findUnique: async () => ({ id: "club-a", isActive: active, password: "hash" }) },
     } } });
     const auth = load("lib/auth.ts");
-    const signed = payload => jwt.sign(payload, process.env.JWT_SECRET);
+    const signed = payload => jwt.sign({ credentialVersion: auth.credentialVersion("hash"), ...payload }, process.env.JWT_SECRET);
     const session = payload => auth.getSession({ cookies: { get: () => ({ value: signed(payload) }) } });
     for (const role of ["SUPERADMIN", "DEV"]) assert.throws(() => auth.verifyToken(signed({ id: "old", role })));
     assert.equal(await session({ id: "dev-user-id", role: "ADMIN" }), null);
-    account = { id: "actor", role: "CLUB", clubId: "club-a", isActive: true };
+    account = { id: "actor", role: "CLUB", clubId: "club-a", isActive: true, password: "hash" };
     assert.equal((await session({ id: "actor", role: "CLUB", clubId: "club-a" })).clubId, "club-a");
     account.clubId = "club-b";
     assert.equal(await session({ id: "actor", role: "CLUB", clubId: "club-a" }), null);

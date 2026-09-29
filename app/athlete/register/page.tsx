@@ -2,10 +2,12 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { documentReference } from "@/lib/athlete-document-policy";
+import { documentId, documentReference } from "@/lib/athlete-document-policy";
 import { fetchJson, HttpError } from "@/lib/http-client";
 import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
+import BackButton from "@/components/shared/BackButton";
+import AthleteProfilePhoto from "@/components/shared/AthleteProfilePhoto";
 import { type AthleteProfile } from "@/lib/athlete-profile-types";
 import { getSportConfig } from "@/lib/sports-categories";
 
@@ -52,17 +54,19 @@ export default function AthleteRegisterPage() {
   const [selectedCompetitionId, setSelectedCompetitionId] = useState("");
   const load = useCallback(async () => {
     const [me, competitions] = await Promise.all([
-      fetchJson<{ user: { studentId: string; profile: (Omit<AthleteProfile, "studentLevel"> & { studentLevel: string; photoUrl?: string }) | null } }>("/api/auth/me"),
+      fetchJson<{ user: { studentId: string; profile: (Omit<AthleteProfile, "studentLevel"> & { studentLevel: string }) | null } }>("/api/auth/me"),
       fetchJson<{ competitions: OpenCompetition[] }>("/api/competitions?status=OPEN"),
     ]);
     const p = me.user.profile;
     if (!p) throw new HttpError(404, "ยังไม่มีข้อมูลประวัตินักกีฬา กรุณากรอกประวัติก่อนสมัคร");
     const birthDate = p.birthDate ? new Date(p.birthDate).toISOString().split("T")[0] : "";
-    const profile: AthleteProfile = { ...p, studentId: me.user.studentId, studentLevel: p.studentLevel === "GRADUATE" ? "graduate" : "bachelor", birthDate, birthYearCE: Number(birthDate.slice(0, 4)), photoName: p.photoUrl, previousEntriesCount: 0 };
+    const profile: AthleteProfile = { ...p, studentId: me.user.studentId, studentLevel: p.studentLevel === "GRADUATE" ? "graduate" : "bachelor", birthDate, birthYearCE: Number(birthDate.slice(0, 4)), previousEntriesCount: 0 };
     return { profile, competitions: competitions.competitions };
   }, []);
   const resource = useRemoteData(load);
   const studentProfile = resource.data?.profile;
+  const profilePhotoId = documentId(studentProfile?.photoUrl);
+  const savedPhoto = profilePhotoId ? documentReference(profilePhotoId) : null;
   const openCompetitions = resource.data?.competitions ?? [];
 
   const [form, setForm] = useState({
@@ -127,7 +131,7 @@ export default function AthleteRegisterPage() {
 
   const handleSubmit = () => action.run(async () => {
       if (!selectedCompetitionId) throw new HttpError(400, "กรุณาเลือกรายการแข่งขัน");
-      if (!photoFile || !idCardFile || !studentCardFile || !studentCertFile || !upAcademyFile || !fitnessTestFile) throw new HttpError(400, "กรุณาแนบเอกสารบังคับให้ครบ");
+      if ((!photoFile && !savedPhoto) || !idCardFile || !studentCardFile || !studentCertFile || !upAcademyFile || !fitnessTestFile) throw new HttpError(400, "กรุณาแนบเอกสารบังคับให้ครบ");
       const me = await fetchJson<{ user: { studentId: string } }>("/api/auth/me");
       const studentId = me.user.studentId;
 
@@ -150,7 +154,7 @@ export default function AthleteRegisterPage() {
         upAcademyFileUrl,
         fitnessTestFileUrl
       ] = await Promise.all([
-        uploadFile(photoFile!),
+        photoFile ? uploadFile(photoFile) : savedPhoto!,
         uploadFile(idCardFile!),
         uploadFile(studentCardFile!),
         uploadFile(studentCertFile!),
@@ -199,7 +203,7 @@ export default function AthleteRegisterPage() {
   const step3Valid = !!(
     form.hasPreviousEntry &&
     (form.hasPreviousEntry === "none" || (form.previousBachelorCount || form.previousGraduateCount) && form.previousLastYear) &&
-    photoFile && idCardFile && studentCardFile && studentCertFile && upAcademyFile && fitnessTestFile
+    (photoFile || savedPhoto) && idCardFile && studentCardFile && studentCertFile && upAcademyFile && fitnessTestFile
   );
 
   return (
@@ -207,9 +211,12 @@ export default function AthleteRegisterPage() {
       <div className="max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+            <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
+            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -219,7 +226,7 @@ export default function AthleteRegisterPage() {
               การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => router.push("/athlete/status")}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
@@ -227,6 +234,7 @@ export default function AthleteRegisterPage() {
               ตรวจสอบสถานะ
             </button>
             <LogoutButton />
+          </div>
           </div>
         </div>
 
@@ -239,7 +247,16 @@ export default function AthleteRegisterPage() {
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
               ข้อมูลประวัตินักศึกษา (จากฐานข้อมูลทะเบียนกลาง)
             </p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+            <div className="flex flex-col items-start gap-5 sm:flex-row">
+              <AthleteProfilePhoto
+                key={studentProfile.studentId}
+                studentId={studentProfile.studentId}
+                name={`${studentProfile.firstName} ${studentProfile.lastName}`}
+                photoUrl={studentProfile.photoUrl}
+                disabled={loading}
+                onSaved={photoUrl => resource.update(data => ({ ...data, profile: { ...data.profile, photoUrl } }))}
+              />
+            <div className="grid w-full min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 text-xs">
               <div>
                 <span className="text-slate-400">ชื่อ - นามสกุล</span>
                 <p className="font-semibold text-slate-900 mt-0.5">{studentProfile.firstName} {studentProfile.lastName}</p>
@@ -279,6 +296,7 @@ export default function AthleteRegisterPage() {
                 </div>
               )}
             </div>
+            </div>
           </div>
         ) : null}
 
@@ -303,10 +321,10 @@ export default function AthleteRegisterPage() {
         )}
 
         {/* Step indicator — 3 ขั้นตอน */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex items-center justify-between flex-wrap gap-2">
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between flex-wrap gap-2">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-blue-900 text-white" : "bg-slate-200 text-slate-500"}`}>{s}</div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${step >= s ? "bg-blue-900 text-white shadow-sm" : "bg-slate-200 text-slate-500"}`}>{s}</div>
               <span className={`text-xs ${step >= s ? "text-slate-900 font-semibold" : "text-slate-500"}`}>
                 {s === 1 ? "1. ชมรมและรอบการแข่งขัน" : s === 2 ? "2. ชนิดกีฬาและรายการ" : "3. ผลงานและเอกสารแนบ"}
               </span>
@@ -524,7 +542,7 @@ export default function AthleteRegisterPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">รูปถ่ายชุดนิสิตถูกระเบียบ (ขนาด 1 นิ้ว) <span className="text-red-500">*</span></label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{photoFile ? photoFile.name : "แนบไฟล์ (JPG/PNG)"}</span>
+                      <span className="text-xs text-gray-500 text-center px-2 truncate max-w-full">{photoFile ? photoFile.name : savedPhoto ? "ใช้รูปประจำตัวที่บันทึกแล้ว (คลิกแนบรูปอื่น)" : "แนบไฟล์ (JPG/PNG)"}</span>
                       <input type="file" accept=".jpg,.jpeg,.png" className="hidden" onChange={fileHandler(setPhotoFile, 5)} />
                     </label>
                   </div>

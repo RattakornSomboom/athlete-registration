@@ -3,7 +3,7 @@ import { publicUser, publicClub } from "@/lib/public-account";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { signToken } from "@/lib/auth";
+import { signToken, credentialVersion } from "@/lib/auth";
 
 /**
  * POST /api/auth/login
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       }
       const token = signToken({
         id: user.id,
+        credentialVersion: credentialVersion(user.password),
         role: user.role,
         studentId: user.studentId ?? undefined,
         clubId: user.role === "CLUB" ? user.clubId ?? undefined : undefined,
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
 
       const response = NextResponse.json({
         message: "เข้าสู่ระบบสำเร็จ",
+        mustChangePassword: user.mustChangePassword,
         user: safeUser,
         role: user.role.toLowerCase(),
       });
@@ -101,6 +103,7 @@ export async function POST(request: Request) {
         // Sign JWT for Club
         const token = signToken({
           id: club.id,
+          credentialVersion: credentialVersion(club.password),
           role: "CLUB",
           clubId: club.id,
         });
@@ -109,6 +112,7 @@ export async function POST(request: Request) {
 
         const response = NextResponse.json({
           message: "เข้าสู่ระบบสำเร็จ",
+          mustChangePassword: club.mustChangePassword,
           club: safeClub,
           role: "club",
         });

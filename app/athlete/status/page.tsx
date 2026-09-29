@@ -7,6 +7,7 @@ import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import BackButton from "@/components/shared/BackButton";
 import { clubReviewProgress } from "@/lib/phase4-client";
 
 type StatusHistory = {
@@ -54,9 +55,12 @@ export default function AthleteStatusPage() {
       <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+            <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
+            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
               ระบบรับสมัครและรายงานตัวนักกีฬาตัวแทนสถาบัน
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -67,13 +71,9 @@ export default function AthleteStatusPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/")}
-              className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-md px-3 py-1.5 bg-white hover:bg-slate-50 transition-colors"
-            >
-              หน้าแรก
-            </button>
+            <button onClick={() => router.push("/athlete/register")} className="rounded-lg bg-blue-900 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-800">สมัครการแข่งขัน</button>
             <LogoutButton />
+          </div>
           </div>
         </div>
 
@@ -102,7 +102,7 @@ export default function AthleteStatusPage() {
               return (
                 <div key={app.id} className="space-y-6">
                   {/* Step Progress Tracker */}
-                  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
                     <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">
                       ขั้นตอนการคัดเลือก ({app.competition.name})
                     </h2>

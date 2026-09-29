@@ -5,7 +5,9 @@ import { getSession } from "@/lib/auth";
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (path === "/team-official/signup") return NextResponse.next();
-  const session = await getSession(request);
+  const session = await getSession(request, true);
+  if (session?.mustChangePassword && path !== "/change-password") return NextResponse.redirect(new URL("/change-password", request.url));
+  if (path === "/change-password") return session ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));
   const allowed = path.startsWith("/athlete") ? ["ATHLETE"]
     : path.startsWith("/club") ? ["CLUB"]
     : path.startsWith("/staff") ? ["STAFF", "ADMIN"]
@@ -21,5 +23,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/athlete/:path*", "/club/:path*", "/staff/:path*", "/admin/:path*", "/team-official/:path*"],
+  matcher: ["/change-password", "/athlete/:path*", "/club/:path*", "/staff/:path*", "/admin/:path*", "/team-official/:path*"],
 };

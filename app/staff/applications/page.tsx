@@ -8,6 +8,7 @@ import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import BackButton from "@/components/shared/BackButton";
 
 type Stats = {
   total: number;
@@ -43,11 +44,13 @@ export default function StaffApplicationsPage() {
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        <StaffReview />
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+            <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
+            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -58,7 +61,7 @@ export default function StaffApplicationsPage() {
               {stats && ` · รอพิจารณารวม ${stats.submitted + stats.clubApproved} คน`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => router.push("/staff/competitions")}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
@@ -85,11 +88,12 @@ export default function StaffApplicationsPage() {
             </button>
             <LogoutButton />
           </div>
+          </div>
         </div>
 
         {/* สรุปภาพรวม */}
         {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
               <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
               <p className="text-xs text-slate-500 mt-1">ใบสมัครทั้งหมด</p>
@@ -108,6 +112,8 @@ export default function StaffApplicationsPage() {
             </div>
           </div>
         )}
+
+        <StaffReview />
 
         {/* รายชื่อชมรม */}
         <RequestState error={resource.error} retry={resource.retry} />

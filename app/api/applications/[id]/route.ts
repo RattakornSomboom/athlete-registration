@@ -46,6 +46,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         },
         sportEntries: true,
         competitionResults: true,
+        fitnessTestResult: true,
       },
     });
 

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { api, atomic, body, ensure, STAFF, string } from "@/lib/phase4-server";
 import { validateProfile } from "@/lib/validation";
+import { documentId } from "@/lib/athlete-document-policy";
 
 export async function GET(request: Request) {
   return api(request, ["ATHLETE", "CLUB", ...STAFF], async session => {
@@ -29,6 +30,15 @@ export async function PUT(request: Request) {
       const user = await tx.user.findUnique({ where: { id: session.id }, include: { profile: true } });
       ensure(user && user.studentId === studentId, "ไม่พบบัญชีผู้ใช้", 404);
       const validated = validateProfile(fields, !user.profile);
+      if (validated.photoUrl) {
+        const id = documentId(validated.photoUrl);
+        ensure(id, "กรุณาอัปโหลดรูปถ่ายผ่านระบบไฟล์ส่วนตัว");
+        const retained = await tx.privateDocument.updateMany({
+          where: { id, ownerId: user.id, ownerRole: "ATHLETE", purpose: "ATHLETE", state: "READY", mimeType: { in: ["image/jpeg", "image/png"] } },
+          data: { retained: true },
+        });
+        ensure(retained.count === 1, "รูปถ่ายต้องเป็น JPEG/PNG ที่อัปโหลดโดยเจ้าของบัญชี", 403);
+      }
       const { pastCompetitions, ...rest } = validated;
       const data = { ...rest, ...(pastCompetitions !== undefined ? { pastCompetitions: pastCompetitions === null ? Prisma.DbNull : pastCompetitions } : {}) };
       // Required create fields have been checked; updates intentionally remain partial.

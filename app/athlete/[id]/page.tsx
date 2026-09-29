@@ -6,6 +6,7 @@ import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 
 import { useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import BackButton from "@/components/shared/BackButton";
 
 type StatusHistory = { id: string; status: string; label: string; by: string; createdAt: string };
 type SportEntry = { sport: string; category: string; division?: string | null };
@@ -112,12 +113,15 @@ export default function AthleteDetailPage() {
         }
       `}</style>
 
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-full lg:max-w-6xl mx-auto">
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
+        <div className="max-w-full lg:max-w-6xl mx-auto space-y-5">
 
-          <div className="flex items-center justify-between mb-6 no-print">
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">← ย้อนกลับ</button>
-            <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">🖨️ พิมพ์ / บันทึก PDF</button>
+          <div className="no-print overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+            <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
+              <div><BackButton /><p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-blue-800">Application Record</p><h1 className="mt-1 text-xl font-bold text-slate-950">รายละเอียดใบสมัครนักกีฬา</h1></div>
+              <button onClick={handlePrint} className="bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg">พิมพ์ / บันทึก PDF</button>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm print-container">

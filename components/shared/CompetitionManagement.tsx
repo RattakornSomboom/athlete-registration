@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import LogoutButton from "@/components/shared/LogoutButton";
 import Link from "next/link";
+import BackButton from "@/components/shared/BackButton";
 
 const SPORTS = [
   "กรีฑา", "กีฬาทางน้ำ", "วอลเลย์บอล", "เทควันโด", "มวยไทยสมัครเล่น", "ฟุตบอล", "บาสเกตบอล",
@@ -133,17 +134,22 @@ export default function CompetitionManagement({ allowEdit = false }: { allowEdit
       {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto space-y-6">
-          <div className="flex justify-between items-end border-b border-slate-200 pb-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+            <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-end">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">โปรแกรมการแข่งขันประจำปี</h1>
+              <div className="mb-3"><BackButton href={allowEdit ? "/admin" : "/staff/applications"} /></div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-800">Competition Control</p>
+              <h1 className="mt-1 text-2xl font-bold text-slate-900">โปรแกรมการแข่งขันประจำปี</h1>
               <p className="text-sm text-slate-500 mt-1">ตั้งค่าการแข่งขัน โควตา และกำหนดการ</p>
             </div>
             {allowEdit && <button
               onClick={() => { setEditingId(null); setForm({ name: "", round: "qualifier", year: "2569", deadline: "", status: "CLOSED" }); setQuotas([]); setShowForm(true); }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               + สร้างโปรแกรมใหม่
             </button>}
+            </div>
           </div>
 
           {error && <p role="alert">{error}</p>}

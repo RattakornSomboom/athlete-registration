@@ -1,0 +1,2115 @@
+{
+  "recoveredAt": "2026-09-28T14:06:39.677Z",
+  "source": "C:/Users/kong_/.gemini/antigravity-ide/conversations/1a6a8cd1-815a-4a1b-a88f-aaa116e85726.db",
+  "method": "Read-only SQLite SELECT; generic protobuf wire decoding; field numbers retained without assumed schema; credential-pattern redaction",
+  "records": [
+    {
+      "idx": 52,
+      "stepType": 21,
+      "status": 3,
+      "payloadSha256": "2e7bda83419a775c8df8310a92f52aa94849b8d16e923b0487a219d14bb5fdc5",
+      "fields": [
+        {
+          "field": "1",
+          "value": 21
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.1.2",
+          "value": 703194100
+        },
+        {
+          "field": "5.3",
+          "value": 2
+        },
+        {
+          "field": "5.4.1",
+          "text": "call_1974084"
+        },
+        {
+          "field": "5.4.2",
+          "text": "run_command"
+        },
+        {
+          "field": "5.4.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npm run test:unit\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":15000,\"toolAction\":\"Running unit tests\",\"toolSummary\":\"Run unit tests\"}"
+        },
+        {
+          "field": "5.4.9",
+          "text": "run_command"
+        },
+        {
+          "field": "5.5",
+          "text": "BypassSandbox"
+        },
+        {
+          "field": "5.5",
+          "text": "CommandLine"
+        },
+        {
+          "field": "5.5",
+          "text": "Cwd"
+        },
+        {
+          "field": "5.5",
+          "text": "WaitMsBeforeAsync"
+        },
+        {
+          "field": "5.5",
+          "text": "toolAction"
+        },
+        {
+          "field": "5.5",
+          "text": "toolSummary"
+        },
+        {
+          "field": "5.6.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.6.2",
+          "value": 716479700
+        },
+        {
+          "field": "5.7.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.7.2",
+          "value": 716479700
+        },
+        {
+          "field": "5.8.1",
+          "value": 1790597311
+        },
+        {
+          "field": "5.8.2",
+          "value": 507715200
+        },
+        {
+          "field": "5.11",
+          "value": 1318
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.13.1",
+          "value": 1318
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 52
+        },
+        {
+          "field": "5.20.3",
+          "value": 23
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.21",
+          "value": 1
+        },
+        {
+          "field": "5.22.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.22.2",
+          "value": 716479700
+        },
+        {
+          "field": "5.23",
+          "value": 46
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 1
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 716479700
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 9
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 719495600
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 2
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597305
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 359110300
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597311
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 507715200
+        },
+        {
+          "field": "5.30",
+          "text": "Run unit tests"
+        },
+        {
+          "field": "5.31",
+          "text": "Running unit tests"
+        },
+        {
+          "field": "5.32.1",
+          "value": 1790597278
+        },
+        {
+          "field": "5.32.2",
+          "value": 718188100
+        },
+        {
+          "field": "56.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "56.21.1.2",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "56.21.2",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "56.21.3",
+          "value": 1
+        },
+        {
+          "field": "56.21.5",
+          "text": "Running unit tests"
+        },
+        {
+          "field": "56.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "56.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "133.2.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.1.2",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "133.2.2",
+          "value": 1
+        },
+        {
+          "field": "133.2.3",
+          "value": 1
+        },
+        {
+          "field": "133.2.5",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.6",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "147.1.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "147.1.21.1.2",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "147.1.21.2",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "147.1.21.3",
+          "value": 1
+        },
+        {
+          "field": "147.1.21.5",
+          "text": "Running unit tests"
+        },
+        {
+          "field": "147.1.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "147.1.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "147.2.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "147.2.2",
+          "value": 52
+        },
+        {
+          "field": "147.2.21.1",
+          "value": 1
+        },
+        {
+          "field": "147.2.21.2",
+          "value": 1
+        },
+        {
+          "field": "28.2",
+          "text": "d:\\BBN\\athlete-registration"
+        },
+        {
+          "field": "28.6",
+          "value": 0
+        },
+        {
+          "field": "28.11",
+          "value": 1
+        },
+        {
+          "field": "28.12",
+          "value": 10000
+        },
+        {
+          "field": "28.21.1",
+          "text": "\n> athlete-registration@0.1.0 test:unit\n> node --test tests/unit/*.test.mjs\n\n(node:39760) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/thailand-addresses.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ Thai address data cascades from province to postal code (4.022ms)\n✔ Thai address helpers fail closed for incomplete or unknown selections (0.5912ms)\n✔ only ADMIN with identity confirmation can reset User and legacy Club accounts (1411.4969ms)\nPhase 4 request failed Error\n✔ failed audit rolls back reset and never returns the temporary password (275.4047ms)\n✔ credential binding revokes old sessions and forces password change server-side (56.6699ms)\n✔ password change rejects reused credentials and commits flag plus audit atomically (2846.7782ms)\n✔ email reset pages, APIs and delivery implementation are removed (0.6024ms)\n✔ ADMIN cannot bypass temporary recovery through club profile password edits (63.425ms)\n✔ self-reset is rejected and a failed password-change audit preserves the temporary credential (376.8439ms)\n(node:22988) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ validateCreateUserInput accepts valid internal roles and normalizes email (2.1249ms)\n✔ validateCreateUserInput rejects missing name, short password, bad email, and athlete role (1.8244ms)\n✔ validateUpdateUserInput accepts partial updates and normalizes fields (1.8528ms)\n✔ validateUpdateUserInput rejects empty payload and invalid field types (0.6622ms)\n✔ production account policy protects self and last active admin (0.7578ms)\n✔ removed roles cannot be created or assigned (0.573ms)\n(node:15692) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/phase4-client.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ direct STAFF flow never claims club approval (2.1814ms)\n✔ club review uses recorded decisions and preserves legacy history (0.3551ms)\n✔ download inspection rejects old columns and accepts current columns without changing input (548.8545ms)\n(node:35456) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/analytics.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ analytics distinguishes applications and unique athletes across sports/statuses (3.8201ms)\n✔ empty analytics and zero quotas never produce NaN (0.8102ms)\n✔ quota accepts boundary and rejects overflow/negative (0.2968ms)\n✔ official approval cannot skip club, or repeat review (0.2918ms)\n✔ official profile requires actual required fields and other position detail (2.7929ms)\n✔ Prisma and PostgreSQL commit conflicts map to 409 without masking other errors (0.5337ms)\n(node:38068) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n✔ JSON rejects malformed, null, arrays and primitive payloads (47.1145ms)\n✔ Login validates types and normalizes identifier without trimming password (0.6301ms)\n✔ Email normalization rejects non-email values (0.4649ms)\n✔ Profile create requires complete fields; partial update preserves unspecified values (3.0746ms)\n✔ Profile rejects forbidden fields, invalid dates, enums and types (0.7969ms)\n✔ HTTP mapping distinguishes auth, permission, conflict, server and invalid responses (2.6578ms)\n(node:40580) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///D:/BBN/athlete-registration/lib/validation.ts is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to D:\\BBN\\athlete-registration\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\nPhase 4 request failed Error\n✔ competition validation rejects duplicate sports, malformed integers, invalid status/date (3.088ms)\n✔ application input rejects self approval, malformed numbers and nested entries (0.4974ms)\n✔ document references never accept arbitrary URLs and responses hide legacy public links (0.3024ms)\n✔ dev and superadmin routes are absent (0.1883ms)\n✔ session checks reject legacy roles/dev identity and validate current CLUB associations (137.4453ms)\n✔ public registration rejects privileged roles and malformed payloads before DB access (100.6405ms)\n✔ competition mutations reject STAFF and CLUB before database access (163.7393ms)\n✔ CLUB scope intersects competition/sport filters, rejects forged club and missing association (23.3697ms)\n✔ CLUB scope excludes unrostered applications from other athletes (regression: rosterItem null) (18.9209ms)\n✔ STAFF/ADMIN club filter retains rosterItem:null for broader view (42.3761ms)\n✔ CLUB canReadDocument rejects documents from unrostered applications in same sport (32.7236ms)\n✔ CLUB GET application/[id] rejects unrostered applications and other clubs (36.4486ms)\n✔ club filters distinguish missing clubs from forbidden club scope and inactive clubs (115.3481ms)\n✔ search and status filters reach the database query (18.0888ms)\n✔ publication requires competition and rejects mixed/stale IDs atomically (33.411ms)\n✔ staff reviews submitted applications; athletes cannot approve themselves and repeat review fails (32.1228ms)\n✔ a failed transaction commit never produces review success (26.3441ms)\n✔ document deletion checks owner and retention for every allowed role (126.4839ms)\n✔ public buckets fail closed before signing private document URLs (19.5066ms)\n✔ submitted documents must belong to the athlete and be ready (67.9142ms)\n✔ application transaction enforces open competition, deadline, sport membership and duplicates (89.3916ms)\nℹ tests 51\nℹ suites 0\nℹ pass 51\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 5400.9848\n"
+        },
+        {
+          "field": "28.23",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "28.25",
+          "text": "npm run test:unit"
+        },
+        {
+          "field": "28.27",
+          "value": 1
+        },
+        {
+          "field": "28.31",
+          "text": "powershell"
+        }
+      ]
+    },
+    {
+      "idx": 54,
+      "stepType": 21,
+      "status": 3,
+      "payloadSha256": "13e2e74c2e2ce5e5f1c7dcd5661ff7bf1d9abb5559cc8e88afcc1a5e3114952a",
+      "fields": [
+        {
+          "field": "1",
+          "value": 21
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.1.2",
+          "value": 230195800
+        },
+        {
+          "field": "5.3",
+          "value": 2
+        },
+        {
+          "field": "5.4.1",
+          "text": "call_937044"
+        },
+        {
+          "field": "5.4.2",
+          "text": "run_command"
+        },
+        {
+          "field": "5.4.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npx tsc --noEmit\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":15000,\"toolAction\":\"Running TypeScript check\",\"toolSummary\":\"Run tsc\"}"
+        },
+        {
+          "field": "5.4.9",
+          "text": "run_command"
+        },
+        {
+          "field": "5.5",
+          "text": "BypassSandbox"
+        },
+        {
+          "field": "5.5",
+          "text": "CommandLine"
+        },
+        {
+          "field": "5.5",
+          "text": "Cwd"
+        },
+        {
+          "field": "5.5",
+          "text": "WaitMsBeforeAsync"
+        },
+        {
+          "field": "5.5",
+          "text": "toolAction"
+        },
+        {
+          "field": "5.5",
+          "text": "toolSummary"
+        },
+        {
+          "field": "5.6.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.6.2",
+          "value": 247423400
+        },
+        {
+          "field": "5.7.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.7.2",
+          "value": 247423400
+        },
+        {
+          "field": "5.8.1",
+          "value": 1790597333
+        },
+        {
+          "field": "5.8.2",
+          "value": 617608800
+        },
+        {
+          "field": "5.11",
+          "value": 1318
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.13.1",
+          "value": 1318
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 54
+        },
+        {
+          "field": "5.20.3",
+          "value": 24
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.21",
+          "value": 1
+        },
+        {
+          "field": "5.22.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.22.2",
+          "value": 247423400
+        },
+        {
+          "field": "5.23",
+          "value": 45
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 1
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 247423400
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 9
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 259307200
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 2
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597330
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 755293600
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597333
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 617608800
+        },
+        {
+          "field": "5.30",
+          "text": "Run tsc"
+        },
+        {
+          "field": "5.31",
+          "text": "Running TypeScript check"
+        },
+        {
+          "field": "5.32.1",
+          "value": 1790597314
+        },
+        {
+          "field": "5.32.2",
+          "value": 258759000
+        },
+        {
+          "field": "56.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "56.21.1.2",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "56.21.2",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "56.21.3",
+          "value": 1
+        },
+        {
+          "field": "56.21.5",
+          "text": "Running TypeScript check"
+        },
+        {
+          "field": "56.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "56.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "133.2.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.1.2",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "133.2.2",
+          "value": 1
+        },
+        {
+          "field": "133.2.3",
+          "value": 1
+        },
+        {
+          "field": "133.2.5",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.6",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "147.1.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "147.1.21.1.2",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "147.1.21.2",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "147.1.21.3",
+          "value": 1
+        },
+        {
+          "field": "147.1.21.5",
+          "text": "Running TypeScript check"
+        },
+        {
+          "field": "147.1.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "147.1.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "147.2.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "147.2.2",
+          "value": 54
+        },
+        {
+          "field": "147.2.21.1",
+          "value": 1
+        },
+        {
+          "field": "147.2.21.2",
+          "value": 1
+        },
+        {
+          "field": "28.2",
+          "text": "d:\\BBN\\athlete-registration"
+        },
+        {
+          "field": "28.6",
+          "value": 0
+        },
+        {
+          "field": "28.11",
+          "value": 1
+        },
+        {
+          "field": "28.12",
+          "value": 10000
+        },
+        {
+          "field": "28.23",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "28.25",
+          "text": "npx tsc --noEmit"
+        },
+        {
+          "field": "28.27",
+          "value": 1
+        },
+        {
+          "field": "28.31",
+          "text": "powershell"
+        }
+      ]
+    },
+    {
+      "idx": 56,
+      "stepType": 21,
+      "status": 3,
+      "payloadSha256": "b2a0af5584d16b19ea2fa27b50ac4d639412f807cd75300d9e7474819abacdbd",
+      "fields": [
+        {
+          "field": "1",
+          "value": 21
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.1.2",
+          "value": 181999900
+        },
+        {
+          "field": "5.3",
+          "value": 2
+        },
+        {
+          "field": "5.4.1",
+          "text": "call_1280686"
+        },
+        {
+          "field": "5.4.2",
+          "text": "run_command"
+        },
+        {
+          "field": "5.4.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npm run lint\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":15000,\"toolAction\":\"Running linter\",\"toolSummary\":\"Run lint\"}"
+        },
+        {
+          "field": "5.4.9",
+          "text": "run_command"
+        },
+        {
+          "field": "5.5",
+          "text": "BypassSandbox"
+        },
+        {
+          "field": "5.5",
+          "text": "CommandLine"
+        },
+        {
+          "field": "5.5",
+          "text": "Cwd"
+        },
+        {
+          "field": "5.5",
+          "text": "WaitMsBeforeAsync"
+        },
+        {
+          "field": "5.5",
+          "text": "toolAction"
+        },
+        {
+          "field": "5.5",
+          "text": "toolSummary"
+        },
+        {
+          "field": "5.6.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.6.2",
+          "value": 196385400
+        },
+        {
+          "field": "5.7.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.7.2",
+          "value": 196385400
+        },
+        {
+          "field": "5.8.1",
+          "value": 1790597366
+        },
+        {
+          "field": "5.8.2",
+          "value": 386740700
+        },
+        {
+          "field": "5.11",
+          "value": 1318
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.13.1",
+          "value": 1318
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 56
+        },
+        {
+          "field": "5.20.3",
+          "value": 25
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.21",
+          "value": 1
+        },
+        {
+          "field": "5.22.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.22.2",
+          "value": 196385400
+        },
+        {
+          "field": "5.23",
+          "value": 42
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 1
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 196385400
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 9
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 199343500
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 2
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597352
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 57276200
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597366
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 386740700
+        },
+        {
+          "field": "5.30",
+          "text": "Run lint"
+        },
+        {
+          "field": "5.31",
+          "text": "Running linter"
+        },
+        {
+          "field": "5.32.1",
+          "value": 1790597337
+        },
+        {
+          "field": "5.32.2",
+          "value": 198718100
+        },
+        {
+          "field": "56.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "56.21.1.2",
+          "text": "npm run lint"
+        },
+        {
+          "field": "56.21.2",
+          "text": "npm run lint"
+        },
+        {
+          "field": "56.21.3",
+          "value": 1
+        },
+        {
+          "field": "56.21.5",
+          "text": "Running linter"
+        },
+        {
+          "field": "56.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "56.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "133.2.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.1.2",
+          "text": "npm run lint"
+        },
+        {
+          "field": "133.2.2",
+          "value": 1
+        },
+        {
+          "field": "133.2.3",
+          "value": 1
+        },
+        {
+          "field": "133.2.5",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.6",
+          "text": "npm run lint"
+        },
+        {
+          "field": "147.1.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "147.1.21.1.2",
+          "text": "npm run lint"
+        },
+        {
+          "field": "147.1.21.2",
+          "text": "npm run lint"
+        },
+        {
+          "field": "147.1.21.3",
+          "value": 1
+        },
+        {
+          "field": "147.1.21.5",
+          "text": "Running linter"
+        },
+        {
+          "field": "147.1.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "147.1.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "147.2.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "147.2.2",
+          "value": 56
+        },
+        {
+          "field": "147.2.21.1",
+          "value": 1
+        },
+        {
+          "field": "147.2.21.2",
+          "value": 1
+        },
+        {
+          "field": "148.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56"
+        },
+        {
+          "field": "148.2",
+          "text": "file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-56.log"
+        },
+        {
+          "field": "148.4",
+          "text": "npm run lint"
+        },
+        {
+          "field": "148.5",
+          "value": 1
+        },
+        {
+          "field": "28.2",
+          "text": "d:\\BBN\\athlete-registration"
+        },
+        {
+          "field": "28.6",
+          "value": 0
+        },
+        {
+          "field": "28.12",
+          "value": 10000
+        },
+        {
+          "field": "28.21",
+          "text": "\n-\n> athlete-registration@0.1.0 lint\n> eslint\n\n"
+        },
+        {
+          "field": "28.23",
+          "text": "npm run lint"
+        },
+        {
+          "field": "28.25",
+          "text": "npm run lint"
+        },
+        {
+          "field": "28.26",
+          "text": "\n-\n> athlete-registration@0.1.0 lint\n> eslint\n\n"
+        },
+        {
+          "field": "28.27",
+          "value": 1
+        },
+        {
+          "field": "28.31",
+          "text": "powershell"
+        }
+      ]
+    },
+    {
+      "idx": 61,
+      "stepType": 101,
+      "status": 3,
+      "payloadSha256": "78fef79e11c3cb69ad32d82ee3041d9002c2625ee56c87bde76911db2fde4466",
+      "fields": [
+        {
+          "field": "1",
+          "value": 101
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597367
+        },
+        {
+          "field": "5.1.2",
+          "value": 239839700
+        },
+        {
+          "field": "5.3",
+          "value": 5
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 61
+        },
+        {
+          "field": "5.20.3",
+          "value": 28
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597367
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 239839700
+        },
+        {
+          "field": "5.33",
+          "value": 1
+        },
+        {
+          "field": "114.1",
+          "text": "[Message] timestamp=2026-09-28T12:09:26Z sender=1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56 priority=MESSAGE_PRIORITY_HIGH content=Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 lint\n> eslint\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-56.log"
+        },
+        {
+          "field": "114.2.1",
+          "text": "Run lint finished"
+        },
+        {
+          "field": "114.2.2",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 lint\n> eslint\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-56.log"
+        },
+        {
+          "field": "114.3",
+          "text": "task_notification"
+        },
+        {
+          "field": "114.4.1",
+          "text": "430ca985-b7f2-4fb9-ac45-be523bd346e1"
+        },
+        {
+          "field": "114.4.2",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.3",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56"
+        },
+        {
+          "field": "114.4.5",
+          "value": 3
+        },
+        {
+          "field": "114.4.6.1",
+          "value": 1790597366
+        },
+        {
+          "field": "114.4.6.2",
+          "value": 388461400
+        },
+        {
+          "field": "114.4.10.1",
+          "text": "Run lint finished"
+        },
+        {
+          "field": "114.4.12.1.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.12.1.2",
+          "value": 56
+        },
+        {
+          "field": "114.4.12.1.3.1",
+          "text": "call_1280686"
+        },
+        {
+          "field": "114.4.12.1.3.2",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.12.1.3.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npm run lint\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":15000,\"toolAction\":\"Running linter\",\"toolSummary\":\"Run lint\"}"
+        },
+        {
+          "field": "114.4.12.1.3.9",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.4",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-56\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 lint\n> eslint\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-56.log"
+        }
+      ]
+    },
+    {
+      "idx": 63,
+      "stepType": 21,
+      "status": 3,
+      "payloadSha256": "8a0e7f0d391913f5720dd47e1ab7e2693f6723884dd0bd43541a5198987252a3",
+      "fields": [
+        {
+          "field": "1",
+          "value": 21
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597370
+        },
+        {
+          "field": "5.1.2",
+          "value": 990184000
+        },
+        {
+          "field": "5.3",
+          "value": 2
+        },
+        {
+          "field": "5.4.1",
+          "text": "call_1231860"
+        },
+        {
+          "field": "5.4.2",
+          "text": "run_command"
+        },
+        {
+          "field": "5.4.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npm run build\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":25000,\"toolAction\":\"Building project\",\"toolSummary\":\"Build project\"}"
+        },
+        {
+          "field": "5.4.9",
+          "text": "run_command"
+        },
+        {
+          "field": "5.5",
+          "text": "BypassSandbox"
+        },
+        {
+          "field": "5.5",
+          "text": "CommandLine"
+        },
+        {
+          "field": "5.5",
+          "text": "Cwd"
+        },
+        {
+          "field": "5.5",
+          "text": "WaitMsBeforeAsync"
+        },
+        {
+          "field": "5.5",
+          "text": "toolAction"
+        },
+        {
+          "field": "5.5",
+          "text": "toolSummary"
+        },
+        {
+          "field": "5.6.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.6.2",
+          "value": 6321100
+        },
+        {
+          "field": "5.7.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.7.2",
+          "value": 6321100
+        },
+        {
+          "field": "5.8.1",
+          "value": 1790597413
+        },
+        {
+          "field": "5.8.2",
+          "value": 926187600
+        },
+        {
+          "field": "5.11",
+          "value": 1318
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.13.1",
+          "value": 1318
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 63
+        },
+        {
+          "field": "5.20.3",
+          "value": 28
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.21",
+          "value": 1
+        },
+        {
+          "field": "5.22.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.22.2",
+          "value": 6321100
+        },
+        {
+          "field": "5.23",
+          "value": 44
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 1
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 6321100
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 9
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 9051700
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 2
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597394
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 28474600
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597413
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 926187600
+        },
+        {
+          "field": "5.30",
+          "text": "Build project"
+        },
+        {
+          "field": "5.31",
+          "text": "Building project"
+        },
+        {
+          "field": "5.32.1",
+          "value": 1790597371
+        },
+        {
+          "field": "5.32.2",
+          "value": 8516600
+        },
+        {
+          "field": "56.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "56.21.1.2",
+          "text": "npm run build"
+        },
+        {
+          "field": "56.21.2",
+          "text": "npm run build"
+        },
+        {
+          "field": "56.21.3",
+          "value": 1
+        },
+        {
+          "field": "56.21.5",
+          "text": "Building project"
+        },
+        {
+          "field": "56.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "56.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "133.2.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.1.2",
+          "text": "npm run build"
+        },
+        {
+          "field": "133.2.2",
+          "value": 1
+        },
+        {
+          "field": "133.2.3",
+          "value": 1
+        },
+        {
+          "field": "133.2.5",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.6",
+          "text": "npm run build"
+        },
+        {
+          "field": "147.1.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "147.1.21.1.2",
+          "text": "npm run build"
+        },
+        {
+          "field": "147.1.21.2",
+          "text": "npm run build"
+        },
+        {
+          "field": "147.1.21.3",
+          "value": 1
+        },
+        {
+          "field": "147.1.21.5",
+          "text": "Building project"
+        },
+        {
+          "field": "147.1.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "147.1.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "147.2.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "147.2.2",
+          "value": 63
+        },
+        {
+          "field": "147.2.21.1",
+          "value": 1
+        },
+        {
+          "field": "147.2.21.2",
+          "value": 1
+        },
+        {
+          "field": "148.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63"
+        },
+        {
+          "field": "148.2",
+          "text": "file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-63.log"
+        },
+        {
+          "field": "148.4",
+          "text": "npm run build"
+        },
+        {
+          "field": "148.5",
+          "value": 1
+        },
+        {
+          "field": "28.2",
+          "text": "d:\\BBN\\athlete-registration"
+        },
+        {
+          "field": "28.6",
+          "value": 0
+        },
+        {
+          "field": "28.12",
+          "value": 10000
+        },
+        {
+          "field": "28.21.1",
+          "text": "\n> athlete-registration@0.1.0 build\n> next build\n\n▲ Next.js 16.2.6 (Turbopack)\n- Environments: .env\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 7.5s\n  Running TypeScript ...\n  Finished TypeScript in 6.9s ...\n  Collecting page data using 19 workers ...\n  Generating static pages using 19 workers (0/62) ...\n  Generating static pages using 19 workers (15/62) \r\n  Generating static pages using 19 workers (30/62) \r\n  Generating static pages using 19 workers (46/62) \r\n✓ Generating static pages using 19 workers (62/62) in 889ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ○ /\n├ ○ /admin\n├ ○ /admin/clubs\n├ ○ /admin/competitions\n├ ○ /admin/users\n├ ƒ /api/activities\n├ ƒ /api/activities/[id]\n├ ƒ /api/admin/clubs/[id]/approve\n├ ƒ /api/admin/clubs/[id]/president\n├ ƒ /api/admin/clubs/[id]/reset-password\n├ ƒ /api/admin/users\n├ ƒ /api/admin/users/[id]\n├ ƒ /api/admin/users/[id]/reset-password\n├ ƒ /api/admin/users/[id]/role\n├ ƒ /api/admin/users/[id]/status\n├ ƒ /api/applications\n├ ƒ /api/applications/[id]\n├ ƒ /api/applications/[id]/documents/[field]\n├ ƒ /api/athletes/profile\n├ ƒ /api/auth/login\n├ ƒ /api/auth/logout\n├ ƒ /api/auth/me\n├ ƒ /api/auth/password\n├ ƒ /api/auth/register\n├ ƒ /api/auth/register-official\n├ ƒ /api/club/officials\n├ ƒ /api/club/rosters\n├ ƒ /api/clubs\n├ ƒ /api/clubs/[id]\n├ ƒ /api/clubs/[id]/athletes\n├ ƒ /api/clubs/[id]/competitions\n├ ƒ /api/clubs/requests\n├ ƒ /api/club/training\n├ ƒ /api/competitions\n├ ƒ /api/competitions/[id]\n├ ƒ /api/documents\n├ ƒ /api/documents/[id]\n├ ƒ /api/documents/[id]/download\n├ ƒ /api/export/applications\n├ ƒ /api/staff/analytics\n├ ƒ /api/staff/applications\n├ ƒ /api/staff/applications/announce\n├ ƒ /api/staff/import\n├ ƒ /api/staff/officials\n├ ƒ /api/staff/requests\n├ ƒ /api/staff/requests/[id]\n├ ƒ /api/staff/rosters\n├ ƒ /api/staff/settings\n├ ƒ /api/staff/snapshots\n├ ƒ /api/staff/snapshots/[id]\n├ ƒ /api/stats/dashboard\n├ ƒ /api/team-official/applications\n├ ƒ /api/upload\n├ ƒ /athlete/[id]\n├ ○ /athlete/register\n├ ○ /athlete/status\n├ ○ /change-password\n├ ○ /club/activities\n├ ○ /club/activities/new\n├ ○ /club/athletes\n├ ○ /club/officials\n├ ○ /club/requests\n├ ○ /club/requests/new\n├ ○ /club/review\n├ ○ /club/training\n├ ○ /login\n├ ○ /_not-found\n├ ○ /staff/activities\n├ ƒ /staff/activities/[id]\n├ ○ /staff/analytics\n├ ƒ /staff/applicants/[id]\n├ ○ /staff/applications\n├ ƒ /staff/applications/[clubId]\n├ ƒ /staff/applications/[clubId]/[competitionId]\n├ ○ /staff/competitions\n├ ○ /staff/officials\n├ ○ /staff/requests\n├ ○ /staff/rosters\n├ ○ /staff/selection\n├ ○ /staff/settings\n├ ○ /team-official/register\n├ ○ /team-official/signup\n└ ○ /team-official/status\n\n\nƒ Proxy (Middleware)\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n"
+        },
+        {
+          "field": "28.23",
+          "text": "npm run build"
+        },
+        {
+          "field": "28.25",
+          "text": "npm run build"
+        },
+        {
+          "field": "28.26.1",
+          "text": "\n> athlete-registration@0.1.0 build\n> next build\n\n▲ Next.js 16.2.6 (Turbopack)\n- Environments: .env\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 7.5s\n  Running TypeScript ...\n"
+        },
+        {
+          "field": "28.27",
+          "value": 1
+        },
+        {
+          "field": "28.31",
+          "text": "powershell"
+        }
+      ]
+    },
+    {
+      "idx": 69,
+      "stepType": 101,
+      "status": 3,
+      "payloadSha256": "b3702001bb74b8a257a2a00e36f5d42bede6b684bc73d0cbe69ede8265fea497",
+      "fields": [
+        {
+          "field": "1",
+          "value": 101
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790597414
+        },
+        {
+          "field": "5.1.2",
+          "value": 744621800
+        },
+        {
+          "field": "5.3",
+          "value": 5
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 69
+        },
+        {
+          "field": "5.20.3",
+          "value": 31
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790597414
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 744621800
+        },
+        {
+          "field": "5.33",
+          "value": 1
+        },
+        {
+          "field": "114.1",
+          "text": "[Message] timestamp=2026-09-28T12:10:13Z sender=1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63 priority=MESSAGE_PRIORITY_HIGH content=Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 build\n> next build\n\n▲ Next.js 16.2.6 (Turbopack)\n- Environments: .env\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 7.5s\n  Running TypeScript ...\n  Finished TypeScript in 6.9s ...\n  Collecting page data using 19 workers ...\n  Generating static pages using 19 workers (0/62) ...\n  Generating static pages using 19 workers (15/62) \r\n  Generating static pages using 19 workers (30/62) \r\n  Generating static pages using 19 workers (46/62) \r\n✓ Generating static pages using 19 workers (62/62) in 889ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ○ /\n├ ○ /admin\n├ ○ /admin/clubs\n├ ○ /admin/competitions\n├ ○ /admin/users\n├ ƒ /api/activities\n├ ƒ /api/activities/[id]\n├ ƒ /api/admin/clubs/[id]/approve\n├ ƒ /api/admin/clubs/[id]/president\n├ ƒ /api/admin/clubs/[id]/reset-password\n├ ƒ /api/admin/users\n├ ƒ /api/admin/users/[id]\n├ ƒ /api/admin/users/[id]/reset-password\n├ ƒ /api/admin/users/[id]/role\n├ ƒ /api/admin/users/[id]/status\n├ ƒ /api/applications\n├ ƒ /api/applications/[id]\n├ ƒ /api/applications/[id]/documents/[field]\n├ ƒ /api/athletes/profile\n├ ƒ /api/auth/login\n├ ƒ /api/auth/logout\n├ ƒ /api/auth/me\n├ ƒ /api/auth/password\n├ ƒ /api/auth/register\n├ ƒ /api/auth/register-official\n├ ƒ /api/club/officials\n├ ƒ /api/club/rosters\n├ ƒ /api/clubs\n├ ƒ /api/clubs/[id]\n├ ƒ /api/clubs/[id]/athletes\n├ ƒ /api/clubs/[id]/competitions\n├ ƒ /api/clubs/requests\n├ ƒ /api/club/training\n├ ƒ /api/competitions\n├ ƒ /api/competitions/[id]\n├ ƒ /api/documents\n├ ƒ /api/documents/[id]\n├ ƒ /api/documents/[id]/download\n├ ƒ /api/export/applications\n├ ƒ /api/staff/analytics\n├ ƒ /api/staff/applications\n├ ƒ /api/staff/applications/announce\n├ ƒ /api/staff/import\n├ ƒ /api/staff/officials\n├ ƒ /api/staff/requests\n├ ƒ /api/staff/requests/[id]\n├ ƒ /api/staff/rosters\n├ ƒ /api/staff/settings\n├ ƒ /api/staff/snapshots\n├ ƒ /api/staff/snapshots/[id]\n├ ƒ /api/stats/dashboard\n├ ƒ /api/team-official/applications\n├ ƒ /api/upload\n├ ƒ /athlete/[id]\n├ ○ /athlete/register\n├ ○ /athlete/status\n├ ○ /change-password\n├ ○ /club/activities\n├ ○ /club/activities/new\n├ ○ /club/athletes\n├ ○ /club/officials\n├ ○ /club/requests\n├ ○ /club/requests/new\n├ ○ /club/review\n├ ○ /club/training\n├ ○ /login\n├ ○ /_not-found\n├ ○ /staff/activities\n├ ƒ /staff/activities/[id]\n├ ○ /staff/analytics\n├ ƒ /staff/applicants/[id]\n├ ○ /staff/applications\n├ ƒ /staff/applications/[clubId]\n├ ƒ /staff/applications/[clubId]/[competitionId]\n├ ○ /staff/competitions\n├ ○ /staff/officials\n├ ○ /staff/requests\n├ ○ /staff/rosters\n├ ○ /staff/selection\n├ ○ /staff/settings\n├ ○ /team-official/register\n├ ○ /team-official/signup\n└ ○ /team-official/status\n\n\nƒ Proxy (Middleware)\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-63.log"
+        },
+        {
+          "field": "114.2.1",
+          "text": "Build project finished"
+        },
+        {
+          "field": "114.2.2",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 build\n> next build\n\n▲ Next.js 16.2.6 (Turbopack)\n- Environments: .env\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 7.5s\n  Running TypeScript ...\n  Finished TypeScript in 6.9s ...\n  Collecting page data using 19 workers ...\n  Generating static pages using 19 workers (0/62) ...\n  Generating static pages using 19 workers (15/62) \r\n  Generating static pages using 19 workers (30/62) \r\n  Generating static pages using 19 workers (46/62) \r\n✓ Generating static pages using 19 workers (62/62) in 889ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ○ /\n├ ○ /admin\n├ ○ /admin/clubs\n├ ○ /admin/competitions\n├ ○ /admin/users\n├ ƒ /api/activities\n├ ƒ /api/activities/[id]\n├ ƒ /api/admin/clubs/[id]/approve\n├ ƒ /api/admin/clubs/[id]/president\n├ ƒ /api/admin/clubs/[id]/reset-password\n├ ƒ /api/admin/users\n├ ƒ /api/admin/users/[id]\n├ ƒ /api/admin/users/[id]/reset-password\n├ ƒ /api/admin/users/[id]/role\n├ ƒ /api/admin/users/[id]/status\n├ ƒ /api/applications\n├ ƒ /api/applications/[id]\n├ ƒ /api/applications/[id]/documents/[field]\n├ ƒ /api/athletes/profile\n├ ƒ /api/auth/login\n├ ƒ /api/auth/logout\n├ ƒ /api/auth/me\n├ ƒ /api/auth/password\n├ ƒ /api/auth/register\n├ ƒ /api/auth/register-official\n├ ƒ /api/club/officials\n├ ƒ /api/club/rosters\n├ ƒ /api/clubs\n├ ƒ /api/clubs/[id]\n├ ƒ /api/clubs/[id]/athletes\n├ ƒ /api/clubs/[id]/competitions\n├ ƒ /api/clubs/requests\n├ ƒ /api/club/training\n├ ƒ /api/competitions\n├ ƒ /api/competitions/[id]\n├ ƒ /api/documents\n├ ƒ /api/documents/[id]\n├ ƒ /api/documents/[id]/download\n├ ƒ /api/export/applications\n├ ƒ /api/staff/analytics\n├ ƒ /api/staff/applications\n├ ƒ /api/staff/applications/announce\n├ ƒ /api/staff/import\n├ ƒ /api/staff/officials\n├ ƒ /api/staff/requests\n├ ƒ /api/staff/requests/[id]\n├ ƒ /api/staff/rosters\n├ ƒ /api/staff/settings\n├ ƒ /api/staff/snapshots\n├ ƒ /api/staff/snapshots/[id]\n├ ƒ /api/stats/dashboard\n├ ƒ /api/team-official/applications\n├ ƒ /api/upload\n├ ƒ /athlete/[id]\n├ ○ /athlete/register\n├ ○ /athlete/status\n├ ○ /change-password\n├ ○ /club/activities\n├ ○ /club/activities/new\n├ ○ /club/athletes\n├ ○ /club/officials\n├ ○ /club/requests\n├ ○ /club/requests/new\n├ ○ /club/review\n├ ○ /club/training\n├ ○ /login\n├ ○ /_not-found\n├ ○ /staff/activities\n├ ƒ /staff/activities/[id]\n├ ○ /staff/analytics\n├ ƒ /staff/applicants/[id]\n├ ○ /staff/applications\n├ ƒ /staff/applications/[clubId]\n├ ƒ /staff/applications/[clubId]/[competitionId]\n├ ○ /staff/competitions\n├ ○ /staff/officials\n├ ○ /staff/requests\n├ ○ /staff/rosters\n├ ○ /staff/selection\n├ ○ /staff/settings\n├ ○ /team-official/register\n├ ○ /team-official/signup\n└ ○ /team-official/status\n\n\nƒ Proxy (Middleware)\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-63.log"
+        },
+        {
+          "field": "114.3",
+          "text": "task_notification"
+        },
+        {
+          "field": "114.4.1",
+          "text": "f3ccdc05-3ece-4558-ad50-b95723aecf87"
+        },
+        {
+          "field": "114.4.2",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.3",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63"
+        },
+        {
+          "field": "114.4.5",
+          "value": 3
+        },
+        {
+          "field": "114.4.6.1",
+          "value": 1790597413
+        },
+        {
+          "field": "114.4.6.2",
+          "value": 933059700
+        },
+        {
+          "field": "114.4.10.1",
+          "text": "Build project finished"
+        },
+        {
+          "field": "114.4.12.1.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.12.1.2",
+          "value": 63
+        },
+        {
+          "field": "114.4.12.1.3.1",
+          "text": "call_1231860"
+        },
+        {
+          "field": "114.4.12.1.3.2",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.12.1.3.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"npm run build\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":25000,\"toolAction\":\"Building project\",\"toolSummary\":\"Build project\"}"
+        },
+        {
+          "field": "114.4.12.1.3.9",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.4",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-63\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t\n> athlete-registration@0.1.0 build\n> next build\n\n▲ Next.js 16.2.6 (Turbopack)\n- Environments: .env\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 7.5s\n  Running TypeScript ...\n  Finished TypeScript in 6.9s ...\n  Collecting page data using 19 workers ...\n  Generating static pages using 19 workers (0/62) ...\n  Generating static pages using 19 workers (15/62) \r\n  Generating static pages using 19 workers (30/62) \r\n  Generating static pages using 19 workers (46/62) \r\n✓ Generating static pages using 19 workers (62/62) in 889ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ○ /\n├ ○ /admin\n├ ○ /admin/clubs\n├ ○ /admin/competitions\n├ ○ /admin/users\n├ ƒ /api/activities\n├ ƒ /api/activities/[id]\n├ ƒ /api/admin/clubs/[id]/approve\n├ ƒ /api/admin/clubs/[id]/president\n├ ƒ /api/admin/clubs/[id]/reset-password\n├ ƒ /api/admin/users\n├ ƒ /api/admin/users/[id]\n├ ƒ /api/admin/users/[id]/reset-password\n├ ƒ /api/admin/users/[id]/role\n├ ƒ /api/admin/users/[id]/status\n├ ƒ /api/applications\n├ ƒ /api/applications/[id]\n├ ƒ /api/applications/[id]/documents/[field]\n├ ƒ /api/athletes/profile\n├ ƒ /api/auth/login\n├ ƒ /api/auth/logout\n├ ƒ /api/auth/me\n├ ƒ /api/auth/password\n├ ƒ /api/auth/register\n├ ƒ /api/auth/register-official\n├ ƒ /api/club/officials\n├ ƒ /api/club/rosters\n├ ƒ /api/clubs\n├ ƒ /api/clubs/[id]\n├ ƒ /api/clubs/[id]/athletes\n├ ƒ /api/clubs/[id]/competitions\n├ ƒ /api/clubs/requests\n├ ƒ /api/club/training\n├ ƒ /api/competitions\n├ ƒ /api/competitions/[id]\n├ ƒ /api/documents\n├ ƒ /api/documents/[id]\n├ ƒ /api/documents/[id]/download\n├ ƒ /api/export/applications\n├ ƒ /api/staff/analytics\n├ ƒ /api/staff/applications\n├ ƒ /api/staff/applications/announce\n├ ƒ /api/staff/import\n├ ƒ /api/staff/officials\n├ ƒ /api/staff/requests\n├ ƒ /api/staff/requests/[id]\n├ ƒ /api/staff/rosters\n├ ƒ /api/staff/settings\n├ ƒ /api/staff/snapshots\n├ ƒ /api/staff/snapshots/[id]\n├ ƒ /api/stats/dashboard\n├ ƒ /api/team-official/applications\n├ ƒ /api/upload\n├ ƒ /athlete/[id]\n├ ○ /athlete/register\n├ ○ /athlete/status\n├ ○ /change-password\n├ ○ /club/activities\n├ ○ /club/activities/new\n├ ○ /club/athletes\n├ ○ /club/officials\n├ ○ /club/requests\n├ ○ /club/requests/new\n├ ○ /club/review\n├ ○ /club/training\n├ ○ /login\n├ ○ /_not-found\n├ ○ /staff/activities\n├ ƒ /staff/activities/[id]\n├ ○ /staff/analytics\n├ ƒ /staff/applicants/[id]\n├ ○ /staff/applications\n├ ƒ /staff/applications/[clubId]\n├ ƒ /staff/applications/[clubId]/[competitionId]\n├ ○ /staff/competitions\n├ ○ /staff/officials\n├ ○ /staff/requests\n├ ○ /staff/rosters\n├ ○ /staff/selection\n├ ○ /staff/settings\n├ ○ /team-official/register\n├ ○ /team-official/signup\n└ ○ /team-official/status\n\n\nƒ Proxy (Middleware)\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-63.log"
+        }
+      ]
+    },
+    {
+      "idx": 112,
+      "stepType": 21,
+      "status": 3,
+      "payloadSha256": "0b9948cda9db781c488c0239534f437eed0bac370592605e2f76cb5812353a4f",
+      "fields": [
+        {
+          "field": "1",
+          "value": 21
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.1.2",
+          "value": 87769000
+        },
+        {
+          "field": "5.3",
+          "value": 2
+        },
+        {
+          "field": "5.4.1",
+          "text": "call_2097441"
+        },
+        {
+          "field": "5.4.2",
+          "text": "run_command"
+        },
+        {
+          "field": "5.4.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"$env:TEST_ALLOW_WRITE=\\\"yes\\\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2\\u003e\\u00261 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\\\"no\\\"\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Running full integration test suite\",\"toolSummary\":\"Run full integration suite\"}"
+        },
+        {
+          "field": "5.4.9",
+          "text": "run_command"
+        },
+        {
+          "field": "5.5",
+          "text": "BypassSandbox"
+        },
+        {
+          "field": "5.5",
+          "text": "CommandLine"
+        },
+        {
+          "field": "5.5",
+          "text": "Cwd"
+        },
+        {
+          "field": "5.5",
+          "text": "WaitMsBeforeAsync"
+        },
+        {
+          "field": "5.5",
+          "text": "toolAction"
+        },
+        {
+          "field": "5.5",
+          "text": "toolSummary"
+        },
+        {
+          "field": "5.6.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.6.2",
+          "value": 107062800
+        },
+        {
+          "field": "5.7.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.7.2",
+          "value": 107062800
+        },
+        {
+          "field": "5.8.1",
+          "value": 1790598405
+        },
+        {
+          "field": "5.8.2",
+          "value": 281904400
+        },
+        {
+          "field": "5.11",
+          "value": 1318
+        },
+        {
+          "field": "5.12",
+          "text": "7a0ce025-0cb5-4126-8738-b618f711ce57"
+        },
+        {
+          "field": "5.13.1",
+          "value": 1318
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 112
+        },
+        {
+          "field": "5.20.3",
+          "value": 51
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.21",
+          "value": 1
+        },
+        {
+          "field": "5.22.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.22.2",
+          "value": 107062800
+        },
+        {
+          "field": "5.23",
+          "value": 116
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 1
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 107062800
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 9
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 114912800
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 2
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790598308
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 25327600
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790598405
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 281904400
+        },
+        {
+          "field": "5.30",
+          "text": "Run full integration suite"
+        },
+        {
+          "field": "5.31",
+          "text": "Running full integration test suite"
+        },
+        {
+          "field": "5.32.1",
+          "value": 1790598303
+        },
+        {
+          "field": "5.32.2",
+          "value": 114208300
+        },
+        {
+          "field": "56.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "56.21.1.2",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "56.21.2",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "56.21.3",
+          "value": 1
+        },
+        {
+          "field": "56.21.5",
+          "text": "Running full integration test suite"
+        },
+        {
+          "field": "56.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "56.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "133.2.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.1.2",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "133.2.2",
+          "value": 1
+        },
+        {
+          "field": "133.2.3",
+          "value": 1
+        },
+        {
+          "field": "133.2.5",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "133.2.6",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "147.1.21.1.1",
+          "text": "unsandboxed"
+        },
+        {
+          "field": "147.1.21.1.2",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "147.1.21.2",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "147.1.21.3",
+          "value": 1
+        },
+        {
+          "field": "147.1.21.5",
+          "text": "Running full integration test suite"
+        },
+        {
+          "field": "147.1.21.6.1",
+          "value": 2
+        },
+        {
+          "field": "147.1.21.6.2",
+          "text": "unsandboxed(*)"
+        },
+        {
+          "field": "147.2.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "147.2.2",
+          "value": 112
+        },
+        {
+          "field": "147.2.21.1",
+          "value": 1
+        },
+        {
+          "field": "147.2.21.2",
+          "value": 1
+        },
+        {
+          "field": "148.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112"
+        },
+        {
+          "field": "148.2",
+          "text": "file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-112.log"
+        },
+        {
+          "field": "148.4",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "148.5",
+          "value": 1
+        },
+        {
+          "field": "28.2",
+          "text": "d:\\BBN\\athlete-registration"
+        },
+        {
+          "field": "28.6",
+          "value": 0
+        },
+        {
+          "field": "28.12",
+          "value": 10000
+        },
+        {
+          "field": "28.21.1",
+          "text": "✔ removed dev routes cannot render or issue credentials (80.1484ms)\r\n✔ release mutations and private files require authentication (33.927ms)\r\n✔ email recovery endpoints are removed and forced password page requires login (22.9696ms)\r\n✔ every account management API rejects unauthenticated requests (36.5215ms)\r\n✔ ADMIN temporary recovery revokes sessions and forces change without email (13787.5748ms)\r\n▶ Competition status gate — POST /api/applications\r\n  ✔ OPEN competition with future deadline accepts application (201) (1801.5331ms)\r\n  ✔ OPEN competition with expired deadline rejects application (400) (875.5081ms)\r\n  ✔ CLOSED competition with future deadline rejects application (400) (872.967ms)\r\n  ✔ COMPLETED competition rejects application (400) (841.4677ms)\r\n  ✔ OPEN competition with null deadline accepts application (201) (1666.1919ms)\r\n  ✔ COMPLETED competition with null deadline rejects application (400) (786.4365ms)\r\n✔ Competition status gate — POST /api/applications (11254.8242ms)\r\n▶ Phase 4 real HTTP + PostgreSQL + private Storage\r\n  ✔ Existing athlete/club login and athlete submission regression (3518.232ms)\r\n  ✔ Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas (1414.699ms)\r\n  ✔ Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled (2187.2368ms)\r\n  ✔ Private documents validate content, size and owner; draft deletion and legacy bypass denied (3027.2278ms)\r\n  ✔ Roster rejects cross-sport, missing documents and unconfirmed submissions (2960.6131ms)\r\n  ✔ Roster draft persists main/reserve, checks version and submits once with approval histories (3079.2575ms)\r\n  ✔ Submitted roster locks new and legacy APIs; retained documents cannot be deleted (2564.7407ms)\r\n  ✔ Staff return resets application states, preserves histories and permits resubmit (4079.1441ms)\r\n  ✔ Concurrent rosters from different clubs cannot exceed shared sport quota (1696.2325ms)\r\n  ✔ Official signup normalizes email, prevents namespace collisions and ignores caller role (2384.6478ms)\r\n  ✔ Official drafts persist, require plan/id-card/other detail and ownership (2303.8439ms)\r\n  ✔ Official submit routes through club before staff; cross-club review/read denied (2805.4397ms)\r\n  ✔ Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit (3645.239ms)\r\n  ✔ Disabled accounts, changed roles, expired sessions and direct APIs are rejected (1772.2717ms)\r\n  ✔ All new pages render with role cookies, public signup is accessible and routes guard roles (799.6266ms)\r\n✔ Phase 4 real HTTP + PostgreSQL + private Storage (41928.3194ms)\r\n▶ Phase 5 validation, ownership and UI data contracts\r\n  ✔ Login rejects malformed JSON, null, arrays, missing and wrong types with 400 (18.8305ms)\r\n  ✔ Login preserves password spaces, wrong credentials 401 and disabled account 403 (464.1052ms)\r\n  ✔ Profile create is complete, partial update preserves existing fields, nullable fields clear (1161.3324ms)\r\n  ✔ Profile rejects cross-account access, forbidden fields, dates, enums and wrong types (2965.3018ms)\r\n  ✔ Club creation normalizes email and rejects collisions with both account tables (1439.9136ms)\r\n  ✔ Club edit allows own normalized email and rejects user/club collisions (1292.8319ms)\r\n  ✔ President change validates duplicate emails, allows own email and returns only safe fields (1476.0994ms)\r\n  ✔ Club and competition filters intersect; roster club is real and nullable (2997.413ms)\r\n✔ Phase 5 validation, ownership and UI data contracts (13430.4628ms)\r\n✔ Release core flow persists configuration, application, review and competition-scoped result (14946.4146ms)\r\nℹ tests 38\r\nℹ suites 0\r\nℹ pass 38\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 96877.0285\r\n"
+        },
+        {
+          "field": "28.23",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "28.25",
+          "text": "$env:TEST_ALLOW_WRITE=\"yes\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2>&1 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\"no\""
+        },
+        {
+          "field": "28.26.1",
+          "text": "✔ removed dev routes cannot render or issue credentials (80.1484ms)\r\n✔ release mutations and private files require authentication (33.927ms)\r\n✔ email recovery endpoints are removed and forced password page requires login (22.9696ms)\r\n✔ every account management API rejects unauthenticated requests (36.5215ms)\r\n"
+        },
+        {
+          "field": "28.27",
+          "value": 1
+        },
+        {
+          "field": "28.31",
+          "text": "powershell"
+        }
+      ]
+    },
+    {
+      "idx": 141,
+      "stepType": 101,
+      "status": 3,
+      "payloadSha256": "bb3d288c6cab6e18a83c10c6a0be47fc811583d9a8659eca7016a91e1408e841",
+      "fields": [
+        {
+          "field": "1",
+          "value": 101
+        },
+        {
+          "field": "4",
+          "value": 3
+        },
+        {
+          "field": "5.1.1",
+          "value": 1790598405
+        },
+        {
+          "field": "5.1.2",
+          "value": 791173700
+        },
+        {
+          "field": "5.3",
+          "value": 5
+        },
+        {
+          "field": "5.12",
+          "text": "f275d489-5503-4438-b3d9-cf1ec28ddec8"
+        },
+        {
+          "field": "5.20.1",
+          "text": "4ca1ac47-3ff7-4929-acf7-8e0cf8e982e8"
+        },
+        {
+          "field": "5.20.2",
+          "value": 141
+        },
+        {
+          "field": "5.20.3",
+          "value": 66
+        },
+        {
+          "field": "5.20.4",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "5.26.1.1",
+          "value": 3
+        },
+        {
+          "field": "5.26.1.2.1",
+          "value": 1790598405
+        },
+        {
+          "field": "5.26.1.2.2",
+          "value": 791173700
+        },
+        {
+          "field": "114.1",
+          "text": "[Message] timestamp=2026-09-28T12:26:45Z sender=1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112 priority=MESSAGE_PRIORITY_HIGH content=Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t✔ removed dev routes cannot render or issue credentials (80.1484ms)\r\n✔ release mutations and private files require authentication (33.927ms)\r\n✔ email recovery endpoints are removed and forced password page requires login (22.9696ms)\r\n✔ every account management API rejects unauthenticated requests (36.5215ms)\r\n✔ ADMIN temporary recovery revokes sessions and forces change without email (13787.5748ms)\r\n▶ Competition status gate — POST /api/applications\r\n  ✔ OPEN competition with future deadline accepts application (201) (1801.5331ms)\r\n  ✔ OPEN competition with expired deadline rejects application (400) (875.5081ms)\r\n  ✔ CLOSED competition with future deadline rejects application (400) (872.967ms)\r\n  ✔ COMPLETED competition rejects application (400) (841.4677ms)\r\n  ✔ OPEN competition with null deadline accepts application (201) (1666.1919ms)\r\n  ✔ COMPLETED competition with null deadline rejects application (400) (786.4365ms)\r\n✔ Competition status gate — POST /api/applications (11254.8242ms)\r\n▶ Phase 4 real HTTP + PostgreSQL + private Storage\r\n  ✔ Existing athlete/club login and athlete submission regression (3518.232ms)\r\n  ✔ Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas (1414.699ms)\r\n  ✔ Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled (2187.2368ms)\r\n  ✔ Private documents validate content, size and owner; draft deletion and legacy bypass denied (3027.2278ms)\r\n  ✔ Roster rejects cross-sport, missing documents and unconfirmed submissions (2960.6131ms)\r\n  ✔ Roster draft persists main/reserve, checks version and submits once with approval histories (3079.2575ms)\r\n  ✔ Submitted roster locks new and legacy APIs; retained documents cannot be deleted (2564.7407ms)\r\n  ✔ Staff return resets application states, preserves histories and permits resubmit (4079.1441ms)\r\n  ✔ Concurrent rosters from different clubs cannot exceed shared sport quota (1696.2325ms)\r\n  ✔ Official signup normalizes email, prevents namespace collisions and ignores caller role (2384.6478ms)\r\n  ✔ Official drafts persist, require plan/id-card/other detail and ownership (2303.8439ms)\r\n  ✔ Official submit routes through club before staff; cross-club review/read denied (2805.4397ms)\r\n  ✔ Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit (3645.239ms)\r\n  ✔ Disabled accounts, changed roles, expired sessions and direct APIs are rejected (1772.2717ms)\r\n  ✔ All new pages render with role cookies, public signup is accessible and routes guard roles (799.6266ms)\r\n✔ Phase 4 real HTTP + PostgreSQL + private Storage (41928.3194ms)\r\n▶ Phase 5 validation, ownership and UI data contracts\r\n  ✔ Login rejects malformed JSON, null, arrays, missing and wrong types with 400 (18.8305ms)\r\n  ✔ Login preserves password spaces, wrong credentials 401 and disabled account 403 (464.1052ms)\r\n  ✔ Profile create is complete, partial update preserves existing fields, nullable fields clear (1161.3324ms)\r\n  ✔ Profile rejects cross-account access, forbidden fields, dates, enums and wrong types (2965.3018ms)\r\n  ✔ Club creation normalizes email and rejects collisions with both account tables (1439.9136ms)\r\n  ✔ Club edit allows own normalized email and rejects user/club collisions (1292.8319ms)\r\n  ✔ President change validates duplicate emails, allows own email and returns only safe fields (1476.0994ms)\r\n  ✔ Club and competition filters intersect; roster club is real and nullable (2997.413ms)\r\n✔ Phase 5 validation, ownership and UI data contracts (13430.4628ms)\r\n✔ Release core flow persists configuration, application, review and competition-scoped result (14946.4146ms)\r\nℹ tests 38\r\nℹ suites 0\r\nℹ pass 38\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 96877.0285\r\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-112.log"
+        },
+        {
+          "field": "114.2.1",
+          "text": "Run full integration suite finished"
+        },
+        {
+          "field": "114.2.2",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t✔ removed dev routes cannot render or issue credentials (80.1484ms)\r\n✔ release mutations and private files require authentication (33.927ms)\r\n✔ email recovery endpoints are removed and forced password page requires login (22.9696ms)\r\n✔ every account management API rejects unauthenticated requests (36.5215ms)\r\n✔ ADMIN temporary recovery revokes sessions and forces change without email (13787.5748ms)\r\n▶ Competition status gate — POST /api/applications\r\n  ✔ OPEN competition with future deadline accepts application (201) (1801.5331ms)\r\n  ✔ OPEN competition with expired deadline rejects application (400) (875.5081ms)\r\n  ✔ CLOSED competition with future deadline rejects application (400) (872.967ms)\r\n  ✔ COMPLETED competition rejects application (400) (841.4677ms)\r\n  ✔ OPEN competition with null deadline accepts application (201) (1666.1919ms)\r\n  ✔ COMPLETED competition with null deadline rejects application (400) (786.4365ms)\r\n✔ Competition status gate — POST /api/applications (11254.8242ms)\r\n▶ Phase 4 real HTTP + PostgreSQL + private Storage\r\n  ✔ Existing athlete/club login and athlete submission regression (3518.232ms)\r\n  ✔ Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas (1414.699ms)\r\n  ✔ Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled (2187.2368ms)\r\n  ✔ Private documents validate content, size and owner; draft deletion and legacy bypass denied (3027.2278ms)\r\n  ✔ Roster rejects cross-sport, missing documents and unconfirmed submissions (2960.6131ms)\r\n  ✔ Roster draft persists main/reserve, checks version and submits once with approval histories (3079.2575ms)\r\n  ✔ Submitted roster locks new and legacy APIs; retained documents cannot be deleted (2564.7407ms)\r\n  ✔ Staff return resets application states, preserves histories and permits resubmit (4079.1441ms)\r\n  ✔ Concurrent rosters from different clubs cannot exceed shared sport quota (1696.2325ms)\r\n  ✔ Official signup normalizes email, prevents namespace collisions and ignores caller role (2384.6478ms)\r\n  ✔ Official drafts persist, require plan/id-card/other detail and ownership (2303.8439ms)\r\n  ✔ Official submit routes through club before staff; cross-club review/read denied (2805.4397ms)\r\n  ✔ Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit (3645.239ms)\r\n  ✔ Disabled accounts, changed roles, expired sessions and direct APIs are rejected (1772.2717ms)\r\n  ✔ All new pages render with role cookies, public signup is accessible and routes guard roles (799.6266ms)\r\n✔ Phase 4 real HTTP + PostgreSQL + private Storage (41928.3194ms)\r\n▶ Phase 5 validation, ownership and UI data contracts\r\n  ✔ Login rejects malformed JSON, null, arrays, missing and wrong types with 400 (18.8305ms)\r\n  ✔ Login preserves password spaces, wrong credentials 401 and disabled account 403 (464.1052ms)\r\n  ✔ Profile create is complete, partial update preserves existing fields, nullable fields clear (1161.3324ms)\r\n  ✔ Profile rejects cross-account access, forbidden fields, dates, enums and wrong types (2965.3018ms)\r\n  ✔ Club creation normalizes email and rejects collisions with both account tables (1439.9136ms)\r\n  ✔ Club edit allows own normalized email and rejects user/club collisions (1292.8319ms)\r\n  ✔ President change validates duplicate emails, allows own email and returns only safe fields (1476.0994ms)\r\n  ✔ Club and competition filters intersect; roster club is real and nullable (2997.413ms)\r\n✔ Phase 5 validation, ownership and UI data contracts (13430.4628ms)\r\n✔ Release core flow persists configuration, application, review and competition-scoped result (14946.4146ms)\r\nℹ tests 38\r\nℹ suites 0\r\nℹ pass 38\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 96877.0285\r\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-112.log"
+        },
+        {
+          "field": "114.3",
+          "text": "task_notification"
+        },
+        {
+          "field": "114.4.1",
+          "text": "35fe6a83-353b-4885-8b1c-ca91dc4a4119"
+        },
+        {
+          "field": "114.4.2",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.3",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112"
+        },
+        {
+          "field": "114.4.5",
+          "value": 3
+        },
+        {
+          "field": "114.4.6.1",
+          "value": 1790598405
+        },
+        {
+          "field": "114.4.6.2",
+          "value": 286011900
+        },
+        {
+          "field": "114.4.10",
+          "text": "\n#Run full integration suite finished"
+        },
+        {
+          "field": "114.4.12.1.1",
+          "text": "1a6a8cd1-815a-4a1b-a88f-aaa116e85726"
+        },
+        {
+          "field": "114.4.12.1.2",
+          "value": 112
+        },
+        {
+          "field": "114.4.12.1.3.1",
+          "text": "call_2097441"
+        },
+        {
+          "field": "114.4.12.1.3.2",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.12.1.3.3",
+          "text": "{\"BypassSandbox\":true,\"CommandLine\":\"$env:TEST_ALLOW_WRITE=\\\"yes\\\"; node --env-file=.env.release-test --test --test-concurrency=1 tests/integration/*.test.mjs 2\\u003e\\u00261 | Tee-Object -FilePath test-results/release-final/run-20260928-191300/logs/integration-full-suite.log; $env:TEST_ALLOW_WRITE=\\\"no\\\"\",\"Cwd\":\"d:\\\\BBN\\\\athlete-registration\",\"WaitMsBeforeAsync\":10000,\"toolAction\":\"Running full integration test suite\",\"toolSummary\":\"Run full integration suite\"}"
+        },
+        {
+          "field": "114.4.12.1.3.9",
+          "text": "run_command"
+        },
+        {
+          "field": "114.4.4",
+          "text": "Task id \"1a6a8cd1-815a-4a1b-a88f-aaa116e85726/task-112\" finished with result:\n\n\t\t\t\tThe command exited with code 0.\n\t\t\t\tOutput:\n\t\t\t\t✔ removed dev routes cannot render or issue credentials (80.1484ms)\r\n✔ release mutations and private files require authentication (33.927ms)\r\n✔ email recovery endpoints are removed and forced password page requires login (22.9696ms)\r\n✔ every account management API rejects unauthenticated requests (36.5215ms)\r\n✔ ADMIN temporary recovery revokes sessions and forces change without email (13787.5748ms)\r\n▶ Competition status gate — POST /api/applications\r\n  ✔ OPEN competition with future deadline accepts application (201) (1801.5331ms)\r\n  ✔ OPEN competition with expired deadline rejects application (400) (875.5081ms)\r\n  ✔ CLOSED competition with future deadline rejects application (400) (872.967ms)\r\n  ✔ COMPLETED competition rejects application (400) (841.4677ms)\r\n  ✔ OPEN competition with null deadline accepts application (201) (1666.1919ms)\r\n  ✔ COMPLETED competition with null deadline rejects application (400) (786.4365ms)\r\n✔ Competition status gate — POST /api/applications (11254.8242ms)\r\n▶ Phase 4 real HTTP + PostgreSQL + private Storage\r\n  ✔ Existing athlete/club login and athlete submission regression (3518.232ms)\r\n  ✔ Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas (1414.699ms)\r\n  ✔ Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled (2187.2368ms)\r\n  ✔ Private documents validate content, size and owner; draft deletion and legacy bypass denied (3027.2278ms)\r\n  ✔ Roster rejects cross-sport, missing documents and unconfirmed submissions (2960.6131ms)\r\n  ✔ Roster draft persists main/reserve, checks version and submits once with approval histories (3079.2575ms)\r\n  ✔ Submitted roster locks new and legacy APIs; retained documents cannot be deleted (2564.7407ms)\r\n  ✔ Staff return resets application states, preserves histories and permits resubmit (4079.1441ms)\r\n  ✔ Concurrent rosters from different clubs cannot exceed shared sport quota (1696.2325ms)\r\n  ✔ Official signup normalizes email, prevents namespace collisions and ignores caller role (2384.6478ms)\r\n  ✔ Official drafts persist, require plan/id-card/other detail and ownership (2303.8439ms)\r\n  ✔ Official submit routes through club before staff; cross-club review/read denied (2805.4397ms)\r\n  ✔ Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit (3645.239ms)\r\n  ✔ Disabled accounts, changed roles, expired sessions and direct APIs are rejected (1772.2717ms)\r\n  ✔ All new pages render with role cookies, public signup is accessible and routes guard roles (799.6266ms)\r\n✔ Phase 4 real HTTP + PostgreSQL + private Storage (41928.3194ms)\r\n▶ Phase 5 validation, ownership and UI data contracts\r\n  ✔ Login rejects malformed JSON, null, arrays, missing and wrong types with 400 (18.8305ms)\r\n  ✔ Login preserves password spaces, wrong credentials 401 and disabled account 403 (464.1052ms)\r\n  ✔ Profile create is complete, partial update preserves existing fields, nullable fields clear (1161.3324ms)\r\n  ✔ Profile rejects cross-account access, forbidden fields, dates, enums and wrong types (2965.3018ms)\r\n  ✔ Club creation normalizes email and rejects collisions with both account tables (1439.9136ms)\r\n  ✔ Club edit allows own normalized email and rejects user/club collisions (1292.8319ms)\r\n  ✔ President change validates duplicate emails, allows own email and returns only safe fields (1476.0994ms)\r\n  ✔ Club and competition filters intersect; roster club is real and nullable (2997.413ms)\r\n✔ Phase 5 validation, ownership and UI data contracts (13430.4628ms)\r\n✔ Release core flow persists configuration, application, review and competition-scoped result (14946.4146ms)\r\nℹ tests 38\r\nℹ suites 0\r\nℹ pass 38\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 96877.0285\r\n\n\nLog: file:///C:/Users/kong_/.gemini/antigravity-ide/brain/1a6a8cd1-815a-4a1b-a88f-aaa116e85726/.system_generated/tasks/task-112.log"
+        }
+      ]
+    }
+  ]
+}

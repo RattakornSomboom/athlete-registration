@@ -7,9 +7,14 @@ export type AuditAction =
   | "CHANGE_USER_ROLE"
   | "ACTIVATE_USER"
   | "SUSPEND_USER"
+  | "ADMIN_RESET_PASSWORD"
+  | "PASSWORD_CHANGED"
+  | "ADMIN_RESET_PASSWORD"
+  | "PASSWORD_CHANGED"
   | "PASSWORD_RESET_REQUESTED"
   | "PASSWORD_RESET_COMPLETED"
   | "ADMIN_SENT_PASSWORD_RESET";
+// Historical email-reset actions above remain readable in existing audit records.
 
 export type AuditEvent = {
   id: string;

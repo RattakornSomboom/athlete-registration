@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import BackButton from "@/components/shared/BackButton";
+import {
+  ALL_THAI_PROVINCES,
+  getAmphuresByProvince,
+  getTambonsByAmphure,
+} from "@/lib/thailand-addresses";
 import { UP_FACULTIES } from "@/lib/up-faculties";
 
 const validatePassword = (password: string) => {
@@ -35,7 +42,6 @@ export default function LoginPage() {
   });
 
   // Register step 2 — personal profile
-  const [photo, setPhoto] = useState<File | null>(null);
   const [profileForm, setProfileForm] = useState({
     firstName: "",
     lastName: "",
@@ -58,6 +64,33 @@ export default function LoginPage() {
 
   const setProfile = (field: string, value: string) =>
     setProfileForm((prev) => ({ ...prev, [field]: value }));
+
+  const amphures = getAmphuresByProvince(profileForm.province);
+  const tambons = getTambonsByAmphure(profileForm.province, profileForm.district);
+
+  const handleProvinceChange = (province: string) => {
+    setProfileForm((prev) => ({
+      ...prev,
+      province,
+      district: "",
+      subDistrict: "",
+      postalCode: "",
+    }));
+  };
+
+  const handleDistrictChange = (district: string) => {
+    setProfileForm((prev) => ({
+      ...prev,
+      district,
+      subDistrict: "",
+      postalCode: "",
+    }));
+  };
+
+  const handleSubDistrictChange = (subDistrict: string) => {
+    const postalCode = tambons.find((item) => item.name === subDistrict)?.postalCode ?? "";
+    setProfileForm((prev) => ({ ...prev, subDistrict, postalCode }));
+  };
 
   const username = registerForm.studentId ? `${registerForm.studentId}@up.ac.th` : "";
   const passwordCheck = validatePassword(registerForm.password);
@@ -104,6 +137,7 @@ export default function LoginPage() {
         return;
       }
 
+      if (data.mustChangePassword) { router.push("/change-password"); return; }
       // redirect ตาม role
       const role = data.role;
       if (role === "athlete") {
@@ -180,7 +214,6 @@ export default function LoginPage() {
             province: profileForm.province,
             postalCode: profileForm.postalCode,
             phone: profileForm.phone,
-            photoUrl: photo?.name || undefined,
           },
         }),
       });
@@ -206,13 +239,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
-      <div className={`bg-white rounded-xl shadow-xs border border-slate-200 w-full p-8 ${registerStep === "profile" ? "max-w-2xl" : "max-w-md"}`}>
+    <div
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center p-4 font-sans text-slate-800"
+      style={{ backgroundImage: "url('/images/cover-bg.jpg')" }}
+    >
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]" />
+      <div className={`relative z-10 w-full rounded-2xl border border-white/30 bg-white p-8 shadow-2xl ${registerStep === "profile" ? "max-w-2xl" : "max-w-md"}`}>
+
+        <div className="mb-4 flex justify-start">
+          <BackButton href="/" label="กลับหน้าหลัก" />
+        </div>
 
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-blue-900 text-white rounded-lg flex items-center justify-center mx-auto mb-3 font-bold text-lg border border-blue-800">
-            UP
+          <div className="relative mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full border-2 border-slate-200 bg-white p-1 shadow-md">
+            <Image
+              src="/images/system-logo.png"
+              alt="ตราสัญลักษณ์ระบบบริหารจัดการกีฬา มหาวิทยาลัยพะเยา"
+              fill
+              sizes="80px"
+              className="object-contain p-1"
+              priority
+            />
           </div>
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest block">
             มหาวิทยาลัยพะเยา · กองกิจการนิสิต
@@ -260,12 +308,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-semibold text-slate-700">รหัสผ่าน</label>
-                <Link
-                  href="/forgot-password"
-                  className="text-[11px] text-blue-900 hover:text-blue-700 hover:underline transition-colors"
-                >
-                  ลืมรหัสผ่าน?
-                </Link>
+                <span className="text-[11px] text-slate-600">ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบเพื่อยืนยันตัวและรับรหัสชั่วคราว</span>
               </div>
               <div className="relative">
                 <input
@@ -475,18 +518,7 @@ export default function LoginPage() {
             {/* รูปถ่าย */}
             <div>
               <p className="text-xs font-semibold text-slate-700 mb-1.5">รูปถ่ายหน้าตรงชุดนิสิต (ขนาด 1 นิ้ว สำหรับทำบัตรประจำตัว)</p>
-              <label className="flex flex-col items-center justify-center w-28 h-28 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-slate-50 transition-colors">
-                <span className="text-xs text-slate-500 text-center px-2">{photo ? photo.name : "คลิกแนบรูปถ่าย"}</span>
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file && file.size <= 5 * 1024 * 1024) setPhoto(file);
-                  }}
-                />
-              </label>
+              <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">หลังเข้าสู่ระบบ สามารถอัปโหลดและบันทึกรูปถ่าย JPEG/PNG ขนาดไม่เกิน 5 MB ในหน้าสมัครเข้าร่วมการแข่งขันได้ รูปจะเก็บในพื้นที่ส่วนตัวของบัญชี</p>
             </div>
 
             {/* ข้อมูลนิสิต */}
@@ -605,20 +637,54 @@ export default function LoginPage() {
                 <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.addressNo} onChange={(e) => setProfile("addressNo", e.target.value)} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">ตำบล / แขวง</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.subDistrict} onChange={(e) => setProfile("subDistrict", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">จังหวัด</label>
+                <select
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-900"
+                  value={profileForm.province}
+                  onChange={(event) => handleProvinceChange(event.target.value)}
+                >
+                  <option value="">-- เลือกจังหวัด --</option>
+                  {ALL_THAI_PROVINCES.map((province) => (
+                    <option key={province} value={province}>{province}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">อำเภอ / เขต</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.district} onChange={(e) => setProfile("district", e.target.value)} />
+                <select
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-900 disabled:bg-slate-100"
+                  value={profileForm.district}
+                  onChange={(event) => handleDistrictChange(event.target.value)}
+                  disabled={!profileForm.province}
+                >
+                  <option value="">-- เลือกอำเภอ / เขต --</option>
+                  {amphures.map((amphure) => (
+                    <option key={amphure.name} value={amphure.name}>{amphure.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">จังหวัด</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.province} onChange={(e) => setProfile("province", e.target.value)} />
+                <label className="block text-xs font-medium text-slate-700 mb-1">ตำบล / แขวง</label>
+                <select
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-900 disabled:bg-slate-100"
+                  value={profileForm.subDistrict}
+                  onChange={(event) => handleSubDistrictChange(event.target.value)}
+                  disabled={!profileForm.district}
+                >
+                  <option value="">-- เลือกตำบล / แขวง --</option>
+                  {tambons.map((tambon) => (
+                    <option key={`${tambon.name}-${tambon.postalCode}`} value={tambon.name}>{tambon.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">รหัสไปรษณีย์</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" value={profileForm.postalCode} onChange={(e) => setProfile("postalCode", e.target.value)} />
+                <input
+                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-xs text-slate-600"
+                  value={profileForm.postalCode}
+                  readOnly
+                  aria-label="รหัสไปรษณีย์"
+                />
               </div>
             </div>
 

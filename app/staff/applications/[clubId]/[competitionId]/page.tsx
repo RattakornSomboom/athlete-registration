@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { fetchJson } from "@/lib/http-client";
 import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
+import BackButton from "@/components/shared/BackButton";
 import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
 
 type Application = {
@@ -70,7 +71,6 @@ function evaluateEligibility(a: Application) {
 }
 
 export default function StaffCompetitionApplicantsPage() {
-  const router = useRouter();
   const params = useParams();
   const competitionId = params.competitionId as string;
 
@@ -145,8 +145,9 @@ export default function StaffCompetitionApplicantsPage() {
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
           <div>
+            <div className="mb-3"><BackButton href={`/staff/applications/${clubId}`} /></div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา · {club?.name || "กำลังโหลด..."}
             </span>
@@ -162,12 +163,6 @@ export default function StaffCompetitionApplicantsPage() {
               className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
               ดาวน์โหลดบัญชีรายชื่อ (Excel / CSV)
-            </button>
-            <button
-              onClick={() => router.back()}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ย้อนกลับ
             </button>
             <LogoutButton />
           </div>

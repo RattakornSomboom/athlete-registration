@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { fetchJson } from "@/lib/http-client";
 import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
+import AdminPasswordReset from "@/components/shared/AdminPasswordReset";
+import BackButton from "@/components/shared/BackButton";
 
 type Advisor = {
   name: string;
@@ -21,6 +22,7 @@ type ClubAccount = {
   email: string;
   advisors: Advisor[];
   status: "active" | "pending" | "inactive";
+  isActive: boolean;
   createdAt: string;
 };
 
@@ -31,8 +33,8 @@ const STATUS_LABEL = {
 };
 
 export default function AdminClubsPage() {
-  const router = useRouter();
   const action = useRequestAction();
+  const [statusClub, setStatusClub] = useState<ClubAccount | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [newPresidentForm, setNewPresidentForm] = useState({ presidentName: "", presidentPhone: "", email: "" });
@@ -51,11 +53,22 @@ export default function AdminClubsPage() {
     const data = await fetchJson<{ clubs: { id: string; name: string; sport: string; presidentName?: string; presidentPhone?: string; email: string; advisors?: unknown; status?: string; isActive: boolean; createdAt: string }[] }>("/api/clubs");
     return data.clubs.map((c): ClubAccount => ({ id: c.id, clubName: c.name, sport: c.sport, presidentName: c.presidentName || "-", presidentPhone: c.presidentPhone || "-", email: c.email,
       advisors: Array.isArray(c.advisors) ? c.advisors.filter((a): a is Advisor => !!a && typeof a.name === "string" && typeof a.phone === "string") : [],
+      isActive: c.isActive,
       status: c.status === "PENDING" ? "pending" : c.isActive ? "active" : "inactive", createdAt: new Date(c.createdAt).toLocaleDateString("th-TH") }));
   }, []);
   const resource = useRemoteData(load);
   const clubs = resource.data ?? [];
   const pendingCount = clubs.filter(c => c.status === "pending").length;
+  const handleStatusChange = () => action.run(async () => {
+    if (!statusClub) return;
+    await fetchJson(`/api/clubs/${statusClub.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !statusClub.isActive }),
+    });
+    setStatusClub(null);
+    resource.retry();
+  });
   const handleApprove = (id: string) => action.run(async () => {
     await fetchJson(`/api/admin/clubs/${id}/approve`, { method: "PUT" });
     resource.retry();
@@ -75,23 +88,27 @@ export default function AdminClubsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-full lg:max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 py-8 px-4 text-slate-800">
+      <div className="max-w-full lg:max-w-7xl mx-auto space-y-6">
 
-        <div className="flex items-start justify-between mb-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col items-start justify-between gap-4 p-5 sm:flex-row">
           <div>
-            <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1">← ย้อนกลับ</button>
-            <h1 className="text-2xl font-semibold text-gray-900">จัดการ Account ประธานชมรม</h1>
-            <p className="text-gray-500 text-sm mt-1">Admin — กำหนดสิทธิ์ประธานชมรมแต่ละกีฬา</p>
+            <div className="mb-3"><BackButton href="/admin" label="กลับหน้า Admin" /></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-800">Club Administration</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950">จัดการบัญชีประธานชมรม</h1>
+            <p className="text-slate-500 text-sm mt-1">สร้างชมรม แต่งตั้งประธาน และอนุมัติบัญชีจากข้อมูลจริงในระบบ</p>
           </div>
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowAddNewClubModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
+              className="bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors"
             >
               + เพิ่มชมรมใหม่
             </button>
             <LogoutButton />
+          </div>
           </div>
         </div>
 
@@ -109,6 +126,7 @@ export default function AdminClubsPage() {
           >
             🏟️ จัดการชมรมกีฬา
           </Link>
+          <Link href="/admin/competitions" className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent">🏆 การแข่งขัน</Link>
         </div>
 
         <RequestState loading={resource.loading} error={resource.error || action.error} retry={resource.retry} />
@@ -141,6 +159,7 @@ export default function AdminClubsPage() {
                       {STATUS_LABEL[club.status].label}
                     </span>
                   </div>
+                  <p className="text-sm font-medium">การเข้าใช้งาน: {club.isActive ? "เปิดใช้งาน" : "ถูกระงับ"}</p>
                   <p className="text-sm text-gray-500">กีฬา: {club.sport}</p>
                   {club.presidentName !== "-" && (
                     <div className="mt-2 text-sm text-gray-500">
@@ -169,6 +188,10 @@ export default function AdminClubsPage() {
                   {club.status === "pending" && (
                     <button disabled={action.busy} onClick={() => handleApprove(club.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">อนุมัติ</button>
                   )}
+                  <button type="button" disabled={action.busy} onClick={() => setStatusClub(club)} className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm disabled:opacity-50">
+                    {club.isActive ? "ระงับบัญชี" : "เปิดใช้งานบัญชี"}
+                  </button>
+                  <AdminPasswordReset id={club.id} kind="clubs" label={club.email} />
                   <button
                     onClick={() => { setSelectedClubId(club.id); setShowAddModal(true); }}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
@@ -181,6 +204,21 @@ export default function AdminClubsPage() {
           ))}
         </div>
       </div>
+
+      {statusClub && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div role="dialog" aria-modal="true" aria-labelledby="club-status-title" className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <h2 id="club-status-title" className="text-lg font-semibold">{statusClub.isActive ? "ยืนยันระงับบัญชีชมรม" : "ยืนยันเปิดใช้งานบัญชีชมรม"}</h2>
+            <p className="mt-3">{statusClub.clubName} ({statusClub.email})</p>
+            <p className="mt-2 text-sm">{statusClub.isActive ? "บัญชีชมรมและผู้ใช้ที่เชื่อมกับชมรมนี้จะเข้าใช้งานไม่ได้ แม้รีเซ็ตรหัสผ่าน" : "อนุญาตให้บัญชีชมรมกลับเข้าใช้งานได้"}</p>
+            <RequestState error={action.error} />
+            <div className="mt-5 flex gap-3">
+              <button type="button" disabled={action.busy} onClick={() => setStatusClub(null)} className="border rounded-lg px-4 py-2">ยกเลิก</button>
+              <button type="button" disabled={action.busy} onClick={handleStatusChange} className="bg-blue-900 text-white rounded-lg px-4 py-2 disabled:opacity-50">{action.busy ? "กำลังบันทึก…" : "ยืนยัน"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal กำหนด/เปลี่ยนประธาน */}
       {showAddModal && (

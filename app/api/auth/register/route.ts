@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     if (input.profile !== undefined) {
       ensure(input.profile && typeof input.profile === "object" && !Array.isArray(input.profile), "ข้อมูลประวัติไม่ถูกต้อง");
       const { pastCompetitions, ...rest } = validateProfile(input.profile as Record<string, unknown>, true);
+      ensure(!rest.photoUrl, "กรุณาเข้าสู่ระบบก่อนอัปโหลดรูปถ่ายประจำตัว");
       profile = { ...rest, ...(pastCompetitions !== undefined ? { pastCompetitions: pastCompetitions === null ? Prisma.JsonNull : pastCompetitions } : {}) } as Prisma.AthleteProfileCreateWithoutUserInput;
     }
     const hash = await bcrypt.hash(password, 10);

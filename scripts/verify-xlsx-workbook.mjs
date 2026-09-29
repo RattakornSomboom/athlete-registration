@@ -4,6 +4,10 @@ import XLSX from "xlsx";
 import dotenv from "dotenv";
 
 const testEnv = dotenv.parse(fs.readFileSync(".env.release-test", "utf8"));
+const apiBase = testEnv.TEST_BASE_URL;
+if (!apiBase || testEnv.TEST_ALLOW_WRITE !== "yes" || testEnv.TEST_DATABASE_URL === process.env.DATABASE_URL) {
+  throw new Error("Fixture verification requires explicit TEST_ALLOW_WRITE=yes and a separate test database; this is not browser-download evidence");
+}
 import { statusLabel } from "../lib/phase4-client.ts";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -115,7 +119,7 @@ async function main() {
     const worksheet = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(workbook, worksheet, "Applicants");
 
-    const xlsxFilePath = "test-results/staff-export-actual.xlsx";
+    const xlsxFilePath = "test-results/staff-export-generated.xlsx";
     XLSX.writeFile(workbook, xlsxFilePath);
     console.log("   - Wrote XLSX file to:", xlsxFilePath);
 
@@ -167,6 +171,7 @@ async function main() {
     console.log("   - Thai values, UTF-8 integrity, and status label match:", thaiValuesValid);
 
     const verificationResult = {
+      source: "generated-from-api-not-browser-download",
       timestamp: new Date().toISOString(),
       file: xlsxFilePath,
       fileSizeBytes: fs.statSync(xlsxFilePath).size,
@@ -187,6 +192,7 @@ async function main() {
 
     fs.writeFileSync("test-results/xlsx-verification.json", JSON.stringify(verificationResult, null, 2), "utf8");
     console.log("XLSX verification artifact saved to test-results/xlsx-verification.json successfully!");
+    if (!verificationResult.passed) throw new Error("Workbook verification failed");
 
   } finally {
     // Cleanup fixtures

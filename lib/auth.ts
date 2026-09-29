@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { createHmac } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -9,7 +10,13 @@ export type JWTPayload = {
   role: "ATHLETE" | "CLUB" | "STAFF" | "ADMIN" | "TEAM_OFFICIAL";
   studentId?: string;
   clubId?: string;
+  credentialVersion?: string;
+  mustChangePassword?: boolean;
 };
+
+export function credentialVersion(passwordHash: string): string {
+  return createHmac("sha256", JWT_SECRET).update(passwordHash).digest("hex");
+}
 
 /**
  * Sign a JWT token with 24h expiry
@@ -33,7 +40,7 @@ export function verifyToken(token: string): JWTPayload {
  * Get session from Next.js request (reads from cookie "token")
  * Returns null if not authenticated
  */
-export async function getSession(request: NextRequest): Promise<JWTPayload | null> {
+export async function getSession(request: NextRequest, allowPasswordChange = false): Promise<JWTPayload | null> {
   try {
     const token = request.cookies.get("token")?.value;
     if (!token) return null;
@@ -43,13 +50,19 @@ export async function getSession(request: NextRequest): Promise<JWTPayload | nul
       if (!session.clubId) return null;
       const club = await prisma.club.findUnique({ where: { id: session.clubId } });
       if (!club?.isActive) return null;
-      if (session.id === club.id) return session;
+      if (session.id === club.id) {
+        if (session.credentialVersion !== credentialVersion(club.password) || (club.mustChangePassword && !allowPasswordChange)) return null;
+        return { ...session, mustChangePassword: club.mustChangePassword };
+      }
       const user = await prisma.user.findUnique({ where: { id: session.id } });
-      return user?.isActive && user.role === "CLUB" && user.clubId === club.id ? session : null;
+      return user?.isActive && user.role === "CLUB" && user.clubId === club.id &&
+        session.credentialVersion === credentialVersion(user.password) && (!user.mustChangePassword || allowPasswordChange)
+        ? { ...session, mustChangePassword: user.mustChangePassword } : null;
     }
     const user = await prisma.user.findUnique({ where: { id: session.id } });
-    return user?.isActive && user.role === session.role
-      ? { ...session, studentId: user.studentId ?? undefined }
+    return user?.isActive && user.role === session.role && session.credentialVersion === credentialVersion(user.password)
+      && (!user.mustChangePassword || allowPasswordChange)
+      ? { ...session, studentId: user.studentId ?? undefined, mustChangePassword: user.mustChangePassword }
       : null;
   } catch {
     return null;

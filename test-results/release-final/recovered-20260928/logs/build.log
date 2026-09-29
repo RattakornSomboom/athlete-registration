@@ -1,0 +1,110 @@
+
+> athlete-registration@0.1.0 build
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.5s
+  Running TypeScript ...
+  Finished TypeScript in 6.9s ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/62) ...
+  Generating static pages using 19 workers (15/62) 
+  Generating static pages using 19 workers (30/62) 
+  Generating static pages using 19 workers (46/62) 
+✓ Generating static pages using 19 workers (62/62) in 889ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /admin
+├ ○ /admin/clubs
+├ ○ /admin/competitions
+├ ○ /admin/users
+├ ƒ /api/activities
+├ ƒ /api/activities/[id]
+├ ƒ /api/admin/clubs/[id]/approve
+├ ƒ /api/admin/clubs/[id]/president
+├ ƒ /api/admin/clubs/[id]/reset-password
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[id]
+├ ƒ /api/admin/users/[id]/reset-password
+├ ƒ /api/admin/users/[id]/role
+├ ƒ /api/admin/users/[id]/status
+├ ƒ /api/applications
+├ ƒ /api/applications/[id]
+├ ƒ /api/applications/[id]/documents/[field]
+├ ƒ /api/athletes/profile
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/password
+├ ƒ /api/auth/register
+├ ƒ /api/auth/register-official
+├ ƒ /api/club/officials
+├ ƒ /api/club/rosters
+├ ƒ /api/clubs
+├ ƒ /api/clubs/[id]
+├ ƒ /api/clubs/[id]/athletes
+├ ƒ /api/clubs/[id]/competitions
+├ ƒ /api/clubs/requests
+├ ƒ /api/club/training
+├ ƒ /api/competitions
+├ ƒ /api/competitions/[id]
+├ ƒ /api/documents
+├ ƒ /api/documents/[id]
+├ ƒ /api/documents/[id]/download
+├ ƒ /api/export/applications
+├ ƒ /api/staff/analytics
+├ ƒ /api/staff/applications
+├ ƒ /api/staff/applications/announce
+├ ƒ /api/staff/import
+├ ƒ /api/staff/officials
+├ ƒ /api/staff/requests
+├ ƒ /api/staff/requests/[id]
+├ ƒ /api/staff/rosters
+├ ƒ /api/staff/settings
+├ ƒ /api/staff/snapshots
+├ ƒ /api/staff/snapshots/[id]
+├ ƒ /api/stats/dashboard
+├ ƒ /api/team-official/applications
+├ ƒ /api/upload
+├ ƒ /athlete/[id]
+├ ○ /athlete/register
+├ ○ /athlete/status
+├ ○ /change-password
+├ ○ /club/activities
+├ ○ /club/activities/new
+├ ○ /club/athletes
+├ ○ /club/officials
+├ ○ /club/requests
+├ ○ /club/requests/new
+├ ○ /club/review
+├ ○ /club/training
+├ ○ /login
+├ ○ /_not-found
+├ ○ /staff/activities
+├ ƒ /staff/activities/[id]
+├ ○ /staff/analytics
+├ ƒ /staff/applicants/[id]
+├ ○ /staff/applications
+├ ƒ /staff/applications/[clubId]
+├ ƒ /staff/applications/[clubId]/[competitionId]
+├ ○ /staff/competitions
+├ ○ /staff/officials
+├ ○ /staff/requests
+├ ○ /staff/rosters
+├ ○ /staff/selection
+├ ○ /staff/settings
+├ ○ /team-official/register
+├ ○ /team-official/signup
+└ ○ /team-official/status
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

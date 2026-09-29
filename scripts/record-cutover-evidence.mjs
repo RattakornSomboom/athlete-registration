@@ -8,6 +8,13 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 
 const testEnv = dotenv.parse(fs.readFileSync(".env.release-test", "utf8"));
+if (process.env.CUTOVER_ALLOW_WRITE !== "yes") {
+  throw new Error("This legacy probe writes production storage. Use the read-only inspection instead; CUTOVER_ALLOW_WRITE=yes requires explicit authorization.");
+}
+if (testEnv.TEST_ALLOW_WRITE !== "yes" || !testEnv.TEST_DATABASE_URL ||
+    testEnv.TEST_DATABASE_URL === process.env.DATABASE_URL || testEnv.SUPABASE_URL === process.env.SUPABASE_URL) {
+  throw new Error("Explicit test-write authorization and isolated database/storage are required");
+}
 const prodDb = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const testDb = new PrismaClient({ adapter: new PrismaPg({ connectionString: testEnv.TEST_DATABASE_URL }) });
 const prodSupabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -217,15 +224,18 @@ async function main() {
     await testDb.competition.deleteMany({ where: { id: testCompId } });
     await testDb.user.deleteMany({ where: { id: { in: [testUserId, otherUserId] } } });
     // Cleanup storage fixture in test storage
-    await testSupabase.storage.from("athlete-docs").remove([legacyFileName]);
+    const { error: cleanupError } = await testSupabase.storage.from("athlete-docs").remove([legacyFileName]);
+    if (cleanupError) throw new Error("Test storage cleanup failed");
   }
 
   evidence.legacyFileLiveSecurityTest = {
+    environment: "test",
+    source: "newly-created-fixture-not-existing-production-file",
     testFileName: legacyFileName,
     directAnonymousAccess: {
       urlSanitized: sanitizeUrl(publicLegacyUrl),
       httpStatus: anonStatus,
-      blocked: anonStatus >= 400,
+      blocked: [400, 401, 403, 404].includes(anonStatus),
       responseBody: anonBody,
     },
     authorizedAccessViaApi: {
@@ -250,10 +260,20 @@ async function main() {
   const { error: privUpErr } = await prodSupabase.storage.from("athlete-private").upload(privateProbeName, pdfBytes, {
     contentType: "application/pdf",
   });
-  const { data: privSignData, error: privSignErr } = await prodSupabase.storage.from("athlete-private").createSignedUrl(privateProbeName, 60);
-  const privDlRes = await fetch(privSignData.signedUrl);
-  const privDlStatus = privDlRes.status;
-  await prodSupabase.storage.from("athlete-private").remove([privateProbeName]);
+  if (privUpErr) throw new Error("Production probe upload failed");
+  let privSignData;
+  let privSignErr;
+  let privDlStatus;
+  let cleanupError;
+  try {
+    ({ data: privSignData, error: privSignErr } = await prodSupabase.storage.from("athlete-private").createSignedUrl(privateProbeName, 60));
+    if (privSignErr || !privSignData?.signedUrl) throw new Error("Production signing failed");
+    const privDlRes = await fetch(privSignData.signedUrl);
+    privDlStatus = privDlRes.status;
+  } finally {
+    ({ error: cleanupError } = await prodSupabase.storage.from("athlete-private").remove([privateProbeName]));
+    if (cleanupError) throw new Error("Production probe cleanup failed");
+  }
 
   evidence.signedUrlLifecycleTest = {
     bucket: "athlete-private",
@@ -261,14 +281,26 @@ async function main() {
     uploadSuccess: !privUpErr,
     signSuccess: !privSignErr && !!privSignData?.signedUrl,
     downloadHttpStatus: privDlStatus,
-    cleanupSuccess: true,
+    cleanupSuccess: !cleanupError,
   };
 
   fs.writeFileSync("test-results/cutover-evidence.json", JSON.stringify(evidence, null, 2), "utf8");
+  if (!evidence.preflight.passed || evidence.prismaMigrateStatus.exitCode !== 0 ||
+      !evidence.legacyFileLiveSecurityTest.directAnonymousAccess.blocked ||
+      !evidence.legacyFileLiveSecurityTest.authorizedAccessViaApi.success ||
+      !evidence.legacyFileLiveSecurityTest.unauthorizedAccessViaApi.rejected ||
+      !evidence.legacyFileLiveSecurityTest.anonymousAccessViaApi.rejected ||
+      !evidence.signedUrlLifecycleTest.uploadSuccess || !evidence.signedUrlLifecycleTest.signSuccess ||
+      privDlStatus !== 200 || cleanupError) throw new Error("Cutover probe checks failed");
   console.log("Cutover evidence saved to test-results/cutover-evidence.json successfully!");
 
   await prodDb.$disconnect();
   await testDb.$disconnect();
 }
 
-main().catch(console.error);
+main().catch(() => {
+  console.error("Cutover evidence collection failed; do not treat previous artifacts as current evidence.");
+  process.exitCode = 1;
+}).finally(async () => {
+  await Promise.allSettled([prodDb.$disconnect(), testDb.$disconnect()]);
+});

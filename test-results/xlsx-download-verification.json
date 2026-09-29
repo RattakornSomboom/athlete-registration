@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-27T21:08:51.431Z",
+  "source": "downloaded-workbook",
+  "passed": true,
+  "sha256": "77cbf12db6e282bbcdf16fb9a9afaf5f3256ef6ea723610ec38cadc0a3af9f47",
+  "headers": [
+    "รหัสใบสมัคร",
+    "รหัสนิสิต",
+    "ชื่อ",
+    "นามสกุล",
+    "คณะ",
+    "สาขาวิชา",
+    "เบอร์โทรศัพท์",
+    "การแข่งขัน",
+    "ชนิดกีฬา",
+    "ประเภท",
+    "สถานะ",
+    "วันที่สมัคร"
+  ],
+  "rowCount": 1,
+  "matchesCurrentColumns": true,
+  "filterContentsVerified": true,
+  "expectedScenario": {
+    "applicationId": "cmujekjzd00079gc76u3x2fa1",
+    "studentId": "95071709",
+    "competition": "Browser Core 1790455070687",
+    "sport": "ฟุตบอล",
+    "status": "ประกาศผลแล้ว",
+    "rowCount": 1
+  },
+  "verificationBasis": "Compared supplied downloaded workbook against the previously observed browser core-flow record"
+}

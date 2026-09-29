@@ -46,6 +46,7 @@ export async function GET(request: Request) {
         },
         sportEntries: true,
         competitionResults: true,
+        fitnessTestResult: true,
       },
       orderBy: { createdAt: "desc" },
     });

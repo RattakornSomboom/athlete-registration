@@ -1,6 +1,5 @@
 import { normalizeEmail } from "@/lib/validation";
 import { Prisma } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import { api, atomic, body, ensure, string } from "@/lib/phase4-server";
 import { reserveEmail } from "@/lib/account-service";
 type Context = { params: Promise<{ id: string }> };
@@ -17,7 +16,7 @@ export async function PUT(request: Request, context: Context) {
       ensure(session.role === "ADMIN" && typeof input.isActive === "boolean","ไม่มีสิทธิ์เปลี่ยนสถานะบัญชี",403);
       data.isActive = input.isActive;
     }
-    if (input.password) data.password = await bcrypt.hash(string(input.password,"password",72),10);
+    ensure(input.password === undefined, "ใช้เมนูรีเซ็ตรหัสผ่านของผู้ดูแล หรือ API เปลี่ยนรหัสผ่านโดยยืนยันรหัสเดิม");
     return atomic(async tx => {
       const club = await tx.club.findUnique({ where:{id} });
       ensure(club,"ไม่พบชมรม",404);

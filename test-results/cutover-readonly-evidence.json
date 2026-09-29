@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-09-28T17:21:17.508Z",
+  "mode": "read-only",
+  "passed": false,
+  "productionReady": false,
+  "applicationAuthorization": "not-tested: existing authorized production session required",
+  "emailDelivery": "not-tested",
+  "backupRestore": "not-tested",
+  "error": "Read-only inspection failed; credentials and record contents omitted"
+}

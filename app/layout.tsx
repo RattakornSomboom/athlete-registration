@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Prompt } from "next/font/google";
 import "./globals.css";
 import { Phase4Nav } from "@/components/shared/Phase4UI";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const prompt = Prompt({
+  variable: "--font-prompt",
+  subsets: ["thai", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -26,9 +23,12 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${prompt.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><Phase4Nav /><main className="flex-1 flex flex-col">{children}</main></body>
+      <body className={`${prompt.className} min-h-full flex flex-col font-sans`}>
+        <Phase4Nav />
+        <main className="flex flex-1 flex-col">{children}</main>
+      </body>
     </html>
   );
 }

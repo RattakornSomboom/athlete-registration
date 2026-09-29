@@ -18,6 +18,7 @@ export type AthleteProfile = {
   postalCode: string;
   phone: string;
   photoName?: string;
+  photoUrl?: string | null;
   // สำหรับคำนวณสิทธิ์
   birthYearCE: number;
   previousEntriesCount: number;

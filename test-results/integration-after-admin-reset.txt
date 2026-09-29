@@ -1,0 +1,49 @@
+✔ removed dev routes cannot render or issue credentials (60.1081ms)
+✔ release mutations and private files require authentication (19.8732ms)
+✔ email recovery endpoints are removed and forced password page requires login (22.7031ms)
+✔ every account management API rejects unauthenticated requests (21.9381ms)
+✔ ADMIN temporary recovery revokes sessions and forces change without email (7645.911ms)
+▶ Competition status gate — POST /api/applications
+  ✔ OPEN competition with future deadline accepts application (201) (1769.2319ms)
+  ✔ OPEN competition with expired deadline rejects application (400) (1281.8382ms)
+  ✔ CLOSED competition with future deadline rejects application (400) (1043.7546ms)
+  ✔ COMPLETED competition rejects application (400) (1067.0049ms)
+  ✔ OPEN competition with null deadline accepts application (201) (1690.2891ms)
+  ✔ COMPLETED competition with null deadline rejects application (400) (789.9831ms)
+✔ Competition status gate — POST /api/applications (12370.016ms)
+▶ Phase 4 real HTTP + PostgreSQL + private Storage
+  ✔ Existing athlete/club login and athlete submission regression (3385.9152ms)
+  ✔ Analytics matches filtered SQL counts, unique athletes, statuses, empty and quotas (1516.4376ms)
+  ✔ Snapshot is recalculated server-side, readable cross-account, immutable, and access-controlled (1980.4038ms)
+  ✔ Private documents validate content, size and owner; draft deletion and legacy bypass denied (3112.3644ms)
+  ✔ Roster rejects cross-sport, missing documents and unconfirmed submissions (2980.3345ms)
+  ✔ Roster draft persists main/reserve, checks version and submits once with approval histories (3133.4288ms)
+  ✔ Submitted roster locks new and legacy APIs; retained documents cannot be deleted (2726.2053ms)
+  ✔ Staff return resets application states, preserves histories and permits resubmit (4542.9797ms)
+  ✔ Concurrent rosters from different clubs cannot exceed shared sport quota (1608.217ms)
+  ✔ Official signup normalizes email, prevents namespace collisions and ignores caller role (2398.2668ms)
+  ✔ Official drafts persist, require plan/id-card/other detail and ownership (2272.6044ms)
+  ✔ Official submit routes through club before staff; cross-club review/read denied (2716.8166ms)
+  ✔ Club rejection and staff rejection both allow resubmit from SUBMITTED preserving audit (3606.4975ms)
+  ✔ Disabled accounts, changed roles, expired sessions and direct APIs are rejected (1554.2939ms)
+  ✔ All new pages render with role cookies, public signup is accessible and routes guard roles (869.84ms)
+✔ Phase 4 real HTTP + PostgreSQL + private Storage (42363.9981ms)
+▶ Phase 5 validation, ownership and UI data contracts
+  ✔ Login rejects malformed JSON, null, arrays, missing and wrong types with 400 (48.3541ms)
+  ✔ Login preserves password spaces, wrong credentials 401 and disabled account 403 (513.8554ms)
+  ✔ Profile create is complete, partial update preserves existing fields, nullable fields clear (1220.8547ms)
+  ✔ Profile rejects cross-account access, forbidden fields, dates, enums and wrong types (2971.3441ms)
+  ✔ Club creation normalizes email and rejects collisions with both account tables (1518.9974ms)
+  ✔ Club edit allows own normalized email and rejects user/club collisions (1331.2397ms)
+  ✔ President change validates duplicate emails, allows own email and returns only safe fields (1627.3966ms)
+  ✔ Club and competition filters intersect; roster club is real and nullable (3339.4127ms)
+✔ Phase 5 validation, ownership and UI data contracts (14647.2918ms)
+✔ Release core flow persists configuration, application, review and competition-scoped result (15677.9214ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 101548.6736
