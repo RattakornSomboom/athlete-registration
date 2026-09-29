@@ -510,3 +510,19 @@ Latest evidence-script checks (2026-09-28): typecheck, lint, 51 unit tests and p
    - Added unit test `rateBasketballLowerIsBetter and rateBasketballHigherIsBetter map boundaries accurately`.
    - Added unit test `evaluateBasketballFitness evaluates complete basketball battery correctly with ratings and overall result` verifying complete battery passing and partial failing behaviors.
    - All 75 unit tests passing cleanly.
+
+---
+
+## 5. CI Build & Supabase Environment Variable Fallbacks (2026-09-30)
+
+### Problem
+GitHub Actions CI workflow Build Next.js failed during static pre-rendering of /api/applications/[id] with Error: supabaseUrl is required because SUPABASE_URL was not declared in .github/workflows/ci.yml build step and lib/supabase-admin.ts strictly accessed process.env.SUPABASE_URL!.
+
+### Solution
+1. **Fallback in lib/supabase-admin.ts**: Fallback to NEXT_PUBLIC_SUPABASE_URL and dummy URL/key if environment variables are not set during builds.
+2. **Fallback in lib/supabase.ts**: Fallback to SUPABASE_URL and dummy URL/key if environment variables are not set during builds.
+3. **Updated .github/workflows/ci.yml**: Added SUPABASE_URL: "https://dummy.supabase.co" to the Build Next.js environment definition.
+4. **Verification**: 
+px tsc --noEmit (0 errors), 
+pm run lint -- --max-warnings=0 (0 warnings), and 
+pm run test:unit (75/75 passed).
