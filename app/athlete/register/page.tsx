@@ -193,6 +193,20 @@ export default function AthleteRegisterPage() {
           fitnessTestFile: fitnessTestFile?.name,
         }
       });
+
+      // บันทึกสถานะเริ่มต้นเข้าสู่ระบบเป็น pending (ขั้นตอนที่ 1)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("athlete_application_status", "pending");
+        localStorage.setItem("athlete_application_stage", "1");
+        localStorage.setItem(
+          "athlete_application_submitted_at",
+          new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })
+        );
+        if (sportEntries.length > 0) {
+          localStorage.setItem("athlete_registered_sport", sportEntries.map((s) => `${s.sport} (${s.category || s.division || "ทั่วไป"})`).join(", "));
+        }
+      }
+
       await new Promise((r) => setTimeout(r, 1000));
       router.push("/athlete/status");
     } finally {
