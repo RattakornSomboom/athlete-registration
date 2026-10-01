@@ -122,12 +122,19 @@ export default function StaffApplicationsPage() {
               กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 · ผู้สมัครรอการพิจารณารวม {totalPending} คน
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => router.push("/staff/analytics")}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
               แดชบอร์ดวิเคราะห์ผล
+            </button>
+            <button
+              onClick={() => router.push("/staff/requests")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span>คำร้องพิเศษ (ไม่มีชมรม)</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">2</span>
             </button>
             <button
               onClick={() => router.push("/staff/activities")}

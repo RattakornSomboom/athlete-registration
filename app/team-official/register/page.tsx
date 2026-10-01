@@ -60,6 +60,7 @@ export default function TeamOfficialRegisterPage() {
         idCardFile: idCardFile?.name,
         nameChangeFile: nameChangeFile?.name,
       });
+      document.cookie = "role=team_official; path=/";
       await new Promise((r) => setTimeout(r, 1000));
       router.push("/team-official/status");
     } finally {
@@ -98,7 +99,10 @@ export default function TeamOfficialRegisterPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push("/team-official/status")}
+              onClick={() => {
+                document.cookie = "role=team_official; path=/";
+                router.push("/team-official/status");
+              }}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
               ตรวจสอบสถานะ

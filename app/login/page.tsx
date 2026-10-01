@@ -29,8 +29,8 @@ const validatePassword = (password: string) => {
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
-  // register มี 2 ขั้น: "account" (studentId+password) และ "profile" (ข้อมูลส่วนตัว)
-  const [registerStep, setRegisterStep] = useState<"account" | "profile">("account");
+  // register มี 3 ขั้น: "select_role" (เลือกกลุ่มผู้ใช้), "account" (studentId+password) และ "profile" (ข้อมูลส่วนตัว)
+  const [registerStep, setRegisterStep] = useState<"select_role" | "account" | "profile">("select_role");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -206,14 +206,14 @@ export default function LoginPage() {
               <div className="flex rounded-lg bg-slate-100 p-1 mb-5 border border-slate-200">
                 <button
                   type="button"
-                  onClick={() => { setMode("login"); setError(""); setRegisterStep("account"); }}
+                  onClick={() => { setMode("login"); setError(""); setRegisterStep("select_role"); }}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${mode === "login" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   เข้าสู่ระบบ
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMode("register"); setError(""); setRegisterStep("account"); }}
+                  onClick={() => { setMode("register"); setError(""); setRegisterStep("select_role"); }}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${mode === "register" ? "bg-white text-slate-900 shadow-xs font-bold" : "text-slate-600 hover:text-slate-900"}`}
                 >
                   ลงทะเบียน (ครั้งแรก)
@@ -283,42 +283,159 @@ export default function LoginPage() {
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
-                        onClick={() => router.push("/athlete/register")}
+                        onClick={() => {
+                          document.cookie = "role=athlete; path=/";
+                          router.push("/athlete/register");
+                        }}
                         className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                       >
                         นิสิต / นักกีฬา
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push("/club/competitions")}
+                        onClick={() => {
+                          document.cookie = "role=club; path=/";
+                          router.push("/club/competitions");
+                        }}
                         className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                       >
                         ประธานชมรมกีฬา
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push("/team-official/register")}
+                        onClick={() => {
+                          document.cookie = "role=team_official; path=/";
+                          router.push("/team-official/register");
+                        }}
                         className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                       >
                         เจ้าหน้าที่ทีม / โค้ช
                       </button>
                       <button
                         type="button"
-                        onClick={() => router.push("/staff/applications")}
+                        onClick={() => {
+                          document.cookie = "role=staff; path=/";
+                          router.push("/staff/applications");
+                        }}
                         className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[11px] font-medium transition-colors text-center cursor-pointer"
                       >
                         เจ้าหน้าที่กองกิจ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.cookie = "role=admin; path=/";
+                          router.push("/admin/clubs");
+                        }}
+                        className="col-span-2 px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded text-[11px] font-semibold transition-colors text-center cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>ผู้ดูแลระบบ (Admin)</span>
                       </button>
                     </div>
                   </div>
                 </form>
               )}
 
-              {/* ===== MODE: REGISTER STEP 1 (ACCOUNT) ===== */}
-              {mode === "register" && (
+              {/* ===== MODE: REGISTER - STEP 0: SELECT ROLE ===== */}
+              {mode === "register" && registerStep === "select_role" && (
+                <div className="space-y-3">
+                  <div className="text-center pb-1">
+                    <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      เลือกกลุ่มผู้ใช้งานเพื่อลงทะเบียน
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      โปรดเลือกประเภทบัญชีผู้ใช้งานที่ท่านต้องการเปิดใหม่
+                    </p>
+                  </div>
+
+                  {/* Card 1: นิสิต / นักกีฬา */}
+                  <div
+                    onClick={() => { setRegisterStep("account"); setError(""); }}
+                    className="border border-slate-200 hover:border-blue-900 bg-slate-50 hover:bg-white rounded-xl p-3.5 transition-all cursor-pointer group text-left shadow-2xs hover:shadow-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-900 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                          🏃
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-xs group-hover:text-blue-900 transition-colors">
+                          นิสิต / นักกีฬาตัวแทนสถาบัน
+                        </h3>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-semibold font-mono">
+                        @up.ac.th
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed pl-9">
+                      สำหรับนิสิต ม.พะเยา ทุกชั้นปี ใช้อีเมลนิสิตและรหัสนิสิต 8 หลัก เพื่อบันทึกประวัติการศึกษา เกรดเฉลี่ยสะสม และสมัครเข้ารับการคัดเลือก
+                    </p>
+                    <div className="pl-9 pt-1 flex items-center justify-between text-[11px] font-semibold text-blue-900 group-hover:translate-x-0.5 transition-transform">
+                      <span>ลงทะเบียนบัญชีนักกีฬาใหม่</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: ผู้จัดการทีม / ผู้ฝึกสอน (โค้ช) */}
+                  <div
+                    onClick={() => {
+                      document.cookie = "role=team_official; path=/";
+                      router.push("/team-official/register");
+                    }}
+                    className="border border-slate-200 hover:border-emerald-800 bg-slate-50 hover:bg-white rounded-xl p-3.5 transition-all cursor-pointer group text-left shadow-2xs hover:shadow-xs space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
+                          📋
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-xs group-hover:text-emerald-800 transition-colors">
+                          ผู้จัดการทีม / ผู้ฝึกสอนกีฬา (โค้ช)
+                        </h3>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                        อาจารย์ / โค้ช
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-relaxed pl-9">
+                      สำหรับอาจารย์ที่ปรึกษา บุคลากร หรือผู้ฝึกสอนภายนอก บันทึกข้อมูลตำแหน่งทีม สังกัดชนิดกีฬา และแนบแผนการฝึกซ้อม
+                    </p>
+                    <div className="pl-9 pt-1 flex items-center justify-between text-[11px] font-semibold text-emerald-800 group-hover:translate-x-0.5 transition-transform">
+                      <span>ลงทะเบียนเจ้าหน้าที่ทีม / โค้ช</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+
+                  {/* หมายเหตุสำหรับประธานชมรมและกองกิจ */}
+                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-lg text-[10px] text-amber-900 space-y-1 mt-1">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                      หมายเหตุสำหรับประธานชมรมและเจ้าหน้าที่:
+                    </p>
+                    <p className="text-amber-800 leading-relaxed">
+                      บัญชีสำหรับ <strong>ประธานชมรมกีฬา</strong> และ <strong>เจ้าหน้าที่กองกิจการนิสิต</strong> จะได้รับการจัดสรรและแต่งตั้งโดยผู้ดูแลระบบ (Admin) โดยตรง ไม่ต้องเปิดบัญชีใหม่
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== MODE: REGISTER STEP 1 (ATHLETE ACCOUNT) ===== */}
+              {mode === "register" && registerStep === "account" && (
                 <form onSubmit={handleRegisterAccount} className="space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => { setRegisterStep("select_role"); setError(""); }}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-800 cursor-pointer font-medium"
+                    >
+                      <span>← เปลี่ยนประเภทผู้ใช้งาน</span>
+                    </button>
+                    <span className="text-[10px] text-blue-900 font-semibold px-2 py-0.5 bg-blue-50 rounded">
+                      บัญชีนิสิตนักกีฬา
+                    </span>
+                  </div>
+
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 text-xs text-blue-900">
-                    กรอกรหัสประจำตัวนิสิต 8 หลัก เพื่อสร้างบัญชีผู้ใช้งานระบบสารสนเทศ
+                    กรอกรหัสประจำตัวนิสิต 8 หลัก เพื่อสร้างบัญชีนักกีฬา
                   </div>
 
                   <div>

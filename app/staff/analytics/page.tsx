@@ -20,7 +20,24 @@ import {
   deleteSnapshot,
   AnalyticsSnapshot,
 } from "@/lib/snapshot-store";
-import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
+import {
+  exportAthletesToCSV,
+  AthleteExportRow,
+  exportFitnessRecordsToCSV,
+  FitnessExportRow,
+} from "@/lib/export-helpers";
+import {
+  MOCK_FITNESS_RECORDS,
+  computeFitnessSummary,
+  evaluateGripStrength,
+  evaluateLegStrength,
+  evaluateFlexibility,
+  evaluateSitUps30s,
+  evaluatePushUps30s,
+  evaluateBeepTest,
+  evaluateSprint40m,
+  AthleteFitnessRecord,
+} from "@/lib/fitness-test";
 
 // ปฏิทินและกำหนดการสำคัญอ้างอิงเอกสารทางการ กกมท. ครั้งที่ 52
 const OFFICIAL_CALENDAR_MILESTONES = [
@@ -67,8 +84,26 @@ export default function StaffAnalyticsPage() {
   // State สำหรับการกรอง (Filters)
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedSport, setSelectedSport] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState<"current" | "calendar" | "history">("current");
+  const [activeTab, setActiveTab] = useState<"current" | "fitness" | "calendar" | "history">("current");
   const [facultyViewMode, setFacultyViewMode] = useState<"chart" | "table">("chart");
+
+  // State สำหรับ Fitness Dashboard
+  const [fitnessSearch, setFitnessSearch] = useState<string>("");
+  const [fitnessSportFilter, setFitnessSportFilter] = useState<string>("all");
+  const [fitnessGradeFilter, setFitnessGradeFilter] = useState<string>("all");
+  const [fitnessRoundFilter, setFitnessRoundFilter] = useState<string>("all");
+
+  // Interactive Fitness Calculator state
+  const [calcGender, setCalcGender] = useState<"ชาย" | "หญิง">("ชาย");
+  const [calcWeight, setCalcWeight] = useState<number>(68);
+  const [calcHeight, setCalcHeight] = useState<number>(175);
+  const [calcGrip, setCalcGrip] = useState<number>(55);
+  const [calcLeg, setCalcLeg] = useState<number>(185);
+  const [calcFlex, setCalcFlex] = useState<number>(19);
+  const [calcSitUp, setCalcSitUp] = useState<number>(25);
+  const [calcPushUp, setCalcPushUp] = useState<number>(32);
+  const [calcBeep, setCalcBeep] = useState<number>(10.5);
+  const [calcSprint, setCalcSprint] = useState<number>(5.3);
 
   // State สำหรับ Snapshots
   const [snapshots, setSnapshots] = useState<AnalyticsSnapshot[]>([]);
@@ -122,6 +157,21 @@ export default function StaffAnalyticsPage() {
   const complianceData = useMemo(() => {
     return getCategoryCompliance(SPORTS_CATALOG);
   }, []);
+
+  // Fitness data summaries
+  const fitnessSummary = useMemo(() => {
+    return computeFitnessSummary(MOCK_FITNESS_RECORDS);
+  }, []);
+
+  const filteredFitnessRecords = useMemo(() => {
+    return MOCK_FITNESS_RECORDS.filter((r) => {
+      const matchSearch = `${r.fullName} ${r.studentId} ${r.faculty}`.toLowerCase().includes(fitnessSearch.toLowerCase());
+      const matchSport = fitnessSportFilter === "all" || r.sportName === fitnessSportFilter;
+      const matchGrade = fitnessGradeFilter === "all" || r.overallGrade === fitnessGradeFilter;
+      const matchRound = fitnessRoundFilter === "all" || r.round === fitnessRoundFilter;
+      return matchSearch && matchSport && matchGrade && matchRound;
+    });
+  }, [fitnessSearch, fitnessSportFilter, fitnessGradeFilter, fitnessRoundFilter]);
 
   const handleSaveSnapshot = () => {
     if (!snapshotTitle.trim()) return;
@@ -194,6 +244,13 @@ export default function StaffAnalyticsPage() {
               จัดการใบสมัคร
             </button>
             <button
+              onClick={() => router.push("/staff/requests")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span>คำร้องพิเศษ (ไม่มีชมรม)</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">2</span>
+            </button>
+            <button
               onClick={() => router.push("/staff/activities")}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
@@ -238,6 +295,19 @@ export default function StaffAnalyticsPage() {
               ภาพรวมและสถิติการคัดเลือกรอบปัจจุบัน
             </button>
             <button
+              onClick={() => { setActiveTab("fitness"); setSelectedHistoricalSnapshot(null); }}
+              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "fitness"
+                  ? "bg-blue-900 text-white shadow-xs font-bold"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <span>แดชบอร์ดสมรรถภาพทางกาย (Fitness)</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeTab === "fitness" ? "bg-blue-700 text-white" : "bg-emerald-100 text-emerald-800 font-bold"}`}>
+                {MOCK_FITNESS_RECORDS.length}
+              </span>
+            </button>
+            <button
               onClick={() => setActiveTab("calendar")}
               className={`px-4 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 activeTab === "calendar"
@@ -261,6 +331,47 @@ export default function StaffAnalyticsPage() {
               </span>
             </button>
           </div>
+
+          {activeTab === "fitness" && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const rows: FitnessExportRow[] = filteredFitnessRecords.map((r, idx) => ({
+                    index: idx + 1,
+                    studentId: r.studentId,
+                    fullName: r.fullName,
+                    gender: r.gender,
+                    faculty: r.faculty,
+                    sportName: r.sportName,
+                    round: r.round,
+                    testDate: r.testDate,
+                    bmi: `${r.bmi.toFixed(1)} (${r.bodyFatPercent}% Fat)`,
+                    gripStrength: `${r.gripStrengthKg} kg (อัตราส่วน ${r.gripRatio})`,
+                    legStrength: `${r.legStrengthKg} kg (อัตราส่วน ${r.legRatio})`,
+                    sitAndReach: `${r.sitAndReachCm} cm`,
+                    sitUps30s: r.sitUps30s,
+                    pushUps30s: r.pushUps30s,
+                    sprint40m: `${r.sprint40mSec} s`,
+                    beepTest: `Level ${r.beepTestLevel}`,
+                    vo2max: `${r.estimatedVo2Max.toFixed(1)}`,
+                    overallScore: r.overallScore,
+                    overallGrade: r.overallGrade,
+                    eligibilityStatus: r.isEligible ? "ผ่านเกณฑ์ กกมท." : "ต้องทดสอบซ่อม",
+                  }));
+                  exportFitnessRecordsToCSV("รายงานผลการทดสอบสมรรถภาพนักกีฬา_มพ", rows);
+                }}
+                className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                ดาวน์โหลดรายงานสมรรถภาพ (Excel / CSV)
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="border border-slate-300 hover:bg-slate-100 bg-white text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                พิมพ์รายงานสรุปผล
+              </button>
+            </div>
+          )}
 
           {activeTab === "current" && (
             <div className="flex items-center gap-2">
@@ -721,6 +832,557 @@ export default function StaffAnalyticsPage() {
                 </div>
               </div>
 
+            </div>
+
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* TAB 1.5: แดชบอร์ดวิเคราะห์ผลการทดสอบสมรรถภาพทางกาย (Fitness Analytics) */}
+        {/* ============================================================ */}
+        {activeTab === "fitness" && (
+          <div className="space-y-6">
+
+            {/* Information Banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 flex items-start gap-3 shadow-2xs">
+              <span className="w-5 h-5 rounded-full bg-blue-900 text-white flex items-center justify-center text-[11px] shrink-0 font-bold mt-0.5">
+                i
+              </span>
+              <div className="space-y-1">
+                <p className="font-bold">
+                  เกณฑ์มาตรฐานการทดสอบสมรรถภาพทางกายนักกีฬาตัวแทนสถาบัน มหาวิทยาลัยพะเยา
+                </p>
+                <p className="text-blue-800 leading-relaxed">
+                  อ้างอิงตามเกณฑ์มาตรฐานใบบันทึกการทดสอบสมรรถภาพทางกาย หลักสูตรวิทยาศาสตร์การออกกำลังกายและการกีฬา มหาวิทยาลัยพะเยา
+                  และการประเมินระบบพลังงาน (Beep Test / RAST Test) ตามข้อกำหนด กกมท. โดยนักศึกษาต้องมีผลการทดสอบผ่านเกณฑ์
+                  <strong> "ระดับปานกลาง / พอใช้" ขึ้นไป</strong> จึงจะได้รับการพิจารณารับรองเพื่อขึ้นทะเบียนเข้าร่วมการแข่งขัน
+                </p>
+              </div>
+            </div>
+
+            {/* Fitness KPI Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <span className="text-xs text-slate-500 block">นักกีฬาที่เข้ารับการทดสอบแล้ว</span>
+                <span className="text-2xl font-bold text-slate-900 mt-1 block">
+                  {fitnessSummary.totalTested} คน
+                </span>
+                <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
+                  ✓ บันทึกผลครบตามรอบกำหนด
+                </span>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <span className="text-xs text-slate-500 block">อัตราผ่านเกณฑ์ กกมท.</span>
+                <span className="text-2xl font-bold text-emerald-800 mt-1 block">
+                  {fitnessSummary.passRate.toFixed(1)}%
+                </span>
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  ผ่านเกณฑ์ {fitnessSummary.passedCount} จาก {fitnessSummary.totalTested} คน (ทดสอบซ่อม {fitnessSummary.failedCount} คน)
+                </span>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <span className="text-xs text-slate-500 block">คะแนนสมรรถภาพเฉลี่ยรวม</span>
+                <span className="text-2xl font-bold text-blue-900 mt-1 block">
+                  {fitnessSummary.averageScore.toFixed(1)} <span className="text-xs text-slate-400 font-normal">/ 100</span>
+                </span>
+                <span className="text-[11px] text-blue-900 font-semibold mt-1 block">
+                  มาตรฐาน: ระดับดีมาก (Good)
+                </span>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+                <span className="text-xs text-slate-500 block">ปริมาณออกซิเจนสูงสุดเฉลี่ย (VO2max)</span>
+                <span className="text-2xl font-bold text-indigo-950 mt-1 block">
+                  {fitnessSummary.averageVo2Max.toFixed(1)} <span className="text-xs text-slate-400 font-normal">ml/kg/min</span>
+                </span>
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  BMI เฉลี่ย {fitnessSummary.averageBmi.toFixed(1)} kg/m²
+                </span>
+              </div>
+            </div>
+
+            {/* Core Analytics: 5 Dimensions & Normative Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* 5-Dimension Performance Metric */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
+                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      คะแนนสมรรถภาพ 5 มิติหลัก (5 Core Fitness Dimensions)
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      เปรียบเทียบค่าเฉลี่ยสมรรถภาพของนักกีฬากับเกณฑ์มาตรฐาน ม.พะเยา (เต็ม 100)
+                    </p>
+                  </div>
+                  <span className="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-blue-900 font-bold border border-blue-200">
+                    5 มิติ กกมท.
+                  </span>
+                </div>
+
+                <div className="space-y-3.5 pt-1">
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        1. ความแข็งแรงของกล้ามเนื้อ (Muscular Strength)
+                      </span>
+                      <span className="font-bold text-blue-900">
+                        {fitnessSummary.dimensionAverages.strength}% (ระดับดีมาก)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-900 h-full rounded-full transition-all"
+                        style={{ width: `${fitnessSummary.dimensionAverages.strength}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400">วัดจาก: แรงบีบมือที่ถนัด และแรงเหยียดขาต่อน้ำหนักตัว</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        2. ความทนทานของกล้ามเนื้อ (Muscular Endurance)
+                      </span>
+                      <span className="font-bold text-blue-900">
+                        {fitnessSummary.dimensionAverages.endurance}% (ระดับดีมาก)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-800 h-full rounded-full transition-all"
+                        style={{ width: `${fitnessSummary.dimensionAverages.endurance}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400">วัดจาก: ลุกนั่ง 30 วินาที และดันพื้น 30 วินาที</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        3. ความอ่อนตัวและความยืดหยุ่น (Flexibility)
+                      </span>
+                      <span className="font-bold text-emerald-800">
+                        {fitnessSummary.dimensionAverages.flexibility}% (ระดับดี)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-emerald-700 h-full rounded-full transition-all"
+                        style={{ width: `${fitnessSummary.dimensionAverages.flexibility}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400">วัดจาก: นั่งงอตัวไปข้างหน้า (Sit and Reach ซม.)</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        4. ความเร็วและสปีด (Speed & Agility)
+                      </span>
+                      <span className="font-bold text-blue-900">
+                        {fitnessSummary.dimensionAverages.speed}% (ระดับดีมาก)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-indigo-700 h-full rounded-full transition-all"
+                        style={{ width: `${fitnessSummary.dimensionAverages.speed}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400">วัดจาก: วิ่งเร็ว 40 เมตร และ T-Test</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="font-semibold text-slate-800">
+                        5. สมรรถภาพการใช้ออกซิเจน (Aerobic / Beep Test)
+                      </span>
+                      <span className="font-bold text-blue-900">
+                        {fitnessSummary.dimensionAverages.aerobic}% (ระดับดีมาก)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-teal-700 h-full rounded-full transition-all"
+                        style={{ width: `${fitnessSummary.dimensionAverages.aerobic}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400">วัดจาก: Multistage Fitness Test และ VO2max ประมาณการ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Normative Grade Distribution Breakdown */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4 flex flex-col justify-between">
+                <div>
+                  <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        สัดส่วนผลการประเมินระดับสมรรถภาพ (Normative Grade)
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        การกระจายตัวของนักกีฬาตามระดับเกณฑ์มาตรฐาน ม.พะเยา
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700">
+                      รวม {fitnessSummary.totalTested} คน
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 pt-3">
+                    <div className="p-3 rounded-lg border border-emerald-100 bg-emerald-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-700" />
+                        <div>
+                          <p className="text-xs font-bold text-emerald-950">ระดับดีเยี่ยม (คะแนน ≥ 90)</p>
+                          <span className="text-[10px] text-emerald-700">สมรรถภาพระดับแนวหน้า พร้อมแข่งขันชิงเหรียญ</span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-800">
+                        {fitnessSummary.gradeCounts.excellent} คน ({((fitnessSummary.gradeCounts.excellent / fitnessSummary.totalTested) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg border border-blue-100 bg-blue-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-900" />
+                        <div>
+                          <p className="text-xs font-bold text-blue-950">ระดับดีมาก / ดี (คะแนน 70 - 89)</p>
+                          <span className="text-[10px] text-blue-700">ผ่านเกณฑ์มาตรฐาน กกมท. ครบถ้วน</span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-blue-900">
+                        {fitnessSummary.gradeCounts.good} คน ({((fitnessSummary.gradeCounts.good / fitnessSummary.totalTested) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg border border-amber-100 bg-amber-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-600" />
+                        <div>
+                          <p className="text-xs font-bold text-amber-950">ระดับปานกลาง (คะแนน 60 - 69)</p>
+                          <span className="text-[10px] text-amber-700">ผ่านเกณฑ์ขั้นต่ำ ควรเพิ่มโปรแกรมฝึกเฉพาะทาง</span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-amber-800">
+                        {fitnessSummary.gradeCounts.fair} คน ({((fitnessSummary.gradeCounts.fair / fitnessSummary.totalTested) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-lg border border-rose-100 bg-rose-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-700" />
+                        <div>
+                          <p className="text-xs font-bold text-rose-950">ไม่ผ่านเกณฑ์ (คะแนน &lt; 60)</p>
+                          <span className="text-[10px] text-rose-700">ต้องเข้าโปรแกรมฟื้นฟูและทดสอบซ่อม</span>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-rose-800">
+                        {fitnessSummary.gradeCounts.failed} คน ({((fitnessSummary.gradeCounts.failed / fitnessSummary.totalTested) * 100).toFixed(1)}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600 mt-2">
+                  <strong>มติที่ประชุมกองกิจการนิสิต:</strong> นักกีฬาที่อยู่ในระดับ 'ไม่ผ่านเกณฑ์' จะต้องเข้ารับการทดสอบซ้ำรอบที่ 2 ก่อนวันปิดรับลงทะเบียน กกมท.
+                </div>
+              </div>
+
+            </div>
+
+            {/* Interactive Fitness Norm Calculator & Simulator */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    เครื่องมือจำลองและคำนวณตัดเกรดสมรรถภาพ (Fitness Norm Calculator)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    ทดลองกรอกตัวเลขการทดสอบเพื่อเทียบเกณฑ์มาตรฐาน ม.พะเยา และประเมินผล กกมท. อัตโนมัติ
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-600">เพศ:</span>
+                  <div className="inline-flex rounded-lg border border-slate-300 p-0.5 bg-slate-50">
+                    <button
+                      type="button"
+                      onClick={() => setCalcGender("ชาย")}
+                      className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer ${calcGender === "ชาย" ? "bg-blue-900 text-white" : "text-slate-600"}`}
+                    >
+                      ชาย
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCalcGender("หญิง")}
+                      className={`px-3 py-1 rounded text-xs font-semibold cursor-pointer ${calcGender === "หญิง" ? "bg-blue-900 text-white" : "text-slate-600"}`}
+                    >
+                      หญิง
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calculator Inputs Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 text-xs">
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">น้ำหนัก (kg)</label>
+                  <input
+                    type="number"
+                    value={calcWeight}
+                    onChange={(e) => setCalcWeight(Number(e.target.value) || 1)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">ส่วนสูง (cm)</label>
+                  <input
+                    type="number"
+                    value={calcHeight}
+                    onChange={(e) => setCalcHeight(Number(e.target.value) || 1)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">แรงบีบมือ (kg)</label>
+                  <input
+                    type="number"
+                    value={calcGrip}
+                    onChange={(e) => setCalcGrip(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">แรงเหยียดขา (kg)</label>
+                  <input
+                    type="number"
+                    value={calcLeg}
+                    onChange={(e) => setCalcLeg(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">ความอ่อนตัว (cm)</label>
+                  <input
+                    type="number"
+                    value={calcFlex}
+                    onChange={(e) => setCalcFlex(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">ลุกนั่ง 30s (ครั้ง)</label>
+                  <input
+                    type="number"
+                    value={calcSitUp}
+                    onChange={(e) => setCalcSitUp(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">ดันพื้น 30s (ครั้ง)</label>
+                  <input
+                    type="number"
+                    value={calcPushUp}
+                    onChange={(e) => setCalcPushUp(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-500 mb-1">Beep Test (Level)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={calcBeep}
+                    onChange={(e) => setCalcBeep(Number(e.target.value) || 0)}
+                    className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+                </div>
+              </div>
+
+              {/* Calculator Output Card */}
+              {(() => {
+                const bmi = calcWeight / ((calcHeight / 100) * (calcHeight / 100));
+                const gripRatio = calcGrip / calcWeight;
+                const legRatio = calcLeg / calcWeight;
+
+                const gripEval = evaluateGripStrength(gripRatio, calcGender);
+                const legEval = evaluateLegStrength(legRatio, calcGender);
+                const flexEval = evaluateFlexibility(calcFlex, calcGender);
+                const sitUpEval = evaluateSitUps30s(calcSitUp, calcGender);
+                const pushUpEval = evaluatePushUps30s(calcPushUp, calcGender);
+                const beepEval = evaluateBeepTest(calcBeep, calcGender);
+
+                const evals = [gripEval, legEval, flexEval, sitUpEval, pushUpEval, beepEval];
+                const allPassing = evals.filter(e => e.isPassing).length >= 5;
+
+                return (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-700">ผลการประเมินจำลอง:</span>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
+                          allPassing ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                        }`}>
+                          {allPassing ? "✓ ผ่านเกณฑ์สมรรถภาพ กกมท." : "⚠️ ต่ำกว่าเกณฑ์ ต้องทดสอบซ่อม"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        ดัชนีมวลกาย BMI: <strong>{bmi.toFixed(1)}</strong> · แรงบีบมือ: <strong>{gripEval.label}</strong> ({gripRatio.toFixed(2)}) · แรงเหยียดขา: <strong>{legEval.label}</strong> ({legRatio.toFixed(2)}) · ความอ่อนตัว: <strong>{flexEval.label}</strong> · Beep Test: <strong>{beepEval.label}</strong>
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] text-slate-400 block">เกณฑ์การรับรองตัวแทนสถาบัน</span>
+                      <span className={`text-xs font-bold ${allPassing ? "text-emerald-800" : "text-rose-700"}`}>
+                        {allPassing ? "มีคุณสมบัติพร้อมขึ้นทะเบียน" : "ไม่ผ่านเกณฑ์การทดสอบขั้นต่ำ"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Detailed Athlete Fitness Roster Table */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    บัญชีผลการทดสอบสมรรถภาพทางกายนักกีฬารายบุคคล
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    แสดงรายละเอียดผลการวัดค่าทางสรีรวิทยาและสมรรถภาพของนักศึกษาทุกชมรมกีฬา
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <input
+                    type="text"
+                    placeholder="ค้นหาชื่อ, รหัส, หรือคณะ..."
+                    value={fitnessSearch}
+                    onChange={(e) => setFitnessSearch(e.target.value)}
+                    className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs w-48 outline-none focus:ring-2 focus:ring-blue-900"
+                  />
+
+                  <select
+                    value={fitnessSportFilter}
+                    onChange={(e) => setFitnessSportFilter(e.target.value)}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-blue-900"
+                  >
+                    <option value="all">ทุกชนิดกีฬา</option>
+                    <option value="ฟุตบอล">ฟุตบอล</option>
+                    <option value="วอลเลย์บอล">วอลเลย์บอล</option>
+                    <option value="บาสเกตบอล">บาสเกตบอล</option>
+                    <option value="ว่ายน้ำ">ว่ายน้ำ</option>
+                    <option value="เปตอง">เปตอง</option>
+                    <option value="ดาบไทย">ดาบไทย</option>
+                    <option value="อีสปอร์ต">อีสปอร์ต</option>
+                  </select>
+
+                  <select
+                    value={fitnessGradeFilter}
+                    onChange={(e) => setFitnessGradeFilter(e.target.value)}
+                    className="px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-blue-900"
+                  >
+                    <option value="all">ทุกระดับเกณฑ์</option>
+                    <option value="ดีเยี่ยม">ดีเยี่ยม</option>
+                    <option value="ดีมาก">ดีมาก</option>
+                    <option value="ดี">ดี</option>
+                    <option value="ปานกลาง">ปานกลาง</option>
+                    <option value="ไม่ผ่านเกณฑ์">ไม่ผ่านเกณฑ์</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3 px-4">รหัสนิสิต</th>
+                      <th className="py-3 px-4">ชื่อ - นามสกุล</th>
+                      <th className="py-3 px-4">คณะ / ชนิดกีฬา</th>
+                      <th className="py-3 px-4 text-center">BMI &amp; %ไขมัน</th>
+                      <th className="py-3 px-4 text-center">แรงบีบมือ (กก.)</th>
+                      <th className="py-3 px-4 text-center">ความอ่อนตัว (ซม.)</th>
+                      <th className="py-3 px-4 text-center">ลุกนั่ง / ดันพื้น (30s)</th>
+                      <th className="py-3 px-4 text-center">Beep Test (VO2max)</th>
+                      <th className="py-3 px-4 text-center">คะแนนรวม</th>
+                      <th className="py-3 px-4 text-center">สถานะ กกมท.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredFitnessRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="py-8 text-center text-slate-400">
+                          ไม่พบข้อมูลผลการทดสอบสมรรถภาพตามเงื่อนไขที่เลือก
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredFitnessRecords.map((r) => (
+                        <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="py-3 px-4 font-mono font-medium text-slate-700">{r.studentId}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-900">
+                            {r.fullName}
+                            <span className="text-[10px] text-slate-400 block font-normal">{r.round} ({r.testDate})</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-medium text-slate-800 block">{r.sportName}</span>
+                            <span className="text-[10px] text-slate-500">{r.faculty}</span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono">
+                            <span className="text-slate-800 font-semibold">{r.bmi.toFixed(1)}</span>
+                            <span className="text-[10px] text-slate-400 block">{r.bodyFatPercent}% fat</span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono">
+                            <span className="text-slate-800 font-semibold">{r.gripStrengthKg}</span>
+                            <span className="text-[10px] text-slate-400 block">อัตราส่วน {r.gripRatio}</span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono">
+                            <span className={`font-semibold ${r.sitAndReachCm >= 17 ? "text-emerald-700" : "text-slate-800"}`}>
+                              {r.sitAndReachCm}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono text-slate-700">
+                            {r.sitUps30s} / {r.pushUps30s} ครั้ง
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono">
+                            <span className="font-semibold text-blue-900 block">Level {r.beepTestLevel}</span>
+                            <span className="text-[10px] text-slate-400">{r.estimatedVo2Max.toFixed(1)} ml/kg</span>
+                          </td>
+                          <td className="py-3 px-4 text-center font-mono">
+                            <span className="font-bold text-slate-900 text-sm block">{r.overallScore}</span>
+                            <span className={`text-[10px] font-semibold ${
+                              r.overallGrade === "ดีเยี่ยม"
+                                ? "text-emerald-700"
+                                : r.overallGrade === "ดีมาก" || r.overallGrade === "ดี"
+                                ? "text-blue-900"
+                                : r.overallGrade === "ปานกลาง"
+                                ? "text-amber-700"
+                                : "text-rose-700"
+                            }`}>
+                              {r.overallGrade}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              r.isEligible
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                : "bg-rose-50 text-rose-800 border-rose-200"
+                            }`}>
+                              {r.isEligible ? "✓ ผ่านเกณฑ์" : "✕ ทดสอบซ่อม"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
           </div>
