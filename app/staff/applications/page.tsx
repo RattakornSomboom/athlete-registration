@@ -152,7 +152,7 @@ export default function StaffApplicationsPage() {
               onClick={() => router.push("/staff/settings")}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
             >
-              ตั้งค่าระบบ
+              ตั้งค่ารายการแข่งขัน
             </button>
           </div>
         </div>
@@ -180,21 +180,19 @@ export default function StaffApplicationsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode("clubs")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                viewMode === "clubs"
-                  ? "bg-blue-900 text-white shadow-2xs font-semibold"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${viewMode === "clubs"
+                ? "bg-blue-900 text-white shadow-2xs font-semibold"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
             >
               สรุปรายชื่อแยกตามชมรมกีฬา ({MOCK_CLUBS.length} ชมรม)
             </button>
             <button
               onClick={() => setViewMode("all_applicants")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
-                viewMode === "all_applicants"
-                  ? "bg-blue-900 text-white shadow-2xs font-semibold"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === "all_applicants"
+                ? "bg-blue-900 text-white shadow-2xs font-semibold"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
             >
               ตารางใบสมัครรวมทุกชมรม (ข้อ 10)
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${viewMode === "all_applicants" ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-700"}`}>
@@ -352,24 +350,22 @@ export default function StaffApplicationsPage() {
                           </span>
                         </td>
                         <td className="py-3 px-3.5 text-center">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            a.squadType === "main"
-                              ? "bg-blue-100 text-blue-900"
-                              : a.squadType === "reserve"
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${a.squadType === "main"
+                            ? "bg-blue-100 text-blue-900"
+                            : a.squadType === "reserve"
                               ? "bg-emerald-100 text-emerald-800"
                               : "bg-slate-100 text-slate-600"
-                          }`}>
+                            }`}>
                             {a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ยังไม่จัดสรร"}
                           </span>
                         </td>
                         <td className="py-3 px-3.5 text-center">
-                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-medium border ${
-                            a.status === "approved"
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                              : a.status === "rejected"
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-medium border ${a.status === "approved"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                            : a.status === "rejected"
                               ? "bg-rose-50 text-rose-800 border-rose-200"
                               : "bg-slate-100 text-slate-700 border-slate-200"
-                          }`}>
+                            }`}>
                             {a.status === "approved" ? "ผ่านการคัดเลือก" : a.status === "rejected" ? "ไม่ผ่านเกณฑ์" : "รอการพิจารณา"}
                           </span>
                         </td>

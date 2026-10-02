@@ -73,12 +73,19 @@ export default function ClubReviewPage() {
             ระบบได้บันทึกและส่งข้อมูลบัญชีรายชื่อนักกีฬาตัวจริง {mainSquadCount} คน และตัวสำรอง {reserveSquadCount} คน
             ไปยังกองกิจการนิสิตเพื่อตรวจสอบคุณสมบัติตามระเบียบ กกมท. เรียบร้อยแล้ว
           </p>
-          <div className="pt-4 border-t border-slate-100">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-3">
             <button
-              onClick={() => router.push("/club/athletes")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-5 py-2.5 rounded-lg transition-colors"
+              onClick={() => router.push("/club/tracking")}
+              className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
             >
-              กลับสู่หน้ารายชื่อนักกีฬาของชมรม
+              <span>ไปที่หน้าติดตามสถานะส่งกองกิจ</span>
+              <span>→</span>
+            </button>
+            <button
+              onClick={() => router.push("/club/competitions")}
+              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+            >
+              กลับสู่หน้ารายการแข่งขัน
             </button>
           </div>
         </div>
@@ -92,7 +99,7 @@ export default function ClubReviewPage() {
 
         {/* Top navigation: Backward */}
         <div className="flex items-center justify-between">
-          <BackButton href="/club/athletes" />
+          <BackButton href="/club/competitions" label="กลับรายการแข่งขัน" />
           <LogoutButton />
         </div>
 

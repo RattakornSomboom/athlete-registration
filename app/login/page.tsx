@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BackButton from "@/components/shared/BackButton";
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [guideActiveTab, setGuideActiveTab] = useState<"athlete" | "club" | "staff" | "official" | "faq">("athlete");
 
   // Login state
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -85,6 +86,17 @@ export default function LoginPage() {
     profileForm.addressNo && profileForm.subDistrict && profileForm.district &&
     profileForm.province && profileForm.postalCode && profileForm.phone
   );
+
+  // Memoize รายการอำเภอและตำบล เพื่อป้องกันการคำนวณซ้ำตอนพิมพ์ฟอร์ม (O(1) Optimized)
+  const amphureOptions = useMemo(() => {
+    return profileForm.province ? getAmphuresByProvince(profileForm.province) : [];
+  }, [profileForm.province]);
+
+  const tambonOptions = useMemo(() => {
+    return profileForm.province && profileForm.district
+      ? getTambonsByAmphure(profileForm.province, profileForm.district)
+      : [];
+  }, [profileForm.province, profileForm.district]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,7 +368,9 @@ export default function LoginPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-blue-900 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
-                          🏃
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
                         </div>
                         <h3 className="font-bold text-slate-900 text-xs group-hover:text-blue-900 transition-colors">
                           นิสิต / นักกีฬาตัวแทนสถาบัน
@@ -386,7 +400,9 @@ export default function LoginPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
-                          📋
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
                         </div>
                         <h3 className="font-bold text-slate-900 text-xs group-hover:text-emerald-800 transition-colors">
                           ผู้จัดการทีม / ผู้ฝึกสอนกีฬา (โค้ช)
@@ -766,14 +782,55 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* ตัวเลือกสำหรับนิสิตปี 1 เทอม 1 */}
+            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl space-y-1.5">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={profileForm.isFreshmanFirstTerm || false}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setProfileForm((prev) => ({
+                      ...prev,
+                      isFreshmanFirstTerm: checked,
+                      year: checked ? "1" : prev.year,
+                      gpaSemester: checked ? "ยังไม่มีเกรด (ปี 1 เทอม 1)" : "",
+                      gpaCumulative: checked ? "ยังไม่มีเกรด (ปี 1 เทอม 1)" : "",
+                    }));
+                  }}
+                  className="mt-0.5 rounded text-blue-900 focus:ring-blue-900 h-4 w-4"
+                />
+                <div>
+                  <span className="text-xs font-bold text-blue-950 block">
+                    เป็นนิสิตเข้าใหม่ ชั้นปีที่ 1 ภาคเรียนที่ 1 (ยังไม่มีเกรด/เกรดเฉลี่ยสะสม)
+                  </span>
+                  <span className="text-[11px] text-blue-800/80 leading-relaxed block mt-0.5">
+                    *ได้รับการยกเว้นเกรดเฉลี่ยสะสมตามระเบียบ กกมท. โดยจะใช้ใบรับรองสภาพนิสิต (UP 02) ในการพิจารณาแทน
+                  </span>
+                </div>
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">เกรดเฉลี่ย (ภาคล่าสุด)</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" placeholder="เช่น 3.25" value={profileForm.gpaSemester} onChange={(e) => setProfile("gpaSemester", e.target.value)} />
+                <input
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                  placeholder="เช่น 3.25"
+                  value={profileForm.gpaSemester}
+                  onChange={(e) => setProfile("gpaSemester", e.target.value)}
+                  disabled={profileForm.isFreshmanFirstTerm}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">เกรดเฉลี่ยสะสม (GPAX)</label>
-                <input className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none" placeholder="เช่น 3.40" value={profileForm.gpaCumulative} onChange={(e) => setProfile("gpaCumulative", e.target.value)} />
+                <input
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                  placeholder="เช่น 3.40"
+                  value={profileForm.gpaCumulative}
+                  onChange={(e) => setProfile("gpaCumulative", e.target.value)}
+                  disabled={profileForm.isFreshmanFirstTerm}
+                />
               </div>
             </div>
 
@@ -817,7 +874,7 @@ export default function LoginPage() {
                   disabled={!profileForm.province}
                 >
                   <option value="">{profileForm.province ? "-- เลือกอำเภอ / เขต --" : ""}</option>
-                  {profileForm.province && getAmphuresByProvince(profileForm.province).map((a) => (
+                  {amphureOptions.map((a) => (
                     <option key={a.name} value={a.name}>{a.name}</option>
                   ))}
                 </select>
@@ -831,19 +888,16 @@ export default function LoginPage() {
                     const tambon = e.target.value;
                     setProfile("subDistrict", tambon);
                     // Auto-fill รหัสไปรษณีย์
-                    if (profileForm.province && profileForm.district) {
-                      const tambons = getTambonsByAmphure(profileForm.province, profileForm.district);
-                      const found = tambons.find((t) => t.name === tambon);
-                      if (found && found.postalCode) {
-                        setProfile("postalCode", found.postalCode);
-                      }
+                    const found = tambonOptions.find((t) => t.name === tambon);
+                    if (found && found.postalCode) {
+                      setProfile("postalCode", found.postalCode);
                     }
                   }}
                   disabled={!profileForm.district}
                 >
                   <option value="">{profileForm.district ? "-- เลือกตำบล / แขวง --" : ""}</option>
-                  {profileForm.province && profileForm.district && getTambonsByAmphure(profileForm.province, profileForm.district).map((t) => (
-                    <option key={t.name} value={t.name}>{t.name}</option>
+                  {tambonOptions.map((t, idx) => (
+                    <option key={`${t.name}-${idx}`} value={t.name}>{t.name}</option>
                   ))}
                 </select>
               </div>
@@ -869,64 +923,333 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* ===== POPUP MODAL: คู่มือการใช้งานระบบสารสนเทศ ===== */}
+      {/* ===== POPUP MODAL: คู่มือการใช้งานระบบสารสนเทศ (ฉบับสมบูรณ์) ===== */}
       {showGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-900" />
-                <h3 className="font-bold text-slate-900 text-sm">
-                  คู่มือการใช้งานระบบสารสนเทศ
-                </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-3xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] flex flex-col">
+
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3 shrink-0">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-900" />
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                    คู่มือการใช้งานระบบสารสนเทศ (SMED UP)
+                  </h3>
+                </div>
+                <p className="text-[11px] text-slate-500 pl-4.5">
+                  ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowGuideModal(false)}
-                className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center text-xs"
+                className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center text-xs transition-colors cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 space-y-3">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="font-semibold text-slate-900 mb-1">🏃 สำหรับนิสิต / นักกีฬา:</p>
-                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
-                  <li>ลงทะเบียนด้วยรหัสนิสิต 8 หลัก และกำหนดรหัสผ่านความปลอดภัย</li>
-                  <li>กรอกข้อมูลประวัติการศึกษาและแนบรูปถ่ายหน้าตรงชุดนิสิต</li>
-                  <li>ยื่นใบสมัครคัดเลือกชนิดกีฬาที่เปิดรับ (สูงสุด 4 ชนิด) และแนบเอกสารรับรอง UP 02</li>
-                  <li>ติดตามผลการคัดเลือกและยืนยันสิทธิ์ในระบบเมื่อได้รับการประกาศชื่อ</li>
-                </ol>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="font-semibold text-slate-900 mb-1">🏆 สำหรับชมรมกีฬา:</p>
-                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
-                  <li>เข้าสู่ระบบด้วยบัญชีชมรมกีฬาต้นสังกัด</li>
-                  <li>พิจารณาคัดเลือกนักกีฬาและจัดประเภทตัวจริง/ตัวสำรองตามโควตา กกมท.</li>
-                  <li>ลงนามดิจิทัลรับรองบัญชีรายชื่อส่งต่อให้กองกิจการนิสิต</li>
-                </ol>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="font-semibold text-slate-900 mb-1">🏛️ ช่องทางการติดต่อเจ้าหน้าที่:</p>
-                <p className="text-[11px] text-slate-600">
-                  งานกีฬาและนันทนาการ กองกิจการนิสิต มหาวิทยาลัยพะเยา<br />
-                  โทร. 054-466-666 ต่อ 6290-6295 หรืออีเมล: <span className="font-mono text-blue-900">dsa@up.ac.th</span>
-                </p>
-              </div>
+            {/* Role Navigation Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 pb-2 shrink-0 text-xs">
+              <button
+                type="button"
+                onClick={() => setGuideActiveTab("athlete")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  guideActiveTab === "athlete"
+                    ? "bg-blue-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                นิสิต / นักกีฬา
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuideActiveTab("club")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  guideActiveTab === "club"
+                    ? "bg-blue-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                ชมรมกีฬา
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuideActiveTab("staff")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  guideActiveTab === "staff"
+                    ? "bg-blue-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                กองกิจการนิสิต
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuideActiveTab("official")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  guideActiveTab === "official"
+                    ? "bg-blue-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                เจ้าหน้าที่ทีม / ผู้ฝึกสอน
+              </button>
+              <button
+                type="button"
+                onClick={() => setGuideActiveTab("faq")}
+                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  guideActiveTab === "faq"
+                    ? "bg-blue-900 text-white shadow-xs"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                เกณฑ์ กกมท. & เอกสาร
+              </button>
             </div>
 
-            <div className="pt-2 text-right">
+            {/* Tab Contents: Scrollable */}
+            <div className="overflow-y-auto pr-1 text-xs text-slate-600 space-y-3.5 flex-1">
+
+              {/* TAB 1: นิสิต / นักกีฬา */}
+              {guideActiveTab === "athlete" && (
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">ขั้นตอนที่ 1: การลงทะเบียนและบันทึกประวัติตั้งต้น</h4>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      <li>เข้าสู่เมนู <strong>"ลงทะเบียนเข้าใช้งาน"</strong> แล้วเลือกกลุ่มผู้ใช้เป็น <strong>"นิสิต / นักกีฬา"</strong></li>
+                      <li>กำหนดรหัสผ่านความปลอดภัย (ความยาวขั้นต่ำ 8 ตัวอักษร ประกอบด้วยอักษรตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และอักขระพิเศษ)</li>
+                      <li>กรอกข้อมูลประวัตินิสิต: รหัสนิสิต 8 หลัก, ชื่อ-นามสกุล, เพศ, สังกัดคณะ, สาขาวิชา, ชั้นปี, เบอร์โทรศัพท์ และอีเมล</li>
+                      <li>
+                        <strong>การระบุผลการเรียนสะสม (GPAX):</strong>
+                        <ul className="list-disc list-inside pl-4 mt-0.5 space-y-0.5 text-slate-500">
+                          <li><span className="font-medium text-slate-700">กรณีทั่วไป:</span> ต้องมีเกรดเฉลี่ยสะสม (GPAX) ไม่ต่ำกว่า 2.00 ตามเกณฑ์ กกมท.</li>
+                          <li><span className="font-medium text-slate-700">กรณีนิสิตชั้นปีที่ 1 ภาคเรียนที่ 1:</span> ให้ทำเครื่องหมายเลือก <em>"เป็นนิสิตปี 1 เทอม 1 (ยังไม่มีเกรดเฉลี่ยสะสม)"</em> เพื่อปิดช่องกรอกเกรดและได้รับการยกเว้นตามระเบียบ กกมท.</li>
+                        </ul>
+                      </li>
+                      <li>แนบรูปถ่ายหน้าตรงชุดนิสิต ขนาด 1 นิ้ว (ไฟล์ภาพ JPG/PNG พื้นหลังเรียบสุภาพ) เพื่อใช้ในฐานข้อมูลกลางและการออกบัตรประจำตัวนักกีฬา (AD Card)</li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">ขั้นตอนที่ 2: การยื่นใบสมัครรับการคัดเลือก (3 ขั้นตอนย่อย)</h4>
+                    </div>
+                    <div className="space-y-2 text-[11px] text-slate-600 pl-1">
+                      <div className="p-2 bg-white rounded-lg border border-slate-200">
+                        <span className="font-semibold text-blue-950 block mb-0.5">1. ข้อมูลส่วนตัวและสังกัดชมรม</span>
+                        ตรวจสอบข้อมูลประวัติตั้งต้น และเลือกสังกัดชมรมกีฬา (หากไม่ได้สังกัดชมรม ให้ระบุชื่อ-ตำแหน่งอาจารย์/ผู้ฝึกสอนที่รับรอง พร้อมแนบหนังสือขออนุมัติ)
+                      </div>
+                      <div className="p-2 bg-white rounded-lg border border-slate-200">
+                        <span className="font-semibold text-blue-950 block mb-0.5">2. เลือกชนิดกีฬาและประเภทการแข่งขัน</span>
+                        เลือกชนิดกีฬาที่เปิดรับสมัคร และระบุประเภทการแข่งขัน (เช่น ทีมชาย, ทีมหญิง, บุคคลชาย, บุคคลหญิง) และรอบการแข่งขัน
+                      </div>
+                      <div className="p-2 bg-white rounded-lg border border-slate-200">
+                        <span className="font-semibold text-blue-950 block mb-0.5">3. ประวัติการแข่งขันและเอกสารแนบหลักฐาน (4 รายการ)</span>
+                        ระบุประวัติการเคยเข้าร่วมแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย (ไม่เกิน 5 ครั้ง) และแนบเอกสารรับรองความถูกต้อง:
+                        <ul className="list-disc list-inside pl-2 mt-1 space-y-0.5 text-slate-500">
+                          <li>รูปถ่ายหน้าตรงชุดนิสิต ขนาด 1 นิ้ว (ดึงจากประวัติตั้งต้นอัตโนมัติ)</li>
+                          <li>สำเนาบัตรประจำตัวประชาชน พร้อมรับรองสำเนาถูกต้อง</li>
+                          <li><strong>สำเนาบัตรประจำตัวนิสิต</strong> หรือ <strong>ภาพแคปหน้าจอทะเบียนนิสิตจากระบบ REG</strong> (กรณีปี 1 ที่ยังไม่ได้รับบัตร หรือนิสิตที่ไม่มีบัตร)</li>
+                          <li>ใบรับรองการเป็นนิสิต (UP 02) จากกองบริการการศึกษา</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">ขั้นตอนที่ 3: การติดตามสถานะและข้อเสนอแนะ</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      ติดตามสถานะใบสมัครได้ที่เมนู <strong>"ติดตามสถานะการสมัคร"</strong> ระบบจะแสดงความคืบหน้า 2 ระดับ:
+                      <br />• <strong>การพิจารณาของชมรมกีฬา:</strong> รอพิจารณา, ผ่านคัดเลือกเป็นตัวจริง (Main Squad), ตัวสำรอง (Reserve Squad) หรือส่งกลับแก้ไข
+                      <br />• <strong>การรับรองจากกองกิจการนิสิต:</strong> รอการตรวจสอบ, อนุมัติขึ้นทะเบียนตัวแทนมหาวิทยาลัย หรือส่งกลับพร้อมเหตุผล
+                      <br />*กรณีเอกสารถูกตีกลับ นิสิตสามารถอ่านข้อคิดเห็น (Comment) และคลิกอัปโหลดเอกสารใหม่ส่งกลับไปให้ชมรมได้ทันที
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: ชมรมกีฬา */}
+              {guideActiveTab === "club" && (
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">1. การเข้าถึงและการซิงค์รายการแข่งขัน</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      • เข้าสู่ระบบด้วยบัญชีชมรมกีฬาต้นสังกัด เพื่อเข้าสู่หน้าแดชบอร์ดรายการแข่งขัน
+                      <br />• รายการแข่งขันจะ<strong>ซิงค์สถานะเปิด/ปิดกับกองกิจการนิสิตโดยอัตโนมัติ</strong> รายการที่เปิดรับสมัครสามารถคลิกเข้าไปดูใบสมัครได้ ส่วนรายการที่ยังไม่เปิดรับจะแสดงแถบสีเทาพร้อมเหตุผล
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">2. การตรวจสอบคุณสมบัติและเอกสารรายบุคคล</h4>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      <li><strong>Automated Rule Checker:</strong> ระบบประเมินคุณสมบัติเบื้องต้นตามเกณฑ์ กกมท. อัตโนมัติ (อายุ ≤ 28 ปี, GPAX ≥ 2.00 หรือยกเว้นปี 1 เทอม 1, และแข่งไม่เกิน 5 ครั้ง)</li>
+                      <li><strong>การตรวจสอบเอกสารแนบ:</strong> สามารถคลิกดูเอกสารของผู้สมัครแต่ละคนได้แบบแยกไฟล์</li>
+                      <li><strong>การอนุมัติ/ตีกลับเอกสารแยกชิ้น:</strong> เจ้าหน้าที่ชมรมสามารถกด "อนุมัติ" หรือ "ปฏิเสธ" เอกสารแต่ละรายการ หากปฏิเสธสามารถระบุข้อคิดเห็น (Comment) ส่งกลับไปยังนิสิตเพื่อให้นิสิตส่งเอกสารที่ถูกต้องมาใหม่</li>
+                      <li><strong>การจัดกลุ่มนักกีฬา:</strong> กำหนดสถานะผู้สมัครเป็น "นักกีฬาตัวจริง (Main Squad)" หรือ "นักกีฬาสำรอง (Reserve Squad)" ตามโควตาที่ระเบียบกำหนด</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">3. การส่งบัญชีรายชื่อและการติดตามสถานะ</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      • เมื่อพิจารณาและตรวจสอบเอกสารครบถ้วน ให้กดปุ่ม <strong>"ส่งบัญชีรายชื่อให้กองกิจการนิสิต"</strong>
+                      <br />• ติดตามสถานะของแต่ละรายการและการตรวจสอบจากกองกิจการนิสิตได้ที่หน้า <strong>"ติดตามสถานะส่งรายชื่อ"</strong> หากมีเอกสารที่กองกิจการนิสิตตีกลับมา ชมรมสามารถประสานงานให้นักกีฬาแก้ไขได้ทันท่วงที
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: กองกิจการนิสิต */}
+              {guideActiveTab === "staff" && (
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">1. การตรวจสอบบัญชีรายชื่อนักกีฬาตัวแทน</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      • แสดงบัญชีรายชื่อนักกีฬาที่ผ่านการคัดเลือกจากแต่ละชมรมกีฬา แยกตามชนิดกีฬาและรายการแข่งขัน
+                      <br />• ตรวจสอบความถูกต้องตามระเบียบคณะกรรมการบริหารกีฬามหาวิทยาลัยแห่งประเทศไทย (กกมท.) ครั้งที่ 52 และระเบียบมหาวิทยาลัยพะเยา
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">2. การอนุมัติขั้นสุดท้ายหรือส่งกลับแก้ไข</h4>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      <li><strong>อนุมัติขึ้นทะเบียน:</strong> รับรองรายชื่อนักกีฬาเข้าสู่บัญชีตัวแทนมหาวิทยาลัยพะเยาอย่างเป็นทางการ</li>
+                      <li><strong>ส่งกลับพร้อมข้อเสนอแนะ:</strong> หากพบเอกสารไม่ถูกต้องหรือไม่ครบถ้วน สามารถระบุข้อคิดเห็น (Feedback) และส่งกลับไปยังชมรมกีฬาเพื่อให้แก้ไข</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">3. การวิเคราะห์ข้อมูลและการส่งออกรายงาน</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      • สรุปผลการคัดเลือกและจัดทำทะเบียนนักกีฬาตัวแทนสถาบัน
+                      <br />• ส่งออกข้อมูลบัญชีรายชื่อเป็นไฟล์รายงาน CSV (รองรับ UTF-8 BOM สำหรับเปิดในโปรแกรม Excel ได้อย่างสมบูรณ์) เพื่อใช้ขึ้นทะเบียนอย่างเป็นทางการกับ กกมท.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: เจ้าหน้าที่ทีม / ผู้ฝึกสอน */}
+              {guideActiveTab === "official" && (
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">1. การขึ้นทะเบียนเจ้าหน้าที่ทีมและผู้ฝึกสอน</h4>
+                    </div>
+                    <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 pl-1">
+                      <li>เข้าสู่ระบบและเลือกเมนู <strong>"ขึ้นทะเบียนเจ้าหน้าที่ทีม"</strong></li>
+                      <li>
+                        เลือกประเภทหน้าที่รับผิดชอบ:
+                        <span className="block pl-4 text-slate-500 mt-0.5">
+                          • ผู้จัดการทีม (Team Manager)<br />
+                          • ผู้ฝึกสอน (Head Coach)<br />
+                          • ผู้ช่วยผู้ฝึกสอน (Assistant Coach)<br />
+                          • เจ้าหน้าที่ประจำทีม / นักกายภาพ (Official / Physiotherapist)
+                        </span>
+                      </li>
+                      <li>กรอกข้อมูลประวัติ สังกัดคณะ/หน่วยงาน และระบุชนิดกีฬาที่สังกัด</li>
+                      <li>แนบคำสั่งแต่งตั้งหรือหนังสือรับรองการปฏิบัติหน้าที่จากต้นสังกัด/มหาวิทยาลัย</li>
+                    </ol>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">2. การติดตามสถานะการขึ้นทะเบียน</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      ตรวจสอบสถานะการอนุมัติได้ที่หน้า <strong>"ติดตามสถานะเจ้าหน้าที่ทีม"</strong> เมื่อกองกิจการนิสิตตรวจสอบคำสั่งแต่งตั้งแล้ว จะดำเนินการออกบัตรประจำตัวเจ้าหน้าที่ทีม (Official AD Card) ต่อไป
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: เกณฑ์ กกมท. & เอกสาร */}
+              {guideActiveTab === "faq" && (
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">คุณสมบัตินักกีฬาตามระเบียบ กกมท. ครั้งที่ 52</h4>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-600 pl-1">
+                      <li><strong>สถานะการศึกษา:</strong> ต้องเป็นนิสิตที่กำลังศึกษาอยู่ในระดับปริญญาตรี หรือบัณฑิตศึกษา ของมหาวิทยาลัยพะเยา</li>
+                      <li><strong>อายุ:</strong> อายุไม่เกิน 28 ปีบริบูรณ์ (คำนวณตามปี พ.ศ. เกิด)</li>
+                      <li><strong>ผลการเรียนสะสม (GPAX):</strong> ไม่ต่ำกว่า 2.00 ตลอดระยะเวลาการศึกษา</li>
+                      <li><strong>กรณีนิสิตชั้นปีที่ 1 เทอม 1:</strong> ได้รับการยกเว้นไม่ต้องมีผลการเรียนสะสม โดยใช้ใบรับรองสภาพนิสิตและการลงทะเบียนเรียน (UP 02) แนบแทนตามระเบียบ</li>
+                      <li><strong>จำนวนครั้งที่เข้าร่วมแข่งขัน:</strong> สามารถเข้าร่วมการแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทยได้สูงสุดไม่เกิน 5 ครั้ง ตลอดการศึกษา</li>
+                    </ul>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-900"></span>
+                      <h4 className="font-semibold text-slate-900 text-xs">ข้อกำหนดของไฟล์เอกสารแนบ</h4>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-600 pl-1">
+                      <li><strong>รูปแบบไฟล์ที่รองรับ:</strong> PDF, JPG, JPEG, PNG</li>
+                      <li><strong>ขนาดไฟล์:</strong> ไม่เกิน 5 MB ต่อไฟล์</li>
+                      <li><strong>ความชัดเจนของเอกสาร:</strong> ตัวหนังสือ ตัวเลข และภาพถ่ายต้องชัดเจน ไม่เบลอหรือถูกตัดทอน</li>
+                      <li><strong>สำเนาบัตรประจำตัวนิสิต:</strong> หากเป็นนิสิตชั้นปีที่ 1 ที่ยังไม่ได้รับบัตร หรือนิสิตชั้นปีอื่น ๆ ที่ไม่มีบัตร สามารถแคปภาพหน้าจอข้อมูลทะเบียนนิสิตจากระบบ REG มาแนบแทนได้</li>
+                      <li>สำเนาเอกสารทุกฉบับควรลงลายมือชื่อรับรองสำเนาถูกต้องกำกับไว้</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* ช่องทางติดต่อประสานงาน */}
+              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200/80">
+                <p className="font-semibold text-blue-950 mb-1 text-[11px]">ศูนย์ประสานงานระบบสารสนเทศด้านกีฬา (SMED UP):</p>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  งานส่งเสริมและพัฒนากีฬาสู่ความเป็นเลิศ กองกิจการนิสิต มหาวิทยาลัยพะเยา<br />
+                  อาคารสงวนเสริมศรี โทรศัพท์: 054-466-666 ต่อ 6290 - 6295 (วันและเวลาราชการ 08:30 - 16:30 น.)<br />
+                  อีเมล: <span className="font-mono text-blue-900 font-medium">dsa@up.ac.th</span> | เว็บไซต์: <span className="font-mono text-blue-900 font-medium">smed.up.ac.th</span>
+                </p>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between shrink-0">
+              <span className="text-[10px] text-slate-400">
+                เวอร์ชัน 1.0 (อัปเดตระเบียบ กกมท. ครั้งที่ 52)
+              </span>
               <button
                 type="button"
                 onClick={() => setShowGuideModal(false)}
-                className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-lg text-xs font-medium cursor-pointer"
+                className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-lg text-xs font-medium cursor-pointer transition-colors"
               >
                 เข้าใจแล้ว / ปิดหน้าต่าง
               </button>
             </div>
+
           </div>
         </div>
       )}

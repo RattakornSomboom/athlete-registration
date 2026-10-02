@@ -1562,7 +1562,7 @@ export default function StaffAnalyticsPage() {
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${
                           allPassing ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                         }`}>
-                          {allPassing ? "✓ ผ่านเกณฑ์สมรรถภาพ กกมท." : "⚠️ ต่ำกว่าเกณฑ์ ต้องทดสอบซ่อม"}
+                          {allPassing ? "✓ ผ่านเกณฑ์สมรรถภาพ กกมท." : "✕ ต่ำกว่าเกณฑ์ ต้องทดสอบซ่อม"}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500">
