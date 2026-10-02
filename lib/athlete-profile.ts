@@ -18,6 +18,7 @@ export type AthleteProfile = {
   birthDate: string; // yyyy-mm-dd
   gpaSemester: string;
   gpaCumulative: string;
+  isFreshmanFirstTerm?: boolean; // กรณีเป็นนิสิตปี 1 เทอม 1 (ยังไม่มีเกรดระดับอุดมศึกษา)
   addressNo: string;
   subDistrict: string;
   district: string;

@@ -31,43 +31,61 @@ function cleanDistrictName(name: string): string {
   return name.replace(/^เขต\s+/, "เขต");
 }
 
+// Pre-index สำหรับการค้นหาความเร็วสูง (O(1) lookup ไม่ต้องวนลูป 7,348 รายการซ้ำ)
+const provinceMap = new Map<string, (typeof provinces)[0]>();
+for (const p of provinces) {
+  provinceMap.set(p.name_in_thai, p);
+}
+
+const districtsByProvinceId = new Map<number, (typeof districts)>();
+for (const d of districts) {
+  const list = districtsByProvinceId.get(d.province_id) || [];
+  list.push(d);
+  districtsByProvinceId.set(d.province_id, list);
+}
+
+const subDistrictsByDistrictId = new Map<number, (typeof subDistricts)>();
+for (const s of subDistricts) {
+  const list = subDistrictsByDistrictId.get(s.district_id) || [];
+  list.push(s);
+  subDistrictsByDistrictId.set(s.district_id, list);
+}
+
 /**
- * ดึงรายชื่ออำเภอ/เขตทั้งหมดของจังหวัดที่เลือก (มีอำเภอจริงครบทุกอำเภอใน 77 จังหวัด)
+ * ดึงรายชื่ออำเภอ/เขตทั้งหมดของจังหวัดที่เลือก (ความเร็วสูง O(1))
  */
 export function getAmphuresByProvince(provinceName: string): AmphureData[] {
   if (!provinceName) return [];
-  const p = provinces.find((x) => x.name_in_thai === provinceName);
+  const p = provinceMap.get(provinceName);
   if (!p) return [];
 
-  const matchedDistricts = districts.filter((d) => d.province_id === p.id);
-  return matchedDistricts.map((d) => ({
+  const matched = districtsByProvinceId.get(p.id) || [];
+  return matched.map((d) => ({
     name: cleanDistrictName(d.name_in_thai),
   }));
 }
 
 /**
- * ดึงรายชื่อตำบล/แขวง และรหัสไปรษณีย์ทั้งหมดของอำเภอ/เขตที่เลือก
+ * ดึงรายชื่อตำบล/แขวง และรหัสไปรษณีย์ทั้งหมดของอำเภอ/เขตที่เลือก (ความเร็วสูง O(1))
  */
 export function getTambonsByAmphure(
   provinceName: string,
   amphureName: string
 ): TambonData[] {
   if (!provinceName || !amphureName) return [];
-  const p = provinces.find((x) => x.name_in_thai === provinceName);
+  const p = provinceMap.get(provinceName);
   if (!p) return [];
 
-  const dist = districts.find(
+  const distList = districtsByProvinceId.get(p.id) || [];
+  const dist = distList.find(
     (d) =>
-      d.province_id === p.id &&
-      (cleanDistrictName(d.name_in_thai) === amphureName ||
-        d.name_in_thai === amphureName)
+      cleanDistrictName(d.name_in_thai) === amphureName ||
+      d.name_in_thai === amphureName
   );
   if (!dist) return [];
 
-  const matchedSubDistricts = subDistricts.filter(
-    (s) => s.district_id === dist.id
-  );
-  return matchedSubDistricts.map((s) => ({
+  const matched = subDistrictsByDistrictId.get(dist.id) || [];
+  return matched.map((s) => ({
     name: s.name_in_thai,
     postalCode: String(s.zip_code || ""),
   }));

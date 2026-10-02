@@ -325,7 +325,7 @@ export default function StaffCompetitionApplicantsPage() {
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                          ⚠️ เสี่ยงผิดระเบียบ กกมท. ({ruleCheck.issues.join(", ")})
+                          เสี่ยงผิดระเบียบ กกมท. ({ruleCheck.issues.join(", ")})
                         </span>
                       )}
                     </div>
