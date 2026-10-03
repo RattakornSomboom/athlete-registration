@@ -54,6 +54,15 @@ export default function ClubCompetitionsPage() {
           {/* Quick Actions */}
           <div className="flex items-center flex-wrap gap-2">
             <button
+              onClick={() => router.push("/club/officials")}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <span>ตรวจสอบเจ้าหน้าที่ทีม</span>
+              <span className="px-1.5 py-0.2 bg-amber-400 text-blue-950 text-[10px] font-bold rounded-full">
+                ผู้ฝึกสอน/ผจก.
+              </span>
+            </button>
+            <button
               onClick={() => router.push("/club/tracking")}
               className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
             >

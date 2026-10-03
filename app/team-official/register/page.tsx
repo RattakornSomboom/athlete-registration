@@ -4,15 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
+import {
+  OfficialPosition,
+  POSITION_LABEL,
+  addOfficialApplication,
+  OfficialDocument,
+} from "@/lib/team-official-store";
 
-type Position = "manager" | "coach" | "assistant_coach" | "other";
-
-const POSITION_LABEL: Record<Position, string> = {
-  manager: "ผู้จัดการทีม",
-  coach: "ผู้ฝึกสอน",
-  assistant_coach: "ผู้ช่วยผู้ฝึกสอน",
-  other: "อื่นๆ",
-};
+const SPORTS_OPTIONS = [
+  { clubId: "football", sportName: "ฟุตบอล" },
+  { clubId: "basketball", sportName: "บาสเกตบอล" },
+  { clubId: "volleyball", sportName: "วอลเลย์บอล" },
+  { clubId: "swimming", sportName: "ว่ายน้ำ" },
+];
 
 export default function TeamOfficialRegisterPage() {
   const router = useRouter();
@@ -23,6 +27,7 @@ export default function TeamOfficialRegisterPage() {
   const [nameChangeFile, setNameChangeFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
+    clubId: "football",
     firstName: "",
     lastName: "",
     nationalId: "",
@@ -38,7 +43,7 @@ export default function TeamOfficialRegisterPage() {
     workplace: "",
     workPosition: "",
     previousCount: "",
-    appliedPosition: "" as Position | "",
+    appliedPosition: "" as OfficialPosition | "",
     appliedPositionOther: "",
     acceptedRules: "false",
   });
@@ -51,25 +56,87 @@ export default function TeamOfficialRegisterPage() {
   };
 
   const handleSubmit = async () => {
+    if (!form.appliedPosition) return;
     setLoading(true);
     try {
-      console.log("submit team official", {
-        ...form,
-        photo: photo?.name,
-        planFile: planFile?.name,
-        idCardFile: idCardFile?.name,
-        nameChangeFile: nameChangeFile?.name,
+      const selectedSport = SPORTS_OPTIONS.find((s) => s.clubId === form.clubId)?.sportName || "กีฬา";
+
+      const docs: OfficialDocument[] = [
+        {
+          id: "doc-photo",
+          type: "photo",
+          title: "รูปถ่ายหน้าตรงชุดสุภาพ 1 นิ้ว",
+          category: "ภาพถ่ายสำหรับทำบัตร AD Card",
+          filename: photo ? photo.name : `photo_${form.firstName}.jpg`,
+          clubStatus: "pending",
+          staffStatus: "pending",
+        },
+        {
+          id: "doc-idcard",
+          type: "id_card",
+          title: "สำเนาบัตรประจำตัวประชาชน",
+          category: "เอกสารยืนยันตัวตน",
+          filename: idCardFile ? idCardFile.name : `idcard_${form.nationalId}.pdf`,
+          clubStatus: "pending",
+          staffStatus: "pending",
+        },
+        {
+          id: "doc-namechange",
+          type: "name_change",
+          title: "สำเนาหลักฐานเปลี่ยนชื่อ - นามสกุล",
+          category: "เอกสารทางกฎหมาย (ถ้ามี)",
+          filename: nameChangeFile ? nameChangeFile.name : "-",
+          clubStatus: "pending",
+          staffStatus: "pending",
+        },
+        {
+          id: "doc-plan",
+          type: "training_plan",
+          title: "แผนการฝึกซ้อมกีฬาและเก็บตัว (อย่างน้อย 1 เดือน)",
+          category: "แผนงานและตารางฝึกซ้อม",
+          filename: planFile ? planFile.name : `training_plan_${form.clubId}.pdf`,
+          clubStatus: "pending",
+          staffStatus: "pending",
+        },
+      ];
+
+      const created = addOfficialApplication({
+        clubId: form.clubId,
+        sportName: selectedSport,
+        appliedPosition: form.appliedPosition,
+        appliedPositionOther: form.appliedPositionOther,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        nationalId: form.nationalId.trim(),
+        nationality: form.nationality.trim(),
+        birthDate: form.birthDate,
+        addressNo: form.addressNo.trim(),
+        subDistrict: form.subDistrict.trim(),
+        district: form.district.trim(),
+        province: form.province.trim(),
+        postalCode: form.postalCode.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        workplace: form.workplace.trim(),
+        workPosition: form.workPosition.trim(),
+        previousCount: form.previousCount.trim() || "0",
+        documents: docs,
       });
+
       document.cookie = "role=team_official; path=/";
-      await new Promise((r) => setTimeout(r, 1000));
-      router.push("/team-official/status");
+      if (typeof window !== "undefined") {
+        localStorage.setItem("latest_official_id", created.id);
+      }
+
+      await new Promise((r) => setTimeout(r, 600));
+      router.push(`/team-official/status?id=${created.id}`);
     } finally {
       setLoading(false);
     }
   };
 
   const isValid = !!(
-    form.firstName && form.lastName && form.nationalId && form.birthDate &&
+    form.clubId && form.firstName && form.lastName && form.nationalId && form.birthDate &&
     form.addressNo && form.subDistrict && form.district && form.province && form.postalCode &&
     form.phone && form.email && form.workplace && form.workPosition &&
     form.appliedPosition && planFile && idCardFile && form.acceptedRules === "true"
@@ -112,7 +179,34 @@ export default function TeamOfficialRegisterPage() {
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-5">
 
+          {/* ชมรมกีฬาต้นสังกัด */}
           <div>
+            <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-1.5">
+              ชมรมกีฬาต้นสังกัดที่เสนอตัวปฏิบัติหน้าที่ <span className="text-rose-600">*</span>
+            </label>
+            <p className="text-[11px] text-slate-500 mb-2.5">
+              ใบสมัครจะถูกส่งไปยังประธานชมรมกีฬาดังกล่าวเพื่อตรวจสอบและลงนามรับรอง ก่อนส่งต่อกองกิจการนิสิต
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {SPORTS_OPTIONS.map((s) => (
+                <button
+                  key={s.clubId}
+                  type="button"
+                  onClick={() => set("clubId", s.clubId)}
+                  className={`p-3 rounded-lg border text-xs font-semibold text-left transition-all cursor-pointer ${
+                    form.clubId === s.clubId
+                      ? "bg-blue-50 border-blue-900 text-blue-900 shadow-2xs"
+                      : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  <span className="block font-bold">ชมรม{s.sportName}</span>
+                  <span className="text-[10px] text-slate-400 font-normal">มหาวิทยาลัยพะเยา</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-700 mb-2">รูปถ่ายหน้าตรงชุดสุภาพ (ขนาด 1 นิ้ว สำหรับทำบัตรประจำตัว)</p>
             <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-blue-900 hover:bg-slate-50 transition-colors">
               <span className="text-xs text-slate-500 text-center px-2">{photo ? photo.name : "คลิกแนบรูปถ่าย"}</span>
@@ -182,7 +276,7 @@ export default function TeamOfficialRegisterPage() {
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-semibold text-slate-800 mb-2">ตำแหน่งเจ้าหน้าที่ทีมที่ขอขึ้นทะเบียน <span className="text-rose-600">*</span></label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(["manager", "coach", "assistant_coach", "other"] as Position[]).map((p) => (
+              {(["manager", "coach", "assistant_coach", "other"] as OfficialPosition[]).map((p) => (
                 <button
                   key={p}
                   type="button"

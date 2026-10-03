@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
+import { getTeamOfficials, TeamOfficialApplication, POSITION_LABEL } from "@/lib/team-official-store";
 
 // ข้อมูลชมรม
 const CLUB_INFO: Record<string, { name: string; sport: string; presidentName: string }> = {
@@ -44,6 +46,12 @@ export default function StaffClubCompetitionsPage() {
   const params = useParams();
   const clubId = params.clubId as string;
 
+  const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
+
+  useEffect(() => {
+    setOfficials(getTeamOfficials(clubId));
+  }, [clubId]);
+
   const club = CLUB_INFO[clubId];
   const competitions = MOCK_COMPETITIONS.filter((c) => c.clubId === clubId);
 
@@ -59,6 +67,8 @@ export default function StaffClubCompetitionsPage() {
   }
 
   const totalPending = competitions.reduce((sum, c) => sum + c.pendingCount, 0);
+  const pendingOfficialsCount = officials.filter((o) => o.stage === "club_approved").length;
+  const certifiedOfficialsCount = officials.filter((o) => o.stage === "staff_approved").length;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -86,7 +96,31 @@ export default function StaffClubCompetitionsPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => router.push(`/staff/officials?clubId=${clubId}`)}
+              className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <span>ตรวจสอบเจ้าหน้าที่ทีมชมรมนี้</span>
+              {pendingOfficialsCount > 0 ? (
+                <span className="px-1.5 py-0.2 bg-amber-400 text-blue-950 text-[10px] font-bold rounded-full">
+                  รอกองกิจตรวจ {pendingOfficialsCount} คน
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.2 bg-emerald-950 text-white text-[10px] font-bold rounded-full">
+                  {officials.length} คน
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => router.push("/staff/selection")}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-sm flex items-center gap-1.5"
+            >
+              <span>ออกประกาศผลทางการ</span>
+              <span className="text-[10px] bg-slate-900 text-amber-300 px-1.5 py-0.2 rounded-full font-bold">
+                กกมท.52
+              </span>
+            </button>
             <button
               onClick={() => router.push("/staff/analytics")}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
@@ -118,6 +152,93 @@ export default function StaffClubCompetitionsPage() {
             </p>
             <p className="text-xs text-slate-500 mt-0.5">คัดเลือกเป็นตัวแทนแล้ว</p>
           </div>
+        </div>
+
+        {/* Section: เจ้าหน้าที่ทีม/ผู้ฝึกสอนประจำชมรมนี้ */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900">
+                  เจ้าหน้าที่ทีมและผู้ฝึกสอน (ประจำชมรม{club.sport})
+                </h2>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-900 font-semibold border border-blue-200">
+                  {officials.length} ท่าน
+                </span>
+                {pendingOfficialsCount > 0 && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-300">
+                    รอกองกิจตรวจ {pendingOfficialsCount} ท่าน
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ผู้จัดการทีม / ผู้ฝึกสอน / ผู้ช่วยผู้ฝึกสอน ที่ขึ้นทะเบียนสังกัดชมรม{club.sport}
+              </p>
+            </div>
+
+            <button
+              onClick={() => router.push(`/staff/officials?clubId=${clubId}`)}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>เปิดระบบตรวจสอบเจ้าหน้าที่ทีมชมรมนี้</span>
+              <span className="text-blue-200">→</span>
+            </button>
+          </div>
+
+          {officials.length === 0 ? (
+            <p className="text-xs text-slate-400 py-3 text-center">
+              ยังไม่มีข้อมูลการสมัครของเจ้าหน้าที่ทีมในชมรมนี้
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {officials.map((o) => (
+                <div
+                  key={o.id}
+                  onClick={() => router.push(`/staff/officials?clubId=${clubId}`)}
+                  className="p-3.5 rounded-lg border border-slate-200 hover:border-blue-900/40 bg-slate-50/50 hover:bg-white transition-all cursor-pointer space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        {o.firstName} {o.lastName}
+                      </span>
+                      <span className="text-[11px] text-blue-900 font-semibold block">
+                        {POSITION_LABEL[o.appliedPosition]}
+                      </span>
+                    </div>
+                    <div>
+                      {o.stage === "staff_approved" ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+                          ขึ้นทะเบียนแล้ว ✓
+                        </span>
+                      ) : o.stage === "club_approved" ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 font-bold">
+                          รอกองกิจตรวจ
+                        </span>
+                      ) : o.stage === "staff_returned" ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 font-semibold">
+                          ตีกลับแก้ไข
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-medium">
+                          รอชมรมตรวจ
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 space-y-0.5 pt-1 border-t border-slate-100">
+                    <p>หน่วยงาน: <span className="text-slate-700">{o.workplace}</span></p>
+                    {o.officialLicenseId && (
+                      <p className="font-mono text-[10px] text-blue-900 font-semibold">
+                        License: {o.officialLicenseId}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Competitions List */}

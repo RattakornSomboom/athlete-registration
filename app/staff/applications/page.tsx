@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 import { MOCK_ALL_APPLICANTS, RawApplicant } from "@/lib/analytics-data";
 import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
+import { getTeamOfficials, TeamOfficialApplication } from "@/lib/team-official-store";
 
 type Club = {
   id: string;
@@ -64,6 +65,11 @@ export default function StaffApplicationsPage() {
   const [selectedSport, setSelectedSport] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedSquad, setSelectedSquad] = useState("all");
+  const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
+
+  useEffect(() => {
+    setOfficials(getTeamOfficials());
+  }, []);
 
   const totalPending = MOCK_CLUBS.reduce((sum, c) => sum + c.pendingApplicants, 0);
 
@@ -124,6 +130,15 @@ export default function StaffApplicationsPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={() => router.push("/staff/officials")}
+              className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <span>ทะเบียนเจ้าหน้าที่ทีม</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-white text-[10px] font-bold">
+                กกมท.52
+              </span>
+            </button>
+            <button
               onClick={() => router.push("/staff/analytics")}
               className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
@@ -144,9 +159,12 @@ export default function StaffApplicationsPage() {
             </button>
             <button
               onClick={() => router.push("/staff/selection")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition-all cursor-pointer shadow-md flex items-center gap-1.5 ring-2 ring-amber-300 animate-pulse hover:animate-none"
             >
-              ประกาศผล
+              <span>ประกาศผลทางการ</span>
+              <span className="text-[10px] bg-slate-900 text-amber-300 px-1.5 py-0.2 rounded-full font-bold">
+                กกมท.52
+              </span>
             </button>
             <button
               onClick={() => router.push("/staff/settings")}
@@ -216,33 +234,66 @@ export default function StaffApplicationsPage() {
         {/* VIEW 1: รายชื่อชมรม */}
         {viewMode === "clubs" && (
           <div className="space-y-3">
-            {MOCK_CLUBS.map((club) => (
-              <button
-                key={club.id}
-                onClick={() => router.push(`/staff/applications/${club.id}`)}
-                className="w-full text-left bg-white rounded-xl border border-slate-200 shadow-xs p-5 hover:border-slate-400 transition-all cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+            {MOCK_CLUBS.map((club) => {
+              const clubOfficials = officials.filter((o) => o.clubId === club.id);
+              const pendingOfficials = clubOfficials.filter((o) => o.stage === "club_approved").length;
+
+              return (
+                <div
+                  key={club.id}
+                  className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div
+                    onClick={() => router.push(`/staff/applications/${club.id}`)}
+                    className="flex-1 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h2 className="font-semibold text-slate-900">{club.name}</h2>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
                         {club.sport}
                       </span>
                       {club.pendingApplicants > 0 && (
                         <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 font-semibold">
-                          รอพิจารณา {club.pendingApplicants} คน
+                          นักกีฬารอพิจารณา {club.pendingApplicants} คน
+                        </span>
+                      )}
+                      {pendingOfficials > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 font-bold">
+                          ผู้ฝึกสอนรอกองกิจตรวจ {pendingOfficials} คน
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-slate-500">
-                      ประธานชมรม: {club.presidentName} · {club.totalCompetitions} รายการแข่งขัน · ผู้สมัคร {club.totalApplicants} คน
+                      ประธานชมรม: {club.presidentName} · {club.totalCompetitions} รายการแข่งขัน · นักกีฬา {club.totalApplicants} คน · เจ้าหน้าที่ทีม/ผู้ฝึกสอน {clubOfficials.length} คน
                     </p>
                   </div>
-                  <span className="text-slate-400 shrink-0 text-sm">→</span>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => router.push(`/staff/officials?clubId=${club.id}`)}
+                      className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>ตรวจผู้ฝึกสอน</span>
+                      {pendingOfficials > 0 ? (
+                        <span className="px-1.5 py-0.2 bg-amber-400 text-blue-950 text-[10px] font-bold rounded-full">
+                          {pendingOfficials}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">({clubOfficials.length})</span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => router.push(`/staff/applications/${club.id}`)}
+                      className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <span>ดูชมรม</span>
+                      <span className="text-blue-200">→</span>
+                    </button>
+                  </div>
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
 
