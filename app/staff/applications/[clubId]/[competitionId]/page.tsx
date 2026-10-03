@@ -31,6 +31,17 @@ type CompetitionResult = {
   result: string;
 };
 
+type StaffDocumentStatus = "pending" | "approved" | "returned";
+
+type StaffDocument = {
+  id: string;
+  title: string;
+  category: string;
+  filename: string;
+  staffStatus: StaffDocumentStatus;
+  staffComment?: string;
+};
+
 type AthleteApplication = {
   id: string;
   firstName: string;
@@ -63,7 +74,49 @@ type AthleteApplication = {
   status: "pending" | "approved" | "rejected";
   squadType: "main" | "reserve" | "";
   rejectReason?: string;
+  documents: StaffDocument[];
 };
+
+function createStaffDefaultDocuments(studentId: string): StaffDocument[] {
+  return [
+    {
+      id: "doc-1",
+      title: "สำเนาบัตรประจำตัวประชาชน",
+      category: "เอกสารยืนยันตัวตน",
+      filename: `id_card_${studentId}.pdf`,
+      staffStatus: "approved",
+    },
+    {
+      id: "doc-2",
+      title: "สำเนาบัตรประจำตัวนิสิต ม.พะเยา",
+      category: "เอกสารยืนยันสถานะนิสิต",
+      filename: `student_card_${studentId}.pdf`,
+      staffStatus: "approved",
+    },
+    {
+      id: "doc-3",
+      title: "ใบรับรองสภาพการเป็นนิสิต (UP 02)",
+      category: "เอกสารรับรองสภาพนิสิต กกมท.",
+      filename: `UP02_cert_${studentId}.pdf`,
+      staffStatus: "returned",
+      staffComment: "เอกสาร UP 02 ขาดลายมือชื่อนายทะเบียนสถาบัน กรุณาแนบฉบับที่มีตราประทับและลายเซ็นสมบูรณ์",
+    },
+    {
+      id: "doc-4",
+      title: "ผลการทดสอบสมรรถภาพทางกาย (Fitness Test)",
+      category: "ผลการทดสอบสมรรถภาพสถาบัน",
+      filename: `fitness_test_${studentId}.pdf`,
+      staffStatus: "approved",
+    },
+    {
+      id: "doc-5",
+      title: "ใบผ่านการอบรม UP Academy หรือประวัติผลงานกีฬา",
+      category: "วุฒิบัตร / ผลงานการแข่งขัน",
+      filename: `UP_Academy_${studentId}.pdf`,
+      staffStatus: "approved",
+    },
+  ];
+}
 
 const MOCK_APPLICANTS: AthleteApplication[] = [
   {
@@ -79,6 +132,7 @@ const MOCK_APPLICANTS: AthleteApplication[] = [
       { competitionName: "ฟุตบอลกีฬามหาวิทยาลัยฯ ครั้งที่ 51 / กกมท.", year: "2567", result: "เข้ารอบ 16 ทีม" },
     ],
     note: "", status: "pending", squadType: "",
+    documents: createStaffDefaultDocuments("66027012"),
   },
   {
     id: "2", firstName: "สมหญิง", lastName: "รักดี", gender: "หญิง", studentId: "66027013",
@@ -90,6 +144,13 @@ const MOCK_APPLICANTS: AthleteApplication[] = [
     hasPreviousEntry: "none", previousBachelorCount: "", previousGraduateCount: "", previousLastYear: "",
     competitions: [],
     note: "", status: "pending", squadType: "",
+    documents: [
+      { id: "doc-1", title: "สำเนาบัตรประจำตัวประชาชน", category: "เอกสารยืนยันตัวตน", filename: "id_card_66027013.pdf", staffStatus: "approved" },
+      { id: "doc-2", title: "สำเนาบัตรประจำตัวนิสิต ม.พะเยา", category: "เอกสารยืนยันสถานะนิสิต", filename: "student_card_66027013.pdf", staffStatus: "approved" },
+      { id: "doc-3", title: "ใบรับรองสภาพการเป็นนิสิต (UP 02)", category: "เอกสารรับรองสภาพนิสิต กกมท.", filename: "UP02_cert_66027013.pdf", staffStatus: "pending" },
+      { id: "doc-4", title: "ผลการทดสอบสมรรถภาพทางกาย (Fitness Test)", category: "ผลการทดสอบสมรรถภาพสถาบัน", filename: "fitness_test_66027013.pdf", staffStatus: "pending" },
+      { id: "doc-5", title: "ใบผ่านการอบรม UP Academy หรือประวัติผลงานกีฬา", category: "วุฒิบัตร / ผลงานการแข่งขัน", filename: "UP_Academy_66027013.pdf", staffStatus: "pending" },
+    ],
   },
   {
     id: "3", firstName: "มานะ", lastName: "สู้งาน", gender: "ชาย", studentId: "65027001",
@@ -103,6 +164,13 @@ const MOCK_APPLICANTS: AthleteApplication[] = [
       { competitionName: "ฟุตบอลกีฬาแห่งชาติ / กกท.", year: "2567", result: "เหรียญทอง" },
     ],
     note: "ผ่านการคัดเลือกระดับชาติ", status: "approved", squadType: "main",
+    documents: [
+      { id: "doc-1", title: "สำเนาบัตรประจำตัวประชาชน", category: "เอกสารยืนยันตัวตน", filename: "id_card_65027001.pdf", staffStatus: "approved" },
+      { id: "doc-2", title: "สำเนาบัตรประจำตัวนิสิต ม.พะเยา", category: "เอกสารยืนยันสถานะนิสิต", filename: "student_card_65027001.pdf", staffStatus: "approved" },
+      { id: "doc-3", title: "ใบรับรองสภาพการเป็นนิสิต (UP 02)", category: "เอกสารรับรองสภาพนิสิต กกมท.", filename: "UP02_cert_65027001.pdf", staffStatus: "approved" },
+      { id: "doc-4", title: "ผลการทดสอบสมรรถภาพทางกาย (Fitness Test)", category: "ผลการทดสอบสมรรถภาพสถาบัน", filename: "fitness_test_65027001.pdf", staffStatus: "approved" },
+      { id: "doc-5", title: "ใบผ่านการอบรม UP Academy หรือประวัติผลงานกีฬา", category: "วุฒิบัตร / ผลงานการแข่งขัน", filename: "UP_Academy_65027001.pdf", staffStatus: "approved" },
+    ],
   },
   {
     id: "4", firstName: "ธนวัฒน์", lastName: "เก่งกาจ", gender: "ชาย", studentId: "63051011",
@@ -117,6 +185,13 @@ const MOCK_APPLICANTS: AthleteApplication[] = [
     ],
     note: "เคยแข่งขันครบ 5 ครั้งแล้ว", status: "rejected", squadType: "",
     rejectReason: "เคยแข่งขันครบ 5 ครั้งแล้วตามระเบียบ กกมท. ข้อ 7.2 และอายุเกิน 28 ปี",
+    documents: [
+      { id: "doc-1", title: "สำเนาบัตรประจำตัวประชาชน", category: "เอกสารยืนยันตัวตน", filename: "id_card_63051011.pdf", staffStatus: "approved" },
+      { id: "doc-2", title: "สำเนาบัตรประจำตัวนิสิต ม.พะเยา", category: "เอกสารยืนยันสถานะนิสิต", filename: "student_card_63051011.pdf", staffStatus: "approved" },
+      { id: "doc-3", title: "ใบรับรองสภาพการเป็นนิสิต (UP 02)", category: "เอกสารรับรองสภาพนิสิต กกมท.", filename: "UP02_cert_63051011.pdf", staffStatus: "returned", staffComment: "พ้นสภาพการแข่งขันเนื่องจากอายุเกินกำหนด" },
+      { id: "doc-4", title: "ผลการทดสอบสมรรถภาพทางกาย (Fitness Test)", category: "ผลการทดสอบสมรรถภาพสถาบัน", filename: "fitness_test_63051011.pdf", staffStatus: "approved" },
+      { id: "doc-5", title: "ใบผ่านการอบรม UP Academy หรือประวัติผลงานกีฬา", category: "วุฒิบัตร / ผลงานการแข่งขัน", filename: "UP_Academy_63051011.pdf", staffStatus: "approved" },
+    ],
   },
 ];
 
@@ -167,16 +242,67 @@ export default function StaffCompetitionApplicantsPage() {
 
   const [applicants, setApplicants] = useState<AthleteApplication[]>(MOCK_APPLICANTS);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; filename: string; category: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; filename: string; category: string; athleteName: string } | null>(null);
   const [squadModalId, setSquadModalId] = useState<string | null>(null);
   const [squadChoice, setSquadChoice] = useState<"main" | "reserve" | "">("");
   const [rejectReasonInput, setRejectReasonInput] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
 
+  // Per-document review state (กองกิจตรวจเอกสารรายฉบับ)
+  const [rejectingDoc, setRejectingDoc] = useState<{ athleteId: string; doc: StaffDocument } | null>(null);
+  const [rejectDocComment, setRejectDocComment] = useState<string>("");
+
   const openSquadModal = (id: string) => {
     setSquadModalId(id);
     const current = applicants.find((a) => a.id === id);
     setSquadChoice(current?.squadType || "main");
+  };
+
+  // อนุมัติเอกสารรายฉบับ (กองกิจ)
+  const handleApproveStaffDoc = (athleteId: string, docId: string) => {
+    setApplicants((prev) =>
+      prev.map((a) =>
+        a.id === athleteId
+          ? {
+              ...a,
+              documents: a.documents.map((d) =>
+                d.id === docId ? { ...d, staffStatus: "approved" as StaffDocumentStatus, staffComment: undefined } : d
+              ),
+            }
+          : a
+      )
+    );
+  };
+
+  // เปิด Modal ตีกลับเอกสารรายฉบับ (กองกิจ)
+  const openRejectStaffDocModal = (athleteId: string, doc: StaffDocument) => {
+    setRejectingDoc({ athleteId, doc });
+    setRejectDocComment(doc.staffComment || "");
+  };
+
+  // ยืนยันการตีกลับเอกสารรายฉบับ (กองกิจ)
+  const confirmRejectStaffDoc = () => {
+    if (!rejectingDoc) return;
+    if (!rejectDocComment.trim()) {
+      alert("กรุณาระบุเหตุผลที่ตีกลับ เพื่อให้ชมรมและนักกีฬาทราบและนำส่งเอกสารฉบับแก้ไข");
+      return;
+    }
+    setApplicants((prev) =>
+      prev.map((a) =>
+        a.id === rejectingDoc.athleteId
+          ? {
+              ...a,
+              documents: a.documents.map((d) =>
+                d.id === rejectingDoc.doc.id
+                  ? { ...d, staffStatus: "returned" as StaffDocumentStatus, staffComment: rejectDocComment.trim() }
+                  : d
+              ),
+            }
+          : a
+      )
+    );
+    setRejectingDoc(null);
+    setRejectDocComment("");
   };
 
   const confirmApprove = () => {
@@ -522,48 +648,158 @@ export default function StaffCompetitionApplicantsPage() {
                 )}
               </div>
 
-              {/* ตรวจสอบเอกสารแนบรายบุคคล (ข้อ 12: หน้าตรวจเอกสารแนบ) */}
-              <div className="pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-2.5">
-                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                    เอกสารหลักฐานแนบประกอบการสมัคร (ข้อ 12: ตรวจสอบเอกสาร)
-                  </h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    แนบครบถ้วน 5/5 ฉบับ
-                  </span>
+              {/* ตรวจสอบเอกสารแนบรายบุคคล (ข้อ 12: หน้าตรวจเอกสารแนบรายฉบับ สำหรับกองกิจการนิสิต) */}
+              <div className="pt-2 border-t border-slate-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      เอกสารหลักฐานแนบประกอบการสมัคร (ตรวจสอบและอนุมัติแยกรายฉบับ)
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      กองกิจการนิสิตสามารถเปิดพรีวิว และกดอนุมัติหรือตีกลับพร้อมระบุข้อบกพร่องเพื่อให้นำส่งเอกสารฉบับแก้ไข
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                      อนุมัติแล้ว {detailAthlete.documents.filter((d) => d.staffStatus === "approved").length} / {detailAthlete.documents.length} ฉบับ
+                    </span>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {[
-                    { id: "1", title: "สำเนาบัตรประจำตัวประชาชน", filename: `id_card_${detailAthlete.studentId}.pdf`, category: "บัตรประจำตัวประชาชน" },
-                    { id: "2", title: "สำเนาบัตรประจำตัวนิสิต", filename: `student_card_${detailAthlete.studentId}.pdf`, category: "บัตรประจำตัวนิสิต มพ." },
-                    { id: "3", title: "ใบรับรองการเป็นนิสิต (UP 02)", filename: `UP02_cert_${detailAthlete.studentId}.pdf`, category: "เอกสารรับรองสภาพนิสิต UP 02" },
-                    { id: "4", title: "ผลการทดสอบสมรรถภาพทางกาย", filename: `fitness_test_${detailAthlete.studentId}.pdf`, category: "ผลการทดสอบสมรรถภาพ (ระดับดี)" },
-                    { id: "5", title: "ใบผ่านการอบรม UP Academy", filename: `UP_Academy_${detailAthlete.studentId}.pdf`, category: "วุฒิบัตร UP Academy กีฬา" },
-                  ].map((doc) => (
-                    <div key={doc.id} className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-semibold text-slate-900 block">{doc.title}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{doc.filename} · {doc.category}</span>
+                <div className="space-y-2.5">
+                  {detailAthlete.documents.map((doc) => {
+                    const isApproved = doc.staffStatus === "approved";
+                    const isReturned = doc.staffStatus === "returned";
+                    const isPending = doc.staffStatus === "pending" || !doc.staffStatus;
+
+                    return (
+                      <div
+                        key={doc.id}
+                        className={`p-3.5 rounded-xl border transition-all ${
+                          isReturned
+                            ? "bg-rose-50/60 border-rose-200"
+                            : isApproved
+                            ? "bg-white border-slate-200 shadow-2xs"
+                            : "bg-amber-50/40 border-amber-200"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          {/* Document Title & Status */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-900 text-xs">
+                                {doc.title}
+                              </span>
+
+                              {/* Status Badge */}
+                              {isApproved && (
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                  <span>✓</span>
+                                  <span>ผ่านการอนุมัติ (กองกิจ)</span>
+                                </span>
+                              )}
+                              {isReturned && (
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800 border border-rose-200 flex items-center gap-1">
+                                  <span>✕</span>
+                                  <span>ตีกลับแก้ไข / แจ้งให้ส่งใหม่</span>
+                                </span>
+                              )}
+                              {isPending && (
+                                <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-amber-100 text-amber-900 border border-amber-200">
+                                  รอการตรวจสอบ
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 font-mono">
+                              ไฟล์: {doc.filename} · หมวดหมู่: {doc.category}
+                            </p>
+                          </div>
+
+                          {/* Document Action Buttons */}
+                          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                            {/* Preview Button */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewDoc({
+                                  title: doc.title,
+                                  filename: doc.filename,
+                                  category: doc.category,
+                                  athleteName: `${detailAthlete.firstName} ${detailAthlete.lastName}`,
+                                })
+                              }
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-medium cursor-pointer transition-colors border border-slate-300 flex items-center gap-1"
+                            >
+                              <svg className="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              <span>ดูเอกสาร</span>
+                            </button>
+
+                            {/* Approve Single Document Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleApproveStaffDoc(detailAthlete.id, doc.id)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                isApproved
+                                  ? "bg-emerald-800 text-white shadow-2xs"
+                                  : "border border-emerald-700 text-emerald-800 hover:bg-emerald-50"
+                              }`}
+                            >
+                              ✓ อนุมัติเอกสาร
+                            </button>
+
+                            {/* Reject / Comment Single Document Button */}
+                            <button
+                              type="button"
+                              onClick={() => openRejectStaffDocModal(detailAthlete.id, doc)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                                isReturned
+                                  ? "bg-rose-700 text-white shadow-2xs"
+                                  : "border border-rose-300 text-rose-700 hover:bg-rose-50"
+                              }`}
+                            >
+                              ✕ ตีกลับ / ให้แก้ไข
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Comment Box if Returned */}
+                        {isReturned && doc.staffComment && (
+                          <div className="mt-2.5 p-2.5 bg-rose-100/70 border border-rose-300 rounded-lg text-xs text-rose-900 space-y-1">
+                            <span className="font-bold flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-rose-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                              <span>ข้อความแจ้งชมรมและผู้สมัครเพื่อนำส่งเอกสารใหม่:</span>
+                            </span>
+                            <p className="leading-relaxed pl-3 font-medium">
+                              &quot;{doc.staffComment}&quot;
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          เอกสารสมบูรณ์ ✓
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewDoc(doc)}
-                          className="px-3 py-1 bg-blue-900 hover:bg-blue-800 text-white rounded text-xs font-medium cursor-pointer transition-colors shadow-2xs"
-                        >
-                          เปิดดูเอกสาร / Preview
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="flex justify-end pt-3 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
+                <div className="text-xs text-slate-500">
+                  {detailAthlete.documents.every((d) => d.staffStatus === "approved") ? (
+                    <span className="text-emerald-800 font-bold">
+                      ✓ เอกสารแนบผ่านการอนุมัติครบถ้วน {detailAthlete.documents.length}/{detailAthlete.documents.length} ฉบับ
+                    </span>
+                  ) : detailAthlete.documents.some((d) => d.staffStatus === "returned") ? (
+                    <span className="text-rose-800 font-medium">
+                      * มีเอกสารที่ตีกลับ กรุณาแจ้งให้ชมรมและนักกีฬานำส่งฉบับแก้ไข
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 font-medium">
+                      * ยังมีเอกสารที่รอการตรวจสอบ โปรดตรวจสอบให้ครบถ้วน
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => setDetailId(null)}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded-lg cursor-pointer"
@@ -575,7 +811,7 @@ export default function StaffCompetitionApplicantsPage() {
           </div>
         )}
 
-        {/* Document Preview Drawer/Modal (ข้อ 12) */}
+        {/* Document Preview Drawer/Modal (ข้อ 12: ตรวจสอบเอกสาร) */}
         {previewDoc && (
           <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
             <div className="bg-white rounded-xl border border-slate-300 max-w-xl w-full p-6 shadow-2xl space-y-4">
@@ -607,11 +843,11 @@ export default function StaffCompetitionApplicantsPage() {
 
                 <div className="grid grid-cols-2 gap-3 text-slate-700">
                   <div>รหัสนิสิต: <strong className="font-mono text-slate-900">{detailAthlete?.studentId}</strong></div>
-                  <div>ชื่อ - นามสกุล: <strong className="text-slate-900">{detailAthlete?.firstName} {detailAthlete?.lastName}</strong></div>
+                  <div>ชื่อ - นามสกุล: <strong className="text-slate-900">{previewDoc.athleteName || `${detailAthlete?.firstName} ${detailAthlete?.lastName}`}</strong></div>
                   <div>คณะ: <strong className="text-slate-900">{detailAthlete?.faculty}</strong></div>
                   <div>สาขาวิชา: <strong className="text-slate-900">{detailAthlete?.major}</strong></div>
                   <div>เกรดเฉลี่ยสะสม (GPAX): <strong className="font-mono text-blue-900">{detailAthlete?.gpaCumulative}</strong></div>
-                  <div>สถานะการรับรอง: <strong className="text-emerald-700">รับรองความถูกต้องครบถ้วน ✓</strong></div>
+                  <div>หมวดหมู่เอกสาร: <strong className="text-slate-800">{previewDoc.category}</strong></div>
                 </div>
 
                 <div className="p-3 bg-white border border-slate-200 rounded text-center text-[11px] text-slate-500 space-y-1">
@@ -629,6 +865,79 @@ export default function StaffCompetitionApplicantsPage() {
                   className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg cursor-pointer transition-colors"
                 >
                   ปิดหน้าต่างพรีวิว
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== POPUP: กองกิจระบุเหตุผลตีกลับเอกสาร (Comment Modal) ===== */}
+        {rejectingDoc && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-70">
+            <div className="bg-white rounded-2xl border border-slate-300 max-w-md w-full p-6 space-y-4 shadow-2xl">
+              <div>
+                <span className="text-[11px] font-semibold text-rose-700 uppercase tracking-wider">
+                  แจ้งตีกลับเอกสารเพื่อให้นำส่งใหม่ (กองกิจการนิสิต)
+                </span>
+                <h3 className="text-sm font-bold text-slate-900 mt-0.5">
+                  {rejectingDoc.doc.title}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  โปรดระบุข้อบกพร่องของเอกสาร เพื่อให้ชมรมและนักกีฬาทราบและอัปโหลดส่งใหม่ได้ถูกต้อง
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  เหตุผลและคำแนะนำในการแก้ไข (Comment) <span className="text-rose-600">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={rejectDocComment}
+                  onChange={(e) => setRejectDocComment(e.target.value)}
+                  placeholder="เช่น ภาพถ่ายสำเนาไม่ชัดเจน ไม่สามารถอ่านเลขบัตรประชาชนได้ หรือ เอกสาร UP 02 ขาดลายเซ็นนายทะเบียนสถาบัน..."
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-rose-700 outline-none"
+                />
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                  เหตุผลยอดนิยม (คลิกเพื่อเลือกด่วน):
+                </span>
+                <div className="flex flex-wrap gap-1 text-[11px]">
+                  {[
+                    "ภาพถ่ายเอกสารไม่ชัดเจน / เบลอ โปรดสแกนใหม่",
+                    "เอกสารยังไม่ได้ลงนามรับรองสำเนาถูกต้อง",
+                    "เอกสาร UP 02 ขาดลายมือชื่อหรือตราประทับนายทะเบียน",
+                    "ผลการทดสอบสมรรถภาพทางกายหมดอายุหรือไม่สมบูรณ์",
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setRejectDocComment(preset)}
+                      className="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-[10px] cursor-pointer"
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setRejectingDoc(null)}
+                  className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmRejectStaffDoc}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg cursor-pointer shadow-xs"
+                >
+                  บันทึกและแจ้งตีกลับ
                 </button>
               </div>
             </div>
