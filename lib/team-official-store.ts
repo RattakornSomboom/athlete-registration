@@ -17,6 +17,7 @@ export type ReviewStatus = "pending" | "approved" | "returned" | "rejected";
 
 export interface OfficialDocument {
   id: string;
+  field?: "photo" | "idCard" | "nameChange" | "plan";
   type: OfficialDocType;
   title: string;
   category: string;
@@ -39,9 +40,11 @@ export type OfficialStage =
 
 export interface TeamOfficialApplication {
   id: string;
+  version?: number;
   regCode: string; // เช่น UP-OFF-2569-001
   clubId: string;  // e.g. "football", "basketball", "volleyball", "swimming"
   sportName: string; // e.g. "ฟุตบอล"
+  competitionName?: string;
   appliedPosition: OfficialPosition;
   appliedPositionOther?: string;
 
@@ -520,4 +523,136 @@ export function updateStaffReview(
   });
   saveTeamOfficials(updated);
   return updated;
+}
+
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function mapOfficialRecordToApplication(value: unknown): TeamOfficialApplication {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.clubId !== "string") {
+    throw new Error("ข้อมูลใบสมัครเจ้าหน้าที่ทีมไม่ถูกต้อง");
+  }
+  const id = value.id;
+  const clubId = value.clubId;
+  const rec = value;
+  const p = isRecord(rec.profile) ? rec.profile : {};
+  const documentRefs = isRecord(rec.documents) ? rec.documents : {};
+  const documentNames = isRecord(rec.documentNames) ? rec.documentNames : {};
+  const stageMap: Record<string, OfficialStage> = {
+    SUBMITTED: "submitted_to_club",
+    CLUB_APPROVED: "club_approved",
+    CLUB_REJECTED: "club_rejected",
+    STAFF_APPROVED: "staff_approved",
+    STAFF_REJECTED: "staff_rejected",
+  };
+  let stage: OfficialStage = typeof rec.status === "string" && stageMap[rec.status]
+    ? stageMap[rec.status]
+    : "submitted_to_club";
+  const events = Array.isArray(rec.events) ? rec.events.filter(isRecord) : [];
+  const latestEvent = (actions: string[]) => events.find(event => typeof event.action === "string" && actions.includes(event.action));
+  const reviewByField = new Map<string, { documentId: string; status: string; reason?: string }>();
+  for (const event of events) {
+    if (event.action !== "DOCUMENT_REVIEWED" || !isRecord(event.payload)) continue;
+    const review = event.payload.documentReview;
+    if (
+      isRecord(review) &&
+      typeof review.field === "string" &&
+      typeof review.documentId === "string" &&
+      (review.status === "approve" || review.status === "return") &&
+      !reviewByField.has(review.field)
+    ) {
+      reviewByField.set(review.field, {
+        documentId: review.documentId,
+        status: review.status,
+        ...(typeof event.reason === "string" ? { reason: event.reason } : {}),
+      });
+    }
+  }
+  const documentDefinitions = [
+    { field: "photo", type: "photo", title: "รูปถ่ายหน้าตรงชุดสุภาพ 1 นิ้ว", category: "ภาพถ่ายสำหรับทำบัตร AD Card" },
+    { field: "idCard", type: "id_card", title: "สำเนาบัตรประจำตัวประชาชน", category: "เอกสารยืนยันตัวตน" },
+    { field: "nameChange", type: "name_change", title: "สำเนาหลักฐานเปลี่ยนชื่อ - นามสกุล", category: "เอกสารทางกฎหมาย (ถ้ามี)" },
+    { field: "plan", type: "training_plan", title: "แผนการฝึกซ้อมกีฬาและเก็บตัว (อย่างน้อย 1 เดือน)", category: "แผนงานและตารางฝึกซ้อม" },
+  ] as const;
+  const documents: OfficialDocument[] = documentDefinitions.flatMap(definition => {
+    const documentId = documentRefs[definition.field];
+    if (typeof documentId !== "string") return [];
+    const review = reviewByField.get(definition.field);
+    const clubStatus: ReviewStatus = stage === "submitted_to_club"
+      ? review?.documentId === documentId
+        ? review.status === "approve" ? "approved" : "returned"
+        : "pending"
+      : stage === "club_rejected"
+        ? "rejected"
+        : "approved";
+    return [{
+      id: documentId,
+      field: definition.field,
+      type: definition.type,
+      title: definition.title,
+      category: definition.category,
+      filename: typeof documentNames[documentId] === "string" ? String(documentNames[documentId]) : "เอกสารแนบ",
+      clubStatus,
+      ...(review?.documentId === documentId && review.reason ? { clubComment: review.reason } : {}),
+      staffStatus: stage === "staff_approved" ? "approved" : stage === "staff_rejected" ? "rejected" : "pending",
+    }];
+  });
+  if (stage === "submitted_to_club" && documents.some(doc => doc.clubStatus === "returned")) {
+    stage = "club_returned";
+  }
+  const text = (key: string, fallback = "") => {
+    const field = p[key];
+    return typeof field === "string" ? field : fallback;
+  };
+  const position = text("appliedPosition");
+  const appliedPosition: OfficialPosition =
+    position === "manager" || position === "coach" || position === "assistant_coach" || position === "other"
+      ? position
+      : "manager";
+  const club = isRecord(rec.club) ? rec.club : {};
+  const clubEvent = latestEvent(["CLUB_APPROVED", "CLUB_REJECTED"]);
+  const staffEvent = latestEvent(["STAFF_APPROVED", "STAFF_REJECTED"]);
+
+  return {
+    id,
+    ...(typeof rec.version === "number" ? { version: rec.version } : {}),
+    regCode: `UP-OFF-${id.slice(-6).toUpperCase()}`,
+    clubId,
+    sportName: typeof club.sport === "string" ? club.sport : typeof club.name === "string" ? club.name : "กีฬา",
+    ...(isRecord(rec.competition) && typeof rec.competition.name === "string"
+      ? { competitionName: rec.competition.name }
+      : {}),
+    appliedPosition,
+    appliedPositionOther: text("appliedPositionOther"),
+    firstName: text("firstName"),
+    lastName: text("lastName"),
+    nationalId: text("nationalId"),
+    nationality: text("nationality", "ไทย"),
+    birthDate: text("birthDate"),
+    addressNo: text("addressNo"),
+    subDistrict: text("subDistrict"),
+    district: text("district"),
+    province: text("province"),
+    postalCode: text("postalCode"),
+    phone: text("phone"),
+    email: text("email"),
+    workplace: text("workplace"),
+    workPosition: text("workPosition"),
+    previousCount: text("previousCount", "0"),
+    submittedAt: typeof rec.createdAt === "string" || rec.createdAt instanceof Date
+      ? new Date(rec.createdAt).toLocaleString("th-TH")
+      : "ไม่ระบุ",
+    stage,
+    ...(typeof clubEvent?.createdAt === "string" || clubEvent?.createdAt instanceof Date
+      ? { clubReviewedAt: new Date(clubEvent.createdAt).toLocaleString("th-TH") }
+      : {}),
+    ...(typeof clubEvent?.reason === "string" ? { clubFeedback: clubEvent.reason } : {}),
+    ...(typeof staffEvent?.createdAt === "string" || staffEvent?.createdAt instanceof Date
+      ? { staffReviewedAt: new Date(staffEvent.createdAt).toLocaleString("th-TH") }
+      : {}),
+    ...(typeof staffEvent?.reason === "string" ? { staffFeedback: staffEvent.reason } : {}),
+    documents,
+  };
 }

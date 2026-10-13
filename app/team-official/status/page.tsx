@@ -4,36 +4,42 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
+import { requestJson } from "@/lib/phase4-client";
 import {
-  getTeamOfficials,
-  TeamOfficialApplication,
+  type TeamOfficialApplication,
+  type OfficialStage,
   POSITION_LABEL,
-  OfficialStage,
+  mapOfficialRecordToApplication,
 } from "@/lib/team-official-store";
 
 export default function TeamOfficialStatusPage() {
   const router = useRouter();
   const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
   const [currentOfficialId, setCurrentOfficialId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
-    const list = getTeamOfficials();
-    setOfficials(list);
-
-    // Read from URL query or localStorage or default to first item
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const qId = urlParams.get("id");
-      const savedId = localStorage.getItem("latest_official_id");
-      if (qId && list.some((o) => o.id === qId || o.regCode === qId)) {
-        setCurrentOfficialId(qId);
-      } else if (savedId && list.some((o) => o.id === savedId)) {
-        setCurrentOfficialId(savedId);
-      } else if (list.length > 0) {
-        setCurrentOfficialId(list[0].id);
-      }
-    }
-  }, []);
+    let active = true;
+    requestJson<{ applications: unknown[] }>("/api/team-official/applications")
+      .then(({ applications }) => {
+        const records = applications.map(mapOfficialRecordToApplication);
+        if (!active) return;
+        setOfficials(records);
+        const queryId = new URLSearchParams(window.location.search).get("id");
+        setCurrentOfficialId(records.some((record) => record.id === queryId) ? queryId ?? "" : records[0]?.id ?? "");
+      })
+      .catch((cause: unknown) => {
+        if (active) setLoadError(cause instanceof Error ? cause.message : "โหลดข้อมูลคำขอไม่สำเร็จ");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reloadCount]);
 
   const currentOfficial = officials.find(
     (o) => o.id === currentOfficialId || o.regCode === currentOfficialId
@@ -53,7 +59,7 @@ export default function TeamOfficialStatusPage() {
       case "staff_returned":
         return { step: 2, label: "กองกิจการนิสิตตีกลับเอกสาร กรุณาประสานงานชมรมเพื่อส่งแก้ไข" };
       case "staff_approved":
-        return { step: 4, label: "ขึ้นทะเบียนบุคลากรกีฬาสำเร็จ ออกรหัสบัตรประจำตัวเรียบร้อยแล้ว" };
+        return { step: 4, label: "กองกิจการนิสิตอนุมัติคำขอขึ้นทะเบียนแล้ว" };
       case "staff_rejected":
         return { step: 3, label: "กองกิจการนิสิตไม่อนุมัติการขึ้นทะเบียน" };
     }
@@ -81,22 +87,59 @@ export default function TeamOfficialStatusPage() {
               ติดตามสถานะการขึ้นทะเบียนเจ้าหน้าที่ทีมกีฬา
             </h1>
             <p className="text-xs text-slate-500">
-              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
+              {currentOfficial?.competitionName || "คำขอขึ้นทะเบียนเจ้าหน้าที่ทีมกีฬา"}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setLoading(true);
+                setLoadError("");
+                setReloadCount((count) => count + 1);
+              }}
+              className="border border-slate-300 hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+            >
+              รีเฟรช
+            </button>
+            <button
               onClick={() => router.push("/team-official/register")}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              + ยื่นคำขอใหม่
+              ลงสมัครเจ้าหน้าที่ทีม
             </button>
+            {currentOfficial && (
+              currentOfficial.stage === "submitted_to_club" ||
+              currentOfficial.stage === "club_returned" ||
+              currentOfficial.stage === "staff_returned" ||
+              currentOfficial.stage === "club_rejected" ||
+              currentOfficial.stage === "staff_rejected"
+            ) && (
+              <button
+                onClick={() => router.push(`/team-official/register?id=${encodeURIComponent(currentOfficial.id)}`)}
+                className="border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                แก้ไขข้อมูลใบสมัคร
+              </button>
+            )}
           </div>
         </div>
 
+        {loadError && (
+          <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+            โหลดข้อมูลจากระบบไม่สำเร็จ: {loadError}
+          </p>
+        )}
+        {loading && (
+          <p role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+            กำลังโหลดข้อมูลคำขอจากระบบ...
+          </p>
+        )}
+
         {/* Selector กรณีมีหลายรายการในระบบ */}
-        {officials.length > 1 && (
+        {!loading && officials.length > 1 && (
           <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs flex items-center justify-between gap-3 text-xs">
             <span className="font-semibold text-slate-700">เลือกดูรายการคำขอของท่าน:</span>
             <select
@@ -113,7 +156,19 @@ export default function TeamOfficialStatusPage() {
           </div>
         )}
 
-        {currentOfficial ? (
+        {!loading && !loadError && officials.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-xs text-slate-500 space-y-3">
+            <p>ยังไม่มีใบสมัครที่บันทึกในระบบ</p>
+            <div>
+              <button
+                onClick={() => router.push("/team-official/register")}
+                className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
+              >
+                ยื่นแบบคำขอขึ้นทะเบียนเจ้าหน้าที่ทีม
+              </button>
+            </div>
+          </div>
+        ) : !loading && !loadError && currentOfficial ? (
           <>
             {/* Step Progress Tracker (4 ขั้นตอน) */}
             <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
@@ -197,7 +252,7 @@ export default function TeamOfficialStatusPage() {
                   </div>
                   <p className="text-xs font-semibold text-slate-900">ขึ้นทะเบียนสำเร็จ</p>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    {currentOfficial.stage === "staff_approved" ? "ออกรหัสบัตร กกมท." : "รอผลการอนุมัติ"}
+                    {currentOfficial.stage === "staff_approved" ? "อนุมัติการขึ้นทะเบียนแล้ว" : "รอผลการอนุมัติ"}
                   </p>
                 </div>
               </div>
@@ -349,7 +404,16 @@ export default function TeamOfficialStatusPage() {
                         <div>
                           <span className="font-semibold text-slate-900 text-xs block">{doc.title}</span>
                           <span className="text-[11px] text-slate-500 font-mono">
-                            ไฟล์: {doc.filename} · {doc.category}
+                            ไฟล์:{" "}
+                            <a
+                              href={`/api/documents/${encodeURIComponent(doc.id)}/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-900 hover:underline"
+                            >
+                              {doc.filename}
+                            </a>
+                            {" "}· {doc.category}
                           </span>
                         </div>
 
@@ -417,7 +481,7 @@ export default function TeamOfficialStatusPage() {
           </>
         ) : (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-xs text-slate-400">
-            ยังไม่มีข้อมูลคำขอขึ้นทะเบียนในระบบ
+            ไม่พบใบสมัครรายการนี้ในบัญชีของท่าน
           </div>
         )}
 

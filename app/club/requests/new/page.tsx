@@ -9,6 +9,7 @@ export default function NewRequestPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [document, setDocument] = useState<File | null>(null);
+  const [submitError, setSubmitError] = useState("");
   const [form, setForm] = useState({
     title: "",
     reason: "",
@@ -25,10 +26,30 @@ export default function NewRequestPage() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setSubmitError("");
     try {
-      console.log("submit request", { ...form, document: document?.name });
-      await new Promise((r) => setTimeout(r, 800));
+      if (!document) throw new Error("กรุณาแนบเอกสารประกอบคำร้อง");
+      const formData = new FormData();
+      formData.append("file", document);
+      const upload = await fetch("/api/documents", { method: "POST", body: formData });
+      const uploaded = (await upload.json()) as { document?: { id: string }; error?: string };
+      if (!upload.ok || !uploaded.document?.id) {
+        throw new Error(uploaded.error || "อัปโหลดเอกสารประกอบคำร้องไม่สำเร็จ");
+      }
+      const response = await fetch("/api/clubs/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          reason: `${form.reason}\n(อาจารย์ที่ปรึกษา: ${form.advisorName})`,
+          documentUrl: `/api/documents/${uploaded.document.id}/download`,
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "ส่งคำร้องไม่สำเร็จ");
       router.push("/club/requests");
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
       setLoading(false);
     }
@@ -136,6 +157,7 @@ export default function NewRequestPage() {
               {loading ? "กำลังนำส่งคำร้อง..." : "ลงนามส่งคำร้องไปยังกองกิจการนิสิต"}
             </button>
           </div>
+          {submitError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{submitError}</p>}
 
         </div>
 

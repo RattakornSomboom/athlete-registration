@@ -1,514 +1,445 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+
+
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
-import { getAthleteProfile } from "@/lib/athlete-profile";
+import BackButton from "@/components/shared/BackButton";
+import { clubReviewProgress } from "@/lib/phase4-client";
+import { extractClubFromNote, suggestClubForSport } from "@/lib/university-clubs";
+import { useRequestAction } from "@/components/shared/RequestState";
+import { documentReference } from "@/lib/athlete-document-policy";
 
-type ApplicationStatus = "pending" | "approved" | "rejected";
-type ConfirmationStatus = "unconfirmed" | "confirmed" | "declined";
-
-interface AthleteApplicationInfo {
-  applicationNumber: string;
-  fullName: string;
-  studentId: string;
-  faculty: string;
-  major: string;
-  sportName: string;
-  clubName: string;
-  position: string;
-  squadType: "ตัวจริง" | "ตัวสำรอง" | "รอการจัดสรร";
-  submissionDate: string;
-  announcementDate: string;
-  confirmationDeadline: string;
-  status: ApplicationStatus;
-  confirmation: ConfirmationStatus;
-  declineReason?: string;
-}
-
-// ข้อมูลเริ่มต้นหลังส่งใบสมัคร: อยู่ในสถานะ pending (ขั้นตอนที่ 1 เสร็จสิ้น / รอพิจารณาคัดเลือก)
-const INITIAL_ATHLETE_DATA: AthleteApplicationInfo = {
-  applicationNumber: "SMED-APP-2569-0042",
-  fullName: "นายสมชาย ใจดี",
-  studentId: "66027012",
-  faculty: "คณะวิทยาศาสตร์",
-  major: "สาขาวิทยาการคอมพิวเตอร์",
-  sportName: "ฟุตบอล (ชาย)",
-  clubName: "ชมรมฟุตบอล มหาวิทยาลัยพะเยา",
-  position: "กองหน้า (Forward)",
-  squadType: "รอการจัดสรร",
-  submissionDate: "29 กันยายน 2569",
-  announcementDate: "15 ตุลาคม 2569",
-  confirmationDeadline: "25 ตุลาคม 2569",
-  status: "pending",
-  confirmation: "unconfirmed",
+type StatusHistory = {
+  id: string;
+  status: string;
+  label: string;
+  by: string;
+  createdAt: string;
 };
+
+type SportEntry = { sport: string; category: string; division?: string | null };
+type CompetitionResult = { competitionName: string; year: string; result: string; evidenceFileUrl?: string | null };
+
+type Application = {
+  id: string;
+  status: string;
+  squadType?: "main" | "reserve" | null;
+  note?: string | null;
+  noClubFileUrl?: string | null;
+  sport: string;
+  category: string;
+  createdAt: string;
+  competition: { name: string; round: string; year: number };
+  rosterClub: { id: string; name: string; sport: string } | null;
+  sportEntries: SportEntry[];
+  competitionResults: CompetitionResult[];
+  statusHistory: StatusHistory[];
+};
+
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
+  SUBMITTED:      { label: "รอการพิจารณา",           bg: "bg-yellow-50", text: "text-yellow-700" },
+  CLUB_APPROVED:  { label: "ผ่านพิจารณาชมรมแล้ว — รอเจ้าหน้าที่", bg: "bg-blue-50", text: "text-blue-700" },
+  CLUB_REJECTED:  { label: "ชมรมไม่อนุมัติ",           bg: "bg-red-50", text: "text-red-700" },
+  STAFF_APPROVED: { label: "เจ้าหน้าที่อนุมัติ",       bg: "bg-green-50", text: "text-green-700" },
+  STAFF_REJECTED: { label: "เจ้าหน้าที่ไม่อนุมัติ",   bg: "bg-red-50", text: "text-red-700" },
+  FINAL_SELECTED: { label: "ผ่านการคัดเลือกขั้นสุดท้าย", bg: "bg-emerald-50", text: "text-emerald-700" },
+};
+
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+async function uploadEvidence(file: File) {
+  const form = new FormData();
+  form.set("file", file);
+  const result = await fetchJson<{ document: { id: string } }>("/api/documents", { method: "POST", body: form });
+  return documentReference(result.document.id);
+}
 
 export default function AthleteStatusPage() {
   const router = useRouter();
-  const [data, setData] = useState<AthleteApplicationInfo>(INITIAL_ATHLETE_DATA);
-  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const load = useCallback(() => fetchJson<{ applications: Application[] }>("/api/applications"), []);
+  const resource = useRemoteData(load);
+  const decisionAction = useRequestAction();
+  const applications = resource.data?.applications ?? [];
+  const loading = resource.loading;
+  const [confirmApplicationId, setConfirmApplicationId] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [declineApplicationId, setDeclineApplicationId] = useState<string | null>(null);
   const [declineReason, setDeclineReason] = useState("");
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [declineEvidence, setDeclineEvidence] = useState<File | null>(null);
 
-  // ดึงข้อมูลจริงจาก Profile และ LocalStorage หากมี
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const profile = getAthleteProfile();
-    const storedStatus = localStorage.getItem("athlete_application_status") as ApplicationStatus | null;
-    const storedDate = localStorage.getItem("athlete_application_submitted_at");
-    const storedSport = localStorage.getItem("athlete_registered_sport");
-
-    setData((prev) => ({
-      ...prev,
-      fullName: profile ? `${profile.firstName} ${profile.lastName}` : prev.fullName,
-      studentId: profile ? profile.studentId : prev.studentId,
-      faculty: profile ? profile.faculty : prev.faculty,
-      major: profile ? profile.major : prev.major,
-      sportName: storedSport || prev.sportName,
-      submissionDate: storedDate || prev.submissionDate,
-      status: storedStatus || "pending",
-      squadType: (storedStatus === "approved") ? "ตัวจริง" : "รอการจัดสรร",
-    }));
-  }, []);
-
-  const handleConfirm = () => {
-    setData((prev) => ({ ...prev, confirmation: "confirmed" }));
-    setActionSuccess("ท่านได้ยืนยันสิทธิ์เป็นตัวแทนนักกีฬามหาวิทยาลัยพะเยาเรียบร้อยแล้ว");
-  };
-
-  const handleDecline = () => {
-    if (!declineReason.trim()) return;
-    setData((prev) => ({
-      ...prev,
-      confirmation: "declined",
-      declineReason: declineReason.trim(),
-    }));
-    setShowDeclineModal(false);
-    setActionSuccess("บันทึกการขอสละสิทธิ์ของท่านเรียบร้อยแล้ว ระบบจะส่งต่อข้อมูลให้ชมรมกีฬาเพื่อเลื่อนลำดับตัวสำรอง");
-  };
-
-  // จำลองสลับสถานะสำหรับการนำเสนอและบันทึกภาพหน้าจอ
-  const simulateState = (st: ApplicationStatus, conf: ConfirmationStatus = "unconfirmed", squad: "ตัวจริง" | "ตัวสำรอง" | "รอการจัดสรร" = "รอการจัดสรร") => {
-    setData((prev) => ({
-      ...prev,
-      status: st,
-      confirmation: conf,
-      squadType: squad,
-    }));
-    setActionSuccess(null);
-  };
+  const submitDecision = (applicationId: string, decision: "CONFIRM" | "DECLINE") => decisionAction.run(async () => {
+    const evidenceUrl = decision === "DECLINE" && declineEvidence ? await uploadEvidence(declineEvidence) : null;
+    await fetchJson(`/api/applications/${encodeURIComponent(applicationId)}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: decision, reason: declineReason, acceptedTerms: decision === "CONFIRM" ? acceptedTerms : undefined, evidenceUrl }),
+    });
+    setConfirmApplicationId(null);
+    setAcceptedTerms(false);
+    setDeclineApplicationId(null);
+    setDeclineReason("");
+    setDeclineEvidence(null);
+    resource.retry();
+  }, decision === "CONFIRM" ? "ยืนยันสิทธิ์เรียบร้อยแล้ว" : "บันทึกการสละสิทธิ์เรียบร้อยแล้ว");
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-4xl mx-auto space-y-5">
-
-        {/* Top navigation: Backward */}
-        <div className="flex items-center justify-between">
-          <BackButton href="/" label="กลับหน้าแรก" />
-          <LogoutButton />
-        </div>
+      <div className="max-w-4xl mx-auto space-y-6">
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-              SMED · ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ มหาวิทยาลัยพะเยา
+            <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
+            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
+              ระบบรับสมัครและรายงานตัวนักกีฬาตัวแทนสถาบัน
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
               สถานะการสมัครและรายงานตัวนักกีฬา
             </h1>
             <p className="text-xs text-slate-500">
-              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย (กกมท.)
+              การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/athlete/register")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              แก้ไข / ยื่นใบสมัครใหม่
-            </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.push("/athlete/register")} className="rounded-lg bg-blue-900 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-800">สมัครการแข่งขัน</button>
+            <LogoutButton />
+          </div>
           </div>
         </div>
 
-        {/* Demo Simulator Bar (สำหรับพรีเซนต์และแคปภาพหน้าจอในเล่ม) */}
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xs flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-900" />
-            <span className="text-xs font-semibold text-slate-700">จำลองสถานะการทดสอบระบบ:</span>
+        <RequestState error={resource.error} retry={resource.retry} />
+        {decisionAction.error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{decisionAction.error}</div>}
+        {decisionAction.success && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{decisionAction.success}</div>}
+        {resource.error ? null : loading ? (
+          <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
+        ) : applications.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">📋</span>
+            </div>
+            <h2 className="text-lg font-medium text-slate-900 mb-1">ยังไม่มีใบสมัคร</h2>
+            <p className="text-slate-500 text-sm mb-4">คุณยังไม่ได้ส่งใบสมัครแข่งขัน</p>
+            <button onClick={() => router.push("/athlete/register")} className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm rounded-lg transition-colors">สมัครแข่งขัน</button>
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              type="button"
-              onClick={() => simulateState("pending", "unconfirmed", "รอการจัดสรร")}
-              className={`px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer font-medium ${
-                data.status === "pending"
-                  ? "bg-blue-900 text-white border-blue-900 font-bold shadow-xs"
-                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
-            >
-              1. รอพิจารณา (ค่าเริ่มต้น)
-            </button>
-            <button
-              type="button"
-              onClick={() => simulateState("approved", "unconfirmed", "ตัวจริง")}
-              className={`px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer font-medium ${
-                data.status === "approved" && data.confirmation === "unconfirmed"
-                  ? "bg-blue-900 text-white border-blue-900 font-bold shadow-xs"
-                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
-            >
-              2. ผ่านคัดเลือก (รอตอบรับ)
-            </button>
-            <button
-              type="button"
-              onClick={() => simulateState("approved", "confirmed", "ตัวจริง")}
-              className={`px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer font-medium ${
-                data.status === "approved" && data.confirmation === "confirmed"
-                  ? "bg-emerald-800 text-white border-emerald-800 font-bold shadow-xs"
-                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
-            >
-              3. ยืนยันสิทธิ์แล้ว
-            </button>
-            <button
-              type="button"
-              onClick={() => simulateState("approved", "declined", "ตัวจริง")}
-              className={`px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer font-medium ${
-                data.confirmation === "declined"
-                  ? "bg-rose-700 text-white border-rose-700 font-bold shadow-xs"
-                  : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-              }`}
-            >
-              4. สละสิทธิ์
-            </button>
-          </div>
-        </div>
+        ) : (
+          <div className="space-y-8">
+            {applications.map((app) => {
+              const cfg = STATUS_CONFIG[app.status] ?? { label: app.status, bg: "bg-slate-100", text: "text-slate-700" };
 
-        {/* Action Alert Message */}
-        {actionSuccess && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between">
-            <span>{actionSuccess}</span>
-            <button onClick={() => setActionSuccess(null)} className="font-bold text-emerald-900 hover:underline">
-              ปิด
-            </button>
-          </div>
-        )}
+              const clubProgress = clubReviewProgress(app);
+              const clubSelectionLabel = clubProgress.approved && app.squadType
+                ? `ผ่านพิจารณาชมรม — ${app.squadType === "main" ? "ตัวจริง" : "ตัวสำรอง"}`
+                : clubProgress.label;
+              const isStaffApproved = app.status === "STAFF_APPROVED" || app.status === "FINAL_SELECTED";
+              const isFinal = app.status === "FINAL_SELECTED";
+              const isRejected = app.status.includes("REJECTED");
+              const athleteDecision = app.statusHistory.findLast(history => history.status === "ATHLETE_CONFIRMED" || history.status === "ATHLETE_DECLINED");
+              const isConfirmed = athleteDecision?.status === "ATHLETE_CONFIRMED";
+              const isDeclined = athleteDecision?.status === "ATHLETE_DECLINED";
 
-        {/* Step Progress Tracker — 4 ขั้นตอน */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              ขั้นตอนการคัดเลือกและยืนยันสิทธิ์
-            </h2>
-            <span className="text-[11px] px-2.5 py-0.5 rounded font-medium bg-slate-100 text-slate-700">
-              {data.status === "pending"
-                ? "ขั้นตอนปัจจุบัน: ขั้นตอนที่ 1 เสร็จสิ้น (กำลังพิจารณาคัดเลือก)"
-                : data.status === "approved"
-                ? "ขั้นตอนปัจจุบัน: ขั้นตอนที่ 4 (รายงานตัวยืนยันสิทธิ์)"
-                : "เสร็จสิ้นกระบวนการ"}
-            </span>
-          </div>
+              return (
+                <div key={app.id} className="space-y-6">
+                  {/* Step Progress Tracker */}
+                  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">
+                      ขั้นตอนการคัดเลือก ({app.competition.name})
+                    </h2>
+                    <div className="grid grid-cols-4 gap-2 relative">
+                      <div className="text-center">
+                        <div className="w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center mx-auto mb-2">1</div>
+                        <p className="text-xs font-semibold text-slate-900">ยื่นใบสมัคร</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">สำเร็จแล้ว</p>
+                      </div>
 
-          <div className="grid grid-cols-4 gap-2 relative">
-            {/* Step 1: ยื่นใบสมัคร */}
-            <div className="text-center">
-              <div className="w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center mx-auto mb-2 shadow-xs">
-                ✓
-              </div>
-              <p className="text-xs font-bold text-slate-900">1. ยื่นใบสมัคร</p>
-              <p className="text-[11px] text-emerald-700 font-medium mt-0.5">สำเร็จแล้ว</p>
-              <p className="text-[10px] text-slate-400">({data.submissionDate})</p>
-            </div>
-
-            {/* Step 2: พิจารณาคัดเลือก */}
-            <div className="text-center">
-              <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 transition-all ${
-                data.status === "pending"
-                  ? "bg-blue-900 text-white ring-4 ring-blue-100"
-                  : data.status === "approved"
-                  ? "bg-emerald-700 text-white shadow-xs"
-                  : "bg-rose-700 text-white"
-              }`}>
-                {data.status === "approved" ? "✓" : "2"}
-              </div>
-              <p className="text-xs font-bold text-slate-900">2. พิจารณาคัดเลือก</p>
-              <p className={`text-[11px] mt-0.5 ${
-                data.status === "pending"
-                  ? "text-blue-900 font-bold"
-                  : data.status === "approved"
-                  ? "text-emerald-700 font-medium"
-                  : "text-rose-700 font-medium"
-              }`}>
-                {data.status === "pending" ? "กำลังดำเนินการ" : data.status === "approved" ? "ผ่านเกณฑ์ชมรม" : "ไม่ผ่านเกณฑ์"}
-              </p>
-            </div>
-
-            {/* Step 3: ประกาศผล */}
-            <div className="text-center">
-              <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 transition-all ${
-                data.status === "approved"
-                  ? "bg-emerald-700 text-white shadow-xs"
-                  : "bg-slate-200 text-slate-500"
-              }`}>
-                {data.status === "approved" ? "✓" : "3"}
-              </div>
-              <p className="text-xs font-bold text-slate-900">3. ประกาศผล</p>
-              <p className={`text-[11px] mt-0.5 ${
-                data.status === "approved" ? "text-emerald-700 font-medium" : "text-slate-400"
-              }`}>
-                {data.status === "approved" ? "ผ่านการคัดเลือก" : "รอประกาศผล"}
-              </p>
-            </div>
-
-            {/* Step 4: ยืนยันสิทธิ์ */}
-            <div className="text-center">
-              <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 transition-all ${
-                data.status !== "approved"
-                  ? "bg-slate-200 text-slate-500"
-                  : data.confirmation === "confirmed"
-                  ? "bg-emerald-700 text-white shadow-xs"
-                  : data.confirmation === "declined"
-                  ? "bg-rose-700 text-white shadow-xs"
-                  : "bg-amber-500 text-white ring-4 ring-amber-100"
-              }`}>
-                {data.confirmation === "confirmed" ? "✓" : data.confirmation === "declined" ? "✕" : "4"}
-              </div>
-              <p className="text-xs font-bold text-slate-900">4. ยืนยันสิทธิ์</p>
-              <p className={`text-[11px] mt-0.5 ${
-                data.status !== "approved"
-                  ? "text-slate-400"
-                  : data.confirmation === "confirmed"
-                  ? "text-emerald-700 font-medium"
-                  : data.confirmation === "declined"
-                  ? "text-rose-700 font-medium"
-                  : "text-amber-700 font-bold"
-              }`}>
-                {data.status !== "approved"
-                  ? "ยังไม่ถึงกำหนด"
-                  : data.confirmation === "confirmed"
-                  ? "ยืนยันสิทธิ์แล้ว"
-                  : data.confirmation === "declined"
-                  ? "สละสิทธิ์"
-                  : "รอการยืนยันสิทธิ์"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Application Details Card */}
-        <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-          <div className="bg-slate-900 text-white p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono tracking-widest text-slate-300">
-                  {data.applicationNumber}
-                </span>
-                <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${
-                  data.status === "approved"
-                    ? "bg-emerald-800 text-white"
-                    : "bg-slate-700 text-slate-200"
-                }`}>
-                  {data.squadType}
-                </span>
-              </div>
-              <h2 className="text-lg font-bold text-white mt-1">{data.fullName}</h2>
-              <p className="text-xs text-slate-300">
-                รหัสนิสิต {data.studentId} · {data.faculty}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-slate-400 block">สถานะผลการพิจารณา</span>
-              <span className={`text-sm font-semibold ${
-                data.status === "approved"
-                  ? "text-emerald-400"
-                  : data.status === "pending"
-                  ? "text-amber-400"
-                  : "text-rose-400"
-              }`}>
-                {data.status === "approved"
-                  ? "ผ่านการคัดเลือกเป็นตัวแทนสถาบัน"
-                  : data.status === "pending"
-                  ? "อยู่ระหว่างการพิจารณาคัดเลือก"
-                  : "ไม่ผ่านการคัดเลือก"}
-              </span>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                <span className="text-slate-500 block">ชนิดกีฬา / รายการ</span>
-                <span className="font-semibold text-slate-900 text-sm mt-0.5 block">{data.sportName}</span>
-                <span className="text-slate-500 mt-1 block">ตำแหน่ง: {data.position}</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                <span className="text-slate-500 block">ชมรมสังกัด</span>
-                <span className="font-semibold text-slate-900 text-sm mt-0.5 block">{data.clubName}</span>
-                <span className="text-slate-500 mt-1 block">สังกัดกองกิจการนิสิต มพ.</span>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
-                <span className="text-slate-500 block">กำหนดการประกาศผล</span>
-                <span className="font-semibold text-blue-900 text-sm mt-0.5 block">
-                  {data.announcementDate}
-                </span>
-                <span className="text-slate-500 mt-1 block">
-                  {data.status === "approved" ? `ยืนยันสิทธิ์ภายใน ${data.confirmationDeadline}` : "ติดตามประกาศผลทางการในระบบ"}
-                </span>
-              </div>
-            </div>
-
-            {/* Decision / Status Box */}
-            <div className="border-t border-slate-200 pt-6">
-
-              {/* กรณีสถานะ: pending (ขั้นตอนที่ 1 เสร็จสิ้น / รอการพิจารณาคัดเลือก) */}
-              {data.status === "pending" && (
-                <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                    <h3 className="text-xs font-bold text-amber-900">
-                      สถานะปัจจุบัน: ใบสมัครอยู่ระหว่างการพิจารณาคัดเลือก (ขั้นตอนที่ 1 เสร็จสิ้น)
-                    </h3>
-                  </div>
-                  <p className="text-xs text-amber-800 leading-relaxed">
-                    ระบบได้รับข้อมูลใบสมัคร เอกสารรับรองคุณสมบัติ และผลการทดสอบสมรรถภาพทางกายของท่านเรียบร้อยแล้ว
-                    ขณะนี้อยู่ระหว่างการตรวจสอบคุณสมบัติตามระเบียบ กกมท. และการพิจารณาทดสอบทักษะกีฬาโดยชมรมกีฬาต้นสังกัด
-                  </p>
-                  <div className="pt-2 border-t border-amber-200/60 text-[11px] text-amber-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <span>กำหนดการประกาศรายชื่อผู้ผ่านการคัดเลือกอย่างเป็นทางการ: {data.announcementDate}</span>
-                    <span className="font-semibold text-blue-900">เมื่อประกาศผลแล้ว ระบบจะเปิดขั้นตอนที่ 4 ให้ยืนยันสิทธิ์ต่อไป</span>
-                  </div>
-                </div>
-              )}
-
-              {/* กรณีสถานะ: approved (ขั้นตอนที่ 4 รายงานตัวยืนยันสิทธิ์) */}
-              {data.status === "approved" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    การรายงานตัวและยืนยันสิทธิ์เข้าร่วมการแข่งขัน
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    ตามระเบียบคณะกรรมการบริหารกีฬามหาวิทยาลัยแห่งประเทศไทย (กกมท.) ให้นักศึกษาที่มีรายชื่อผ่านการคัดเลือก
-                    รายงานตัวและยืนยันสิทธิ์เพื่อดำเนินการขึ้นทะเบียนนักกีฬาเข้าร่วมการแข่งขันต่อไป
-                  </p>
-
-                  {data.confirmation === "unconfirmed" && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-900">โปรดเลือกการตอบรับสิทธิ์ของท่าน</h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          กรุณาดำเนินการยืนยันก่อนวันที่ {data.confirmationDeadline} เวลา 16:30 น.
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          clubProgress.approved ? "bg-emerald-700 text-white" : clubProgress.rejected ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>2</div>
+                        <p className="text-xs font-semibold text-slate-900">พิจารณาคัดเลือก (ชมรม)</p>
+                        <p className={`text-[11px] mt-0.5 ${clubProgress.approved ? "text-emerald-700" : clubProgress.rejected ? "text-rose-700" : "text-slate-400"}`}>
+                          {clubSelectionLabel}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <button
-                          onClick={() => setShowDeclineModal(true)}
-                          className="w-full sm:w-auto px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                        >
-                          ขอสละสิทธิ์
-                        </button>
-                        <button
-                          onClick={handleConfirm}
-                          className="w-full sm:w-auto px-6 py-2 bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                        >
-                          ยืนยันสิทธิ์เป็นตัวแทน
-                        </button>
+
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          isStaffApproved ? "bg-emerald-700 text-white" : isRejected && app.status === "STAFF_REJECTED" ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>3</div>
+                        <p className="text-xs font-semibold text-slate-900">พิจารณา (เจ้าหน้าที่)</p>
+                        <p className={`text-[11px] mt-0.5 ${isStaffApproved ? "text-emerald-700" : isRejected && app.status === "STAFF_REJECTED" ? "text-rose-700" : "text-slate-400"}`}>
+                          {isStaffApproved ? "อนุมัติ" : isRejected && app.status === "STAFF_REJECTED" ? "ไม่ผ่าน" : "รอพิจารณา"}
+                        </p>
+                      </div>
+
+                      <div className="text-center">
+                        <div className={`w-8 h-8 rounded-full text-xs font-bold flex items-center justify-center mx-auto mb-2 ${
+                          isFinal ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-500"
+                        }`}>4</div>
+                        <p className="text-xs font-semibold text-slate-900">ประกาศผล</p>
+                        <p className={`text-[11px] mt-0.5 ${isFinal ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
+                          {isFinal ? "ผ่านการคัดเลือก" : "-"}
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {data.confirmation === "confirmed" && (
-                    <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-xs font-bold text-emerald-900 block">
-                            สถานะ: ยืนยันสิทธิ์เข้าร่วมการแข่งขันแล้ว
+                  {/* Application Details Card */}
+                  <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                    <div className="bg-slate-900 text-white p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono tracking-widest text-slate-300">
+                            {app.id.slice(-8).toUpperCase()}
                           </span>
-                          <p className="text-xs text-emerald-800 mt-0.5">
-                            เอกสารของท่านได้รับการบันทึกเข้าสู่ระบบฐานข้อมูลนักกีฬาตัวแทนสถาบันเรียบร้อยแล้ว
-                          </p>
+                        </div>
+                        <h2 className="text-lg font-bold text-white mt-1">{app.competition.name}</h2>
+                        <p className="text-xs text-slate-300">
+                          {app.competition.round === "qualifier" ? "รอบคัดเลือก" : "รอบมหกรรม"} ปี {app.competition.year}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-slate-400 block">สถานะผลการพิจารณา</span>
+                        <span className={`text-sm font-semibold ${isFinal ? "text-emerald-400" : isRejected ? "text-rose-400" : "text-amber-400"}`}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                      {isFinal && (
+                        <section className={`rounded-xl border p-4 ${isConfirmed ? "border-emerald-200 bg-emerald-50" : isDeclined ? "border-rose-200 bg-rose-50" : "border-blue-200 bg-blue-50"}`}>
+                          {athleteDecision ? (
+                            <div>
+                              <p className={`text-sm font-bold ${isConfirmed ? "text-emerald-900" : "text-rose-900"}`}>
+                                {isConfirmed ? "ยืนยันสิทธิ์แล้ว" : "สละสิทธิ์แล้ว"}
+                              </p>
+                              <p className={`mt-1 text-xs ${isConfirmed ? "text-emerald-800" : "text-rose-800"}`}>{athleteDecision.label}</p>
+                              <p className="mt-1 text-[11px] text-slate-500">บันทึกเมื่อ {new Date(athleteDecision.createdAt).toLocaleString("th-TH")}</p>
+                            </div>
+                          ) : declineApplicationId === app.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-sm font-bold text-rose-900">แจ้งสละสิทธิ์การเป็นตัวแทนมหาวิทยาลัย</p>
+                                <p className="mt-1 text-xs text-rose-800">การสละสิทธิ์เป็นคนละขั้นตอนกับการยกเลิกใบสมัคร และไม่สามารถย้อนกลับด้วยตนเองได้</p>
+                              </div>
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold text-slate-700">เหตุผลที่สละสิทธิ์ <span className="text-red-600">*</span></span>
+                                <textarea
+                                  value={declineReason}
+                                  onChange={event => setDeclineReason(event.target.value)}
+                                  rows={3}
+                                  maxLength={1000}
+                                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                  placeholder="ระบุเหตุผลอย่างชัดเจน"
+                                />
+                              </label>
+                              <label className="block text-xs text-slate-700">
+                                <span className="mb-1 block font-semibold">หลักฐานประกอบ (ถ้ามี)</span>
+                                <input
+                                  type="file"
+                                  accept="application/pdf,image/jpeg,image/png"
+                                  onChange={event => {
+                                    const file = event.target.files?.[0] ?? null;
+                                    setDeclineEvidence(file && file.size <= MAX_FILE_BYTES ? file : null);
+                                  }}
+                                  className="block w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"
+                                />
+                                <span className="mt-1 block text-[11px] text-slate-500">PDF/JPG/PNG ขนาดไม่เกิน 5 MB</span>
+                              </label>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy || !declineReason.trim()}
+                                  onClick={() => submitDecision(app.id, "DECLINE")}
+                                  className="rounded-lg bg-rose-700 px-3.5 py-2 text-xs font-semibold text-white hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {decisionAction.busy ? "กำลังบันทึก…" : "ยืนยันการสละสิทธิ์"}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy}
+                                  onClick={() => {
+                                    setDeclineApplicationId(null);
+                                    setDeclineReason("");
+                                    setDeclineEvidence(null);
+                                  }}
+                                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                >
+                                  ยกเลิก
+                                </button>
+                              </div>
+                            </div>
+                          ) : confirmApplicationId === app.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-sm font-bold text-emerald-950">ยืนยันสิทธิ์การเป็นตัวแทนมหาวิทยาลัย</p>
+                                <p className="mt-1 text-xs leading-relaxed text-emerald-900">
+                                  โปรดตรวจสอบและรับทราบหน้าที่และเงื่อนไขการเป็นนักกีฬาตัวแทนมหาวิทยาลัย:
+                                </p>
+                                <ul className="mt-2 list-disc list-inside text-xs text-slate-700 space-y-1 bg-white/70 p-2.5 rounded-lg border border-emerald-100">
+                                  <li>เข้าร่วมการฝึกซ้อมตามแผนงานและเวลาที่กำหนดอย่างสม่ำเสมอ</li>
+                                  <li>ปฏิบัติตามระเบียบ วินัย และคำสั่งของผู้ฝึกสอน/ผู้ควบคุมทีมอย่างเคร่งครัด</li>
+                                  <li>เข้าร่วมการแข่งขันตามกำหนดการ และรักษาเกียรติยศชื่อเสียงของสถาบัน</li>
+                                </ul>
+                              </div>
+                              <label className="flex items-start gap-2 text-xs text-slate-800 cursor-pointer pt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={acceptedTerms}
+                                  onChange={e => setAcceptedTerms(e.target.checked)}
+                                  className="mt-0.5 rounded border-slate-300 text-blue-900 focus:ring-blue-500"
+                                />
+                                <span>ข้าพเจ้ารับทราบหน้าที่และเงื่อนไข และยินยอมปฏิบัติตามระเบียบการเป็นนักกีฬาตัวแทนมหาวิทยาลัยทุกประการ</span>
+                              </label>
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy || !acceptedTerms}
+                                  onClick={() => submitDecision(app.id, "CONFIRM")}
+                                  className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  {decisionAction.busy ? "กำลังบันทึก…" : "กดยืนยันสิทธิ์ตัวแทนสถาบัน"}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy}
+                                  onClick={() => {
+                                    setConfirmApplicationId(null);
+                                    setAcceptedTerms(false);
+                                  }}
+                                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  ยกเลิก
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-sm font-bold text-blue-950">รายงานตัวหลังผ่านการคัดเลือก</p>
+                                <p className="mt-1 text-xs leading-relaxed text-blue-900">กรุณายืนยันว่าจะเข้าร่วมในฐานะตัวแทนมหาวิทยาลัย โดยรับทราบหน้าที่ การฝึกซ้อม ระเบียบ และกำหนดการแข่งขัน หรือแจ้งสละสิทธิ์พร้อมเหตุผล</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy}
+                                  onClick={() => {
+                                    setConfirmApplicationId(app.id);
+                                    setAcceptedTerms(false);
+                                    setDeclineApplicationId(null);
+                                  }}
+                                  className="rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 cursor-pointer"
+                                >
+                                  ยืนยันสิทธิ์
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={decisionAction.busy}
+                                  onClick={() => {
+                                    setDeclineApplicationId(app.id);
+                                    setConfirmApplicationId(null);
+                                    setAcceptedTerms(false);
+                                  }}
+                                  className="rounded-lg border border-rose-300 bg-white px-3.5 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-50 disabled:opacity-50 cursor-pointer"
+                                >
+                                  สละสิทธิ์
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </section>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {app.competitionResults && app.competitionResults.some(r => !r.evidenceFileUrl) ? (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                              ⚠️ ยังไม่ได้แนบรูปหลักฐานผลงาน ({app.competitionResults.filter(r => !r.evidenceFileUrl).length} รายการ)
+                            </span>
+                          ) : app.competitionResults && app.competitionResults.length > 0 ? (
+                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              ✅ แนบรูปหลักฐานผลงานครบถ้วน
+                            </span>
+                          ) : null}
                         </div>
                         <button
-                          onClick={() => window.print()}
-                          className="text-xs font-medium text-emerald-800 bg-white border border-emerald-300 px-3 py-1.5 rounded-md hover:bg-emerald-50 cursor-pointer"
+                          onClick={() => router.push(`/athlete/${app.id}`)}
+                          className="self-start sm:self-auto text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
                         >
-                          พิมพ์เอกสารยืนยันสิทธิ์
+                          <span>ดูรายละเอียดใบสมัคร</span>
+                          <span>→</span>
                         </button>
                       </div>
-                      <div className="text-[11px] text-emerald-700 pt-2 border-t border-emerald-200">
-                        ขั้นตอนต่อไป: กรุณาติดต่อประธานชมรมหรือผู้ฝึกสอนเพื่อเข้าร่วมการฝึกซ้อมและตรวจร่างกายตามกำหนดการ
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">ชนิดกีฬา / รายการ</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">
+                            {app.sportEntries.length > 0 ? app.sportEntries.map(e => e.sport).join(', ') : app.sport}
+                          </span>
+                          <span className="text-slate-500 mt-1 block">
+                            ประเภท: {app.sportEntries.length > 0 ? app.sportEntries.map(e => e.category).join(', ') : app.category}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">ชมรมสังกัด / ผู้ดูแลชนิดกีฬา</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">
+                            {(() => {
+                              if (app.rosterClub?.name) return app.rosterClub.name;
+                              const fromNote = extractClubFromNote(app.note).clubName;
+                              if (fromNote) return fromNote;
+                              if (app.noClubFileUrl) return "ชนิดกีฬาไม่มีชมรมจัดตั้ง (มีบุคลากรรับรอง)";
+                              const autoSuggested = suggestClubForSport(app.sportEntries[0]?.sport || app.sport);
+                              if (autoSuggested) return autoSuggested;
+                              return "รอชมรมรับรองการสมัคร";
+                            })()}
+                          </span>
+                          <span className="text-slate-500 text-[11px] mt-1 block">
+                            {app.rosterClub
+                              ? (app.squadType === "main" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวจริง)" : app.squadType === "reserve" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวสำรอง)" : "จัดเข้าบัญชีรายชื่อชมรมแล้ว")
+                              : (app.noClubFileUrl ? "ส่งพิจารณาผ่านกองกิจการนิสิตโดยตรง" : "อยู่ระหว่างขั้นตอนพิจารณาของชมรมกีฬา")}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-lg">
+                          <span className="text-slate-500 block">วันที่สมัคร</span>
+                          <span className="font-semibold text-slate-900 text-sm mt-0.5 block">
+                            {new Date(app.createdAt).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-sm font-bold text-slate-900 mb-4">ประวัติการดำเนินการ</h3>
+                        <div className="space-y-3">
+                          {app.statusHistory.map((h, i) => (
+                            <div key={h.id} className="flex gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-900 mt-1 shrink-0" />
+                                {i < app.statusHistory.length - 1 && <div className="w-0.5 bg-slate-200 flex-1 mt-1" />}
+                              </div>
+                              <div className="pb-2">
+                                <p className="text-sm font-medium text-slate-900">{h.label}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  {new Date(h.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} — {h.by}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  )}
-
-                  {data.confirmation === "declined" && (
-                    <div className="p-5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-xs">
-                      <span className="font-bold text-rose-900 block">
-                        สถานะ: สละสิทธิ์การเป็นตัวแทน
-                      </span>
-                      <p className="text-rose-800">
-                        เหตุผลการสละสิทธิ์: {data.declineReason || "ไม่ได้ระบุเหตุผล"}
-                      </p>
-                      <p className="text-rose-700 text-[11px] pt-2 border-t border-rose-200">
-                        ระบบได้ส่งข้อมูลให้ทางชมรมเพื่อเลื่อนลำดับนักกีฬาตัวสำรองขึ้นมาทำหน้าที่แทนแล้ว
-                      </p>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-
-        {/* Modal: กรอกเหตุผลการสละสิทธิ์ */}
-        {showDeclineModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl border border-slate-300 max-w-md w-full p-6 space-y-4 shadow-xl">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-bold text-slate-900">
-                  แบบฟอร์มขอสละสิทธิ์การเป็นตัวแทนนักกีฬา
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  การสละสิทธิ์จะมีผลทันทีและไม่สามารถเรียกคืนสิทธิ์ได้
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ระบุเหตุผลความจำเป็นในการขอสละสิทธิ์ <span className="text-rose-600">*</span>
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="เช่น มีอาการบาดเจ็บ, ติดภารกิจการเรียนหรือการสอบ ฯลฯ"
-                  value={declineReason}
-                  onChange={(e) => setDeclineReason(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-blue-800 outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  onClick={() => setShowDeclineModal(false)}
-                  className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  onClick={handleDecline}
-                  disabled={!declineReason.trim()}
-                  className="px-4 py-1.5 text-xs font-medium text-white bg-rose-700 hover:bg-rose-800 disabled:bg-slate-300 rounded-md transition-colors cursor-pointer"
-                >
-                  ยืนยันการสละสิทธิ์
-                </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
-
       </div>
     </div>
   );

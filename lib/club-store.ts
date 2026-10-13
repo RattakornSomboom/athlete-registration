@@ -12,6 +12,8 @@ export interface ApplicantDocument {
   title: string;
   category: string;
   filename: string;
+  documentUrl?: string | null;
+  mimeType?: string | null;
   status: DocumentStatus;
   comment?: string; // เหตุผลที่ชมรมปฏิเสธหรือแจ้งให้ผู้สมัครส่งใหม่
   updatedAt?: string;
@@ -46,7 +48,7 @@ export interface ClubAthleteApplication {
   category: string; // ตำแหน่ง / ประเภท
   division: string;
   hasPreviousEntry: "none" | "has";
-  competitions: { competitionName: string; year: string; result: string }[];
+  competitions: { competitionName: string; year: string; result: string; evidenceFileUrl?: string | null }[];
   note: string;
   status: "pending" | "approved" | "rejected"; // สถานะการพิจารณาของชมรม
   squadType: "main" | "reserve" | "";

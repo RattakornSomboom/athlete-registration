@@ -1,0 +1,503 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================
+// Enums
+// =============================================
+
+enum Role {
+  ATHLETE
+  CLUB
+  STAFF
+  ADMIN
+  TEAM_OFFICIAL
+}
+
+enum StudentLevel {
+  BACHELOR
+  GRADUATE
+}
+
+enum FitnessTestStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+enum SportType {
+  TEAM
+  INDIVIDUAL
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  CLUB_APPROVED
+  CLUB_REJECTED
+  STAFF_APPROVED
+  STAFF_REJECTED
+  FINAL_SELECTED
+}
+
+enum CompetitionStatus {
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
+enum ClubStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =============================================
+// Models
+// =============================================
+
+model User {
+  id        String   @id @default(cuid())
+  studentId String?  @unique
+  email     String   @unique
+  password  String
+  mustChangePassword Boolean @default(false)
+  role      Role     @default(ATHLETE)
+  clubId    String?
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile      AthleteProfile?
+  applications Application[]
+  officialApplications OfficialApplication[]
+  snapshots AnalyticsSnapshot[]
+}
+
+model AthleteProfile {
+  id            String       @id @default(cuid())
+  userId        String       @unique
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName     String
+  lastName      String
+  faculty       String
+  major         String
+  studentLevel  StudentLevel @default(BACHELOR)
+  year          String
+  semester      String?
+  nationalId    String
+  nationality   String       @default("ไทย")
+  birthDate     DateTime
+  gpaSemester   String?
+  gpaCumulative String?
+  addressNo     String
+  subDistrict   String
+  district      String
+  province      String
+  postalCode    String
+  phone         String
+  photoUrl      String?
+
+  // ประวัติการแข่งขัน (เพิ่มเติมจากไฟล์ CSV)
+  hasParticipated          Boolean  @default(false)
+  firstSport               String?
+  participateCountBachelor Int?
+  participateCountMaster   Int?
+  participateCountPhd      Int?
+  lastParticipateYear      String?
+  isNationalTeam           Boolean  @default(false)
+  pastCompetitions         Json?
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Club {
+  id             String     @id @default(cuid())
+  name           String     @unique
+  sport          String
+  email          String     @unique
+  password       String
+  mustChangePassword Boolean @default(false)
+  isActive       Boolean    @default(true)
+  presidentName  String?
+  presidentPhone String?
+  advisors       Json?
+  status         ClubStatus @default(INACTIVE)
+  createdAt      DateTime   @default(now())
+
+  activities   Activity[]
+  clubRequests ClubRequest[]
+  coaches      Coach[]
+  trainingPrograms TrainingProgram[]
+  rosters ClubRoster[]
+  officialApplications OfficialApplication[]
+  users User[]
+  applications Application[]
+  matchEntries CompetitionMatchEntry[]
+}
+
+model Competition {
+  id        String            @id @default(cuid())
+  name      String
+  sport     String?           // Deprecated, use SportQuota instead
+  round     String
+  year      Int
+  deadline  DateTime?
+  status    CompetitionStatus @default(OPEN)
+  createdAt DateTime          @default(now())
+
+  applications Application[]
+  quotas       SportQuota[]
+  rosters ClubRoster[]
+  officialApplications OfficialApplication[]
+  matches CompetitionMatch[]
+}
+
+model SportQuota {
+  id            String      @id @default(cuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sport         String
+  maxStarters   Int
+  maxSubstitutes Int
+  maxEntriesPerAthlete Int?
+  maxEntriesPerEvent   Int?
+  ageLimit      Int?
+
+  @@unique([competitionId, sport])
+}
+
+model Coach {
+  id        String   @id @default(cuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+model TrainingProgram {
+  id        String           @id @default(cuid())
+  clubId    String
+  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  goal      String
+  schedule  String?
+  createdAt DateTime         @default(now())
+
+  reports   TrainingReport[]
+}
+
+model TrainingReport {
+  id          String          @id @default(cuid())
+  programId   String
+  program     TrainingProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  date        DateTime
+  progress    String
+  issues      String?
+  photoUrl    String?
+  createdAt   DateTime        @default(now())
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competitionId String
+  competition   Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sport         String
+  category      String
+  division      String?
+  squadType     String?
+  status        ApplicationStatus @default(SUBMITTED)
+  note          String?
+
+  // เอกสารแนบ
+  photoFileUrl       String
+  idCardFileUrl      String
+  studentCardFileUrl String
+  studentCertFileUrl String
+  upAcademyFileUrl   String
+  fitnessTestFileUrl String
+
+  // กรณีไม่มีชมรม
+  noClubFileUrl      String?
+  supervisorName     String?
+  supervisorPosition String?
+  clubId             String?
+  club               Club?             @relation(fields: [clubId], references: [id])
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  statusHistory      StatusHistory[]
+  sportEntries       SportEntry[]
+  competitionResults CompetitionResult[]
+  rosterItem RosterItem?
+  fitnessTestResult FitnessTestResult?
+  matchEntries CompetitionMatchEntry[]
+
+  @@unique([userId, competitionId, sport])
+}
+
+
+model SportEntry {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  sport         String
+  category      String
+  division      String?
+}
+
+model CompetitionResult {
+  id              String      @id @default(cuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  competitionName String
+  year            String
+  result          String
+  evidenceFileUrl String?
+}
+
+model StatusHistory {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status        String
+  label         String
+  by            String
+  createdAt     DateTime    @default(now())
+}
+
+model Activity {
+  id              String   @id @default(cuid())
+  clubId          String
+  club            Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  date            DateTime
+  location        String?
+  documentUrl     String?
+  status          String   @default("planned")
+  rejectionReason String?
+  createdAt       DateTime @default(now())
+}
+
+model ClubRequest {
+  id             String        @id @default(cuid())
+  clubId         String
+  club           Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  title          String
+  reason         String
+  documentUrl    String
+  status         RequestStatus @default(PENDING)
+  rejectedReason String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model SportConfig {
+  id                   String   @id @default(cuid())
+  name                 String
+  sportType            SportType @default(INDIVIDUAL)
+  category             String
+  maxAthletes          Int
+  isOpen               Boolean  @default(true)
+  positions            String[]
+  requirements         String?
+  competitionType      String?
+  qualifierNote        String?
+  reachedTop16LastYear Boolean?
+  top16Note            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+enum RosterStatus {
+  DRAFT
+  SUBMITTED
+  RETURNED
+}
+
+enum OfficialStatus {
+  DRAFT
+  SUBMITTED
+  CLUB_APPROVED
+  STAFF_APPROVED
+  CLUB_REJECTED
+  STAFF_REJECTED
+}
+
+model PrivateDocument {
+  id String @id @default(cuid())
+  ownerId String
+  ownerRole Role
+  purpose String
+  path String @unique
+  name String
+  mimeType String
+  size Int
+  state String @default("READY")
+  retained Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([ownerId, ownerRole])
+}
+
+model ClubRoster {
+  id String @id @default(cuid())
+  clubId String
+  club Club @relation(fields: [clubId], references: [id])
+  competitionId String
+  competition Competition @relation(fields: [competitionId], references: [id])
+  status RosterStatus @default(DRAFT)
+  version Int @default(0)
+  documentId String?
+  submittedBy String?
+  submittedAt DateTime?
+  updatedAt DateTime @updatedAt
+  items RosterItem[]
+  events RosterEvent[]
+  @@unique([clubId, competitionId])
+}
+
+model RosterItem {
+  id String @id @default(cuid())
+  rosterId String
+  roster ClubRoster @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  applicationId String @unique
+  application Application @relation(fields: [applicationId], references: [id])
+  squadType String
+}
+
+model RosterEvent {
+  id String @id @default(cuid())
+  rosterId String
+  roster ClubRoster @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  action String
+  actorId String
+  reason String?
+  payload Json
+  createdAt DateTime @default(now())
+}
+
+model OfficialApplication {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  clubId String
+  club Club @relation(fields: [clubId], references: [id])
+  competitionId String
+  competition Competition @relation(fields: [competitionId], references: [id])
+  profile Json
+  documents Json
+  status OfficialStatus @default(DRAFT)
+  version Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events OfficialEvent[]
+  @@unique([userId, competitionId])
+}
+
+model OfficialEvent {
+  id String @id @default(cuid())
+  applicationId String
+  application OfficialApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  action String
+  actorId String
+  reason String?
+  payload Json
+  createdAt DateTime @default(now())
+}
+
+model AnalyticsSnapshot {
+  id String @id @default(cuid())
+  title String
+  notes String
+  authorId String
+  author User @relation(fields: [authorId], references: [id])
+  filters Json
+  data Json
+  schemaVersion Int @default(1)
+  createdAt DateTime @default(now())
+}
+
+model FitnessTestResult {
+  id            String            @id @default(cuid())
+  applicationId String            @unique
+  application   Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status        FitnessTestStatus @default(PENDING)
+  totalScore    Float?
+  scores        Json?
+  notes         String?
+  testedAt      DateTime?
+  recordedBy    String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status])
+}
+
+
+enum CompetitionEventType {
+  TEAM_MATCH
+  INDIVIDUAL_MATCH
+  RANKING
+  TIMED
+}
+
+model CompetitionMatch {
+  id            String               @id @default(cuid())
+  competitionId String
+  competition   Competition          @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sport         String
+  category      String
+  division      String?
+  eventType     CompetitionEventType @default(TEAM_MATCH)
+  stage         String?
+  scheduledAt   DateTime?
+  venue         String?
+  status        String               @default("SCHEDULED")
+  notes         String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  entries       CompetitionMatchEntry[]
+}
+
+model CompetitionMatchEntry {
+  id              String            @id @default(cuid())
+  matchId         String
+  match           CompetitionMatch  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  clubId          String?
+  club            Club?             @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  applicationId   String?
+  application     Application?      @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  participantName String?
+  side            String?
+  score           Float?
+  timeSeconds     Float?
+  rank            Int?
+  resultOutcome   String?
+  isWinner        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+
+  @@index([matchId])
+}

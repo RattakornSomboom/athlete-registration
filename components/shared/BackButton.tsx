@@ -31,21 +31,17 @@ export default function BackButton({
     <button
       type="button"
       onClick={handleClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 hover:border-slate-400 text-slate-700 text-xs font-medium transition-all cursor-pointer shadow-2xs ${className}`}
-      title={label}
+      className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition-colors hover:border-slate-400 hover:bg-slate-50 ${className}`}
+      aria-label={label}
     >
       <svg
-        className="w-3.5 h-3.5 text-slate-500"
+        aria-hidden="true"
+        className="h-3.5 w-3.5 text-slate-500"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M15 19l-7-7 7-7"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
       </svg>
       <span>{label}</span>
     </button>

@@ -1,85 +1,105 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import BackButton from "@/components/shared/BackButton";
-import LogoutButton from "@/components/shared/LogoutButton";
+import DateFilterBar from "@/components/shared/DateFilterBar";
+import { isDateInRange } from "@/lib/thai-date";
 
 type Activity = {
   id: string;
-  clubName: string;
   title: string;
+  description: string | null;
   date: string;
-  location: string;
-  description: string;
-  participants: number;
-  documents: string[];
-  images: string[];
-  status: "pending" | "approved" | "rejected";
+  location: string | null;
+  status: string;
+  rejectionReason: string | null;
+  club: { id: string; name: string; sport: string };
 };
 
-const MOCK_ACTIVITIES: Activity[] = [
-  {
-    id: "1",
-    clubName: "ชมรมฟุตบอล",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 1",
-    date: "10 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลภายในชมรมเพื่อคัดเลือกนักกีฬาตัวแทน มีผู้เข้าร่วม 22 คน",
-    participants: 22,
-    documents: ["เอกสารรับรอง_กิจกรรม1.pdf"],
-    images: ["รูปกิจกรรม1_1.jpg", "รูปกิจกรรม1_2.jpg"],
-    status: "pending",
-  },
-  {
-    id: "2",
-    clubName: "ชมรมบาสเกตบอล",
-    title: "การแข่งขันบาสเกตบอลภายในชมรม ครั้งที่ 1",
-    date: "15 มี.ค. 2568",
-    location: "โรงยิม มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันบาสเกตบอลภายในชมรม",
-    participants: 15,
-    documents: ["เอกสารรับรอง_บาส1.pdf"],
-    images: ["รูปบาส1.jpg"],
-    status: "approved",
-  },
-];
+const STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  planned:  { label: "รอตรวจสอบ", className: "bg-yellow-100 text-yellow-800" },
+  approved: { label: "อนุมัติแล้ว",  className: "bg-green-100 text-green-800" },
+  rejected: { label: "ไม่ผ่าน",      className: "bg-red-100 text-red-800" },
+};
 
-const STATUS_LABEL = {
-  pending: { label: "รอการตรวจสอบ", className: "bg-slate-100 text-slate-700 border-slate-200" },
-  approved: { label: "อนุมัติแล้ว", className: "bg-emerald-50 text-emerald-800 border-emerald-200" },
-  rejected: { label: "ไม่อนุมัติ", className: "bg-rose-50 text-rose-800 border-rose-200" },
+const loadActivities = async () => {
+  const res = await fetch("/api/activities");
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.json();
 };
 
 export default function StaffActivitiesPage() {
   const router = useRouter();
-  const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES);
-  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const handleApprove = (id: string) => {
-    setActivities((prev) => prev.map((a) => a.id === id ? { ...a, status: "approved" } : a));
+  const fetchData = useCallback(async () => {
+    try {
+      return await loadActivities();
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchData().then(data => {
+      if (mounted) {
+        setActivities(data?.activities ?? []);
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, [fetchData]);
+
+  const refreshData = async () => {
+    const data = await fetchData();
+    setActivities(data?.activities ?? []);
   };
 
-  const handleReject = (id: string) => {
-    setActivities((prev) => prev.map((a) => a.id === id ? { ...a, status: "rejected" } : a));
-    setShowRejectInput(null);
+  const handleAction = async (id: string, status: "approved" | "rejected") => {
+    if (status === "rejected" && !rejectReason[id]) {
+      alert("กรุณาระบุเหตุผลที่ไม่อนุมัติ");
+      return;
+    }
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/activities/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status,
+          ...(status === "rejected" && { rejectionReason: rejectReason[id] }),
+        }),
+      });
+      if (res.ok) {
+        setShowRejectInput(null);
+        await refreshData();
+      } else {
+        const data = await res.json();
+        alert(data.error || "ดำเนินการไม่สำเร็จ");
+      }
+    } catch {
+      alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const pendingCount = activities.filter((a) => a.status === "pending").length;
+  const pendingCount = activities.filter((a) => a.status === "planned").length;
+  const filteredActivities = activities.filter((a) => isDateInRange(a.date, startDate, endDate));
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-5">
-
-        {/* Top navigation: Backward */}
-        <div className="flex items-center justify-between">
-          <BackButton href="/staff/applications" />
-          <LogoutButton />
-        </div>
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
@@ -88,129 +108,117 @@ export default function StaffActivitiesPage() {
               การตรวจสอบและอนุมัติกิจกรรมของชมรมกีฬา
             </h1>
             <p className="text-xs text-slate-500">
-              กิจกรรมรอการตรวจสอบและอนุมัติ {pendingCount} รายการ
+              {loading ? "กำลังโหลดข้อมูล..." : `กิจกรรมรอการตรวจสอบและอนุมัติ ${pendingCount} รายการ · ทั้งหมด ${activities.length} รายการ`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/staff/analytics")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              แดชบอร์ดวิเคราะห์ผล
-            </button>
-            <button
-              onClick={() => router.push("/staff/applications")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ใบสมัครนักกีฬา
-            </button>
-            <button
-              onClick={() => router.push("/staff/settings")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ตั้งค่าระบบ
-            </button>
-          </div>
         </div>
 
-        <div className="space-y-4">
-          {activities.map((a) => (
-            <div key={a.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-semibold text-slate-900 text-sm">{a.title}</h2>
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${STATUS_LABEL[a.status].className}`}>
-                      {STATUS_LABEL[a.status].label}
-                    </span>
+        {/* Date Filter Bar */}
+        {activities.length > 0 && (
+          <DateFilterBar
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onClear={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
+            totalCount={activities.length}
+            filteredCount={filteredActivities.length}
+            title="กรองกิจกรรมตามช่วงวันที่"
+          />
+        )}
+
+        {loading ? (
+          <div className="text-center py-16 text-slate-400 text-sm">กำลังโหลด...</div>
+        ) : activities.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm shadow-xs">ยังไม่มีกิจกรรมที่ส่งมา</div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm shadow-xs">
+            ไม่พบกิจกรรมในช่วงวันที่ที่เลือก (ลองเปลี่ยนหรือกดล้างตัวกรอง)
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredActivities.map((a) => {
+              const s = STATUS_LABEL[a.status] ?? { label: a.status, className: "bg-slate-100 text-slate-600" };
+              const isLoading = actionLoading === a.id;
+              return (
+                <div key={a.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h2 className="font-medium text-slate-900">{a.title}</h2>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.className}`}>{s.label}</span>
+                      </div>
+                      <p className="text-sm text-slate-500">
+                        {a.club.name} · {new Date(a.date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                        {a.location && ` · ${a.location}`}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500">{a.clubName} · {a.date} · {a.location}</p>
-                </div>
-              </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">{a.description}</p>
+                  {a.description && <p className="text-sm text-slate-600 mb-3">{a.description}</p>}
 
-              <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
-                <span>ผู้เข้าร่วม {a.participants} คน</span>
-                <span>เอกสารประกอบ {a.documents.length} ฉบับ</span>
-                <span>ภาพถ่าย {a.images.length} ภาพ</span>
-              </div>
+                  {a.rejectionReason && (
+                    <div className="bg-rose-50 border border-rose-100 rounded-lg p-3 mb-3 text-sm text-rose-700">
+                      เหตุผลที่ไม่อนุมัติ: {a.rejectionReason}
+                    </div>
+                  )}
 
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-1 text-xs text-slate-700">
-                {a.documents.map((d, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-slate-400 font-mono">เอกสาร:</span>
-                    <span className="font-medium text-slate-900">{d}</span>
-                  </div>
-                ))}
-                {a.images.map((img, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-slate-400 font-mono">ไฟล์ภาพ:</span>
-                    <span className="font-medium text-slate-900">{img}</span>
-                  </div>
-                ))}
-              </div>
+                  {/* Reject reason input */}
+                  {showRejectInput === a.id && (
+                    <div className="mb-3">
+                      <input
+                        className="w-full px-3 py-2 rounded-lg border border-rose-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400"
+                        placeholder="ระบุเหตุผลที่ไม่อนุมัติ..."
+                        value={rejectReason[a.id] || ""}
+                        onChange={(e) => setRejectReason((prev) => ({ ...prev, [a.id]: e.target.value }))}
+                      />
+                    </div>
+                  )}
 
-              {showRejectInput === a.id && (
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-700">ระบุเหตุผลที่ไม่อนุมัติ</label>
-                  <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="ระบุเหตุผล เช่น เอกสารไม่ครบถ้วน หรือไม่เป็นไปตามเกณฑ์โครงการ..."
-                    value={rejectReason[a.id] || ""}
-                    onChange={(e) => setRejectReason((prev) => ({ ...prev, [a.id]: e.target.value }))}
-                  />
-                </div>
-              )}
+                  <div className="flex flex-col gap-2 mt-4">
+                    <button
+                      onClick={() => router.push(`/staff/activities/${a.id}`)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      ดูรายละเอียด →
+                    </button>
 
-              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => router.push(`/staff/activities/${a.id}`)}
-                  className="w-full sm:w-auto px-4 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  ดูรายละเอียดกิจกรรม →
-                </button>
-
-                {a.status === "pending" && (
-                  <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
-                    {showRejectInput === a.id ? (
-                      <>
-                        <button
-                          onClick={() => setShowRejectInput(null)}
-                          className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-xs hover:bg-slate-50 transition-colors cursor-pointer"
-                        >
-                          ยกเลิก
-                        </button>
-                        <button
-                          onClick={() => handleReject(a.id)}
-                          disabled={!rejectReason[a.id]}
-                          className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
-                        >
-                          ยืนยันไม่อนุมัติ
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setShowRejectInput(a.id)}
-                          className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors cursor-pointer"
-                        >
-                          ไม่อนุมัติ
-                        </button>
-                        <button
-                          onClick={() => handleApprove(a.id)}
-                          className="flex-1 sm:flex-none px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium transition-colors cursor-pointer"
-                        >
-                          อนุมัติกิจกรรม
-                        </button>
-                      </>
+                    {a.status === "planned" && (
+                      <div className="flex gap-2">
+                        {showRejectInput === a.id ? (
+                          <>
+                            <button onClick={() => setShowRejectInput(null)} className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors cursor-pointer">ยกเลิก</button>
+                            <button
+                              onClick={() => handleAction(a.id, "rejected")}
+                              disabled={isLoading || !rejectReason[a.id]}
+                              className="flex-1 px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 text-white text-sm transition-colors cursor-pointer"
+                            >
+                              {isLoading ? "กำลังดำเนินการ..." : "ยืนยันไม่อนุมัติ"}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => setShowRejectInput(a.id)} className="flex-1 px-3 py-2 rounded-lg border border-rose-200 text-rose-600 text-sm hover:bg-rose-50 transition-colors cursor-pointer">ไม่อนุมัติ</button>
+                            <button
+                              onClick={() => handleAction(a.id, "approved")}
+                              disabled={isLoading}
+                              className="flex-1 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-sm transition-colors cursor-pointer"
+                            >
+                              {isLoading ? "กำลังดำเนินการ..." : "อนุมัติ"}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

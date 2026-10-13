@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
@@ -18,30 +18,17 @@ type Activity = {
   rejectedReason?: string;
 };
 
-const MOCK_ACTIVITIES: Activity[] = [
-  {
-    id: "1",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 1",
-    date: "10 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลภายในชมรมเพื่อคัดเลือกนักกีฬาตัวแทน มีผู้เข้าร่วม 22 คน",
-    participants: 22,
-    documents: ["เอกสารรับรอง_กิจกรรม1.pdf"],
-    images: ["รูปกิจกรรม1_1.jpg", "รูปกิจกรรม1_2.jpg"],
-    status: "approved",
-  },
-  {
-    id: "2",
-    title: "การแข่งขันฟุตบอลภายในชมรม ครั้งที่ 2",
-    date: "24 มี.ค. 2568",
-    location: "สนามฟุตบอล มหาวิทยาลัยพะเยา",
-    description: "จัดการแข่งขันฟุตบอลรอบชิงชนะเลิศภายในชมรม",
-    participants: 18,
-    documents: ["เอกสารรับรอง_กิจกรรม2.pdf"],
-    images: ["รูปกิจกรรม2_1.jpg"],
-    status: "pending",
-  },
-];
+type ActivityRow = {
+  id: string;
+  title: string;
+  date: string;
+  location?: string | null;
+  description?: string | null;
+  participants?: number | null;
+  documentUrl?: string | null;
+  status?: string;
+  rejectionReason?: string;
+};
 
 const STATUS_LABEL = {
   pending: { label: "รอการตรวจสอบ", className: "bg-slate-100 text-slate-700 border-slate-200" },
@@ -51,7 +38,44 @@ const STATUS_LABEL = {
 
 export default function ClubActivitiesPage() {
   const router = useRouter();
-  const [activities] = useState<Activity[]>(MOCK_ACTIVITIES);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let current = true;
+    const loadActivities = async () => {
+      setIsLoading(true);
+      setLoadError("");
+      try {
+        const response = await fetch("/api/activities");
+        const data = (await response.json()) as { activities?: ActivityRow[]; error?: string };
+        if (!response.ok) throw new Error(data.error || "ไม่สามารถโหลดข้อมูลกิจกรรมได้");
+        if (!Array.isArray(data.activities)) throw new Error("รูปแบบข้อมูลกิจกรรมไม่ถูกต้อง");
+        if (!current) return;
+        setActivities(data.activities.map((activity) => ({
+          id: activity.id,
+          title: activity.title,
+          date: new Date(activity.date).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }),
+          location: activity.location || "-",
+          description: activity.description || "",
+          participants: activity.participants || 0,
+          documents: activity.documentUrl ? [activity.documentUrl] : [],
+          images: [],
+          status: activity.status === "approved" ? "approved" : activity.status === "rejected" ? "rejected" : "pending",
+          rejectedReason: activity.rejectionReason,
+        })));
+      } catch (error) {
+        if (current) setLoadError(error instanceof Error ? error.message : "ไม่สามารถโหลดข้อมูลกิจกรรมได้");
+      } finally {
+        if (current) setIsLoading(false);
+      }
+    };
+    void loadActivities();
+    return () => {
+      current = false;
+    };
+  }, []);
 
   const approvedCount = activities.filter((a) => a.status === "approved").length;
   const canSubmit = approvedCount >= 2;
@@ -111,7 +135,17 @@ export default function ClubActivitiesPage() {
 
         {/* Activity Cards */}
         <div className="space-y-4">
-          {activities.length === 0 && (
+          {loadError && (
+            <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              {loadError}
+            </div>
+          )}
+          {isLoading && (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-xs shadow-xs">
+              กำลังโหลดข้อมูลกิจกรรม...
+            </div>
+          )}
+          {!isLoading && !loadError && activities.length === 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs shadow-xs">
               ยังไม่มีรายงานกิจกรรม กด + บันทึกกิจกรรมใหม่ เพื่อเริ่มต้น
             </div>
@@ -136,7 +170,25 @@ export default function ClubActivitiesPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">{a.description}</p>
+              <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                {a.description.replace(/\n*\[ภาพถ่ายประกอบกิจกรรม\][\s\S]*$/, "").trim()}
+              </p>
+
+              {a.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {a.images.map((imgUrl, i) => (
+                    <a
+                      key={imgUrl}
+                      href={imgUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-blue-800 hover:underline bg-slate-50 px-2 py-0.5 rounded border border-slate-200"
+                    >
+                      📷 ภาพที่ {i + 1}
+                    </a>
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
                 <span>ผู้เข้าร่วม {a.participants} คน</span>
@@ -157,7 +209,7 @@ export default function ClubActivitiesPage() {
         {canSubmit && (
           <div className="mt-6">
             <button
-              onClick={() => router.push("/club/athletes")}
+              onClick={() => router.push("/club/competitions")}
               className="w-full bg-blue-900 hover:bg-blue-800 text-white font-medium py-3 rounded-xl text-xs transition-colors cursor-pointer"
             >
               ครบตามเกณฑ์กิจกรรมแล้ว — ดำเนินการคัดเลือกและจัดทำบัญชีรายชื่อนักกีฬา

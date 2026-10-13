@@ -1,443 +1,211 @@
-"use client";
+﻿"use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
-import LogoutButton from "@/components/shared/LogoutButton";
-import { MOCK_ALL_APPLICANTS, RawApplicant } from "@/lib/analytics-data";
-import { exportAthletesToCSV, AthleteExportRow } from "@/lib/export-helpers";
-import { getTeamOfficials, TeamOfficialApplication } from "@/lib/team-official-store";
+import StaffReview from "@/components/shared/StaffReview";
+import StaffRosterReview from "@/components/shared/StaffRosterReview";
+import { RequestState, useRemoteData } from "@/components/shared/RequestState";
+import { fetchJson } from "@/lib/http-client";
+
+type Stats = {
+  total: number;
+  submitted: number;
+  clubApproved: number;
+  clubRejected: number;
+  staffApproved: number;
+  staffRejected: number;
+  finalSelected: number;
+};
 
 type Club = {
   id: string;
   name: string;
   sport: string;
-  presidentName: string;
-  totalCompetitions: number;
-  pendingApplicants: number;
-  totalApplicants: number;
+  email: string;
+  isActive: boolean;
+  _count: { activities: number };
 };
 
-// TODO: ดึงจาก database จริงตอน Backend พร้อม
-const MOCK_CLUBS: Club[] = [
-  {
-    id: "football",
-    name: "ชมรมฟุตบอล",
-    sport: "ฟุตบอล",
-    presidentName: "นายสมชาย ใจดี",
-    totalCompetitions: 2,
-    pendingApplicants: 8,
-    totalApplicants: 22,
-  },
-  {
-    id: "basketball",
-    name: "ชมรมบาสเกตบอล",
-    sport: "บาสเกตบอล",
-    presidentName: "นางสาวสมหญิง รักดี",
-    totalCompetitions: 2,
-    pendingApplicants: 3,
-    totalApplicants: 18,
-  },
-  {
-    id: "volleyball",
-    name: "ชมรมวอลเลย์บอล",
-    sport: "วอลเลย์บอล",
-    presidentName: "-",
-    totalCompetitions: 1,
-    pendingApplicants: 0,
-    totalApplicants: 0,
-  },
-  {
-    id: "swimming",
-    name: "ชมรมว่ายน้ำ",
-    sport: "ว่ายน้ำ",
-    presidentName: "นายธนา มั่งมี",
-    totalCompetitions: 3,
-    pendingApplicants: 5,
-    totalApplicants: 14,
-  },
-];
-
-export default function StaffApplicationsPage() {
+function StaffApplicationsContent() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<"clubs" | "all_applicants">("clubs");
-  const [search, setSearch] = useState("");
-  const [selectedSport, setSelectedSport] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedSquad, setSelectedSquad] = useState("all");
-  const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get("tab") === "rosters" ? "rosters" : "applications";
 
-  useEffect(() => {
-    setOfficials(getTeamOfficials());
+  const load = useCallback(async () => {
+    const [c, a] = await Promise.all([
+      fetchJson<{ clubs: Club[] }>("/api/clubs"),
+      fetchJson<{ stats: Stats }>("/api/staff/applications"),
+    ]);
+    return { clubs: c.clubs, stats: a.stats };
   }, []);
 
-  const totalPending = MOCK_CLUBS.reduce((sum, c) => sum + c.pendingApplicants, 0);
+  const resource = useRemoteData(load);
+  const clubs = resource.data?.clubs ?? [];
+  const stats = resource.data?.stats;
+  const loading = resource.loading;
 
-  const filteredApplicants = useMemo(() => {
-    return MOCK_ALL_APPLICANTS.filter((a) => {
-      const matchSearch = `${a.firstName} ${a.lastName} ${a.studentId} ${a.faculty}`.toLowerCase().includes(search.toLowerCase());
-      const matchSport = selectedSport === "all" || a.sportId === selectedSport;
-      const matchStatus = selectedStatus === "all" || a.status === selectedStatus;
-      const matchSquad = selectedSquad === "all" || a.squadType === selectedSquad;
-      return matchSearch && matchSport && matchStatus && matchSquad;
-    });
-  }, [search, selectedSport, selectedStatus, selectedSquad]);
-
-  const handleExportCSV = () => {
-    const rows: AthleteExportRow[] = filteredApplicants.map((a, idx) => ({
-      index: idx + 1,
-      fullName: `${a.firstName} ${a.lastName}`,
-      studentId: a.studentId,
-      nationalId: "1-xxxx-xxxxx-xx-x",
-      gender: a.gender,
-      faculty: a.faculty,
-      major: "-",
-      studentLevel: a.studentLevel === "bachelor" ? "ปริญญาตรี" : "บัณฑิตศึกษา",
-      year: a.year,
-      sportName: a.sportName,
-      position: a.category,
-      squadType: a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ยังไม่จัดประเภท",
-      status: a.status === "approved" ? "ผ่านการคัดเลือก" : a.status === "rejected" ? "ไม่ผ่านเกณฑ์" : "รอการพิจารณา",
-      gpaCumulative: typeof a.gpaCumulative === "number" ? a.gpaCumulative.toFixed(2) : String(a.gpaCumulative),
-      phone: "-",
-    }));
-
-    exportAthletesToCSV("บัญชีรายชื่อผู้สมัครรวมทุกชมรม_กกมท52_มพ", rows);
+  const setTab = (tab: "applications" | "rosters") => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "rosters") {
+      params.set("tab", "rosters");
+    } else {
+      params.delete("tab");
+    }
+    const query = params.toString();
+    router.replace(`/staff/applications${query ? `?${query}` : ""}`);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-5">
-
-        {/* Top navigation: Backward */}
-        <div className="flex items-center justify-between">
-          <BackButton href="/" label="กลับหน้าแรก" />
-          <LogoutButton />
-        </div>
+      <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-          <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-              กองกิจการนิสิต มหาวิทยาลัยพะเยา
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
-              การบริหารจัดการใบสมัครและคัดเลือกนักกีฬา
-            </h1>
-            <p className="text-xs text-slate-500">
-              กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 · ผู้สมัครรอการพิจารณารวม {totalPending} คน
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => router.push("/staff/officials")}
-              className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
-            >
-              <span>ทะเบียนเจ้าหน้าที่ทีม</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-emerald-950 text-white text-[10px] font-bold">
-                กกมท.52
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
+            <div>
+              <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
+              <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
+                กองกิจการนิสิต มหาวิทยาลัยพะเยา
               </span>
-            </button>
-            <button
-              onClick={() => router.push("/staff/analytics")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              แดชบอร์ดวิเคราะห์ผล
-            </button>
-            <button
-              onClick={() => router.push("/staff/requests")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <span>คำร้องพิเศษ (ไม่มีชมรม)</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">2</span>
-            </button>
-            <button
-              onClick={() => router.push("/staff/activities")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              กิจกรรมชมรม
-            </button>
-            <button
-              onClick={() => router.push("/staff/selection")}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition-all cursor-pointer shadow-md flex items-center gap-1.5 ring-2 ring-amber-300 animate-pulse hover:animate-none"
-            >
-              <span>ประกาศผลทางการ</span>
-              <span className="text-[10px] bg-slate-900 text-amber-300 px-1.5 py-0.2 rounded-full font-bold">
-                กกมท.52
-              </span>
-            </button>
-            <button
-              onClick={() => router.push("/staff/settings")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
-            >
-              ตั้งค่ารายการแข่งขัน
-            </button>
-          </div>
-        </div>
+              <h1 className="text-xl font-bold text-slate-900 mt-0.5">
+                การบริหารจัดการใบสมัครและบัญชีรายชื่อนักกีฬา
+              </h1>
+              <p className="text-xs text-slate-500">
+                กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
+                {stats && ` · รอพิจารณารวม ${stats.submitted + stats.clubApproved} คน`}
+              </p>
+            </div>
 
-        {/* สรุปภาพรวม */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
-            <p className="text-2xl font-bold text-slate-900">{MOCK_CLUBS.length}</p>
-            <p className="text-xs text-slate-500 mt-1">ชมรมสังกัดทั้งหมด</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
-            <p className="text-2xl font-bold text-slate-700">{totalPending}</p>
-            <p className="text-xs text-slate-500 mt-1">ผู้สมัครรอการพิจารณา</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
-            <p className="text-2xl font-bold text-blue-900">
-              {MOCK_CLUBS.reduce((sum, c) => sum + c.totalApplicants, 0)}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">ผู้สมัครรวมทุกชนิดกีฬา</p>
-          </div>
-        </div>
-
-        {/* View Mode Toggle Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode("clubs")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${viewMode === "clubs"
-                ? "bg-blue-900 text-white shadow-2xs font-semibold"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-            >
-              สรุปรายชื่อแยกตามชมรมกีฬา ({MOCK_CLUBS.length} ชมรม)
-            </button>
-            <button
-              onClick={() => setViewMode("all_applicants")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === "all_applicants"
-                ? "bg-blue-900 text-white shadow-2xs font-semibold"
-                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-            >
-              ตารางใบสมัครรวมทุกชมรม (ข้อ 10)
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${viewMode === "all_applicants" ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-700"}`}>
-                {MOCK_ALL_APPLICANTS.length}
-              </span>
-            </button>
-          </div>
-
-          {viewMode === "all_applicants" && (
-            <div className="flex items-center gap-2">
+            {/* Navigation Tabs */}
+            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
               <button
-                onClick={handleExportCSV}
-                className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                type="button"
+                onClick={() => setTab("applications")}
+                className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
+                  currentTab === "applications"
+                    ? "bg-white text-blue-950 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
               >
-                ดาวน์โหลดบัญชีรายชื่อรวม (Excel / CSV)
+                ใบสมัครรายบุคคล
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("rosters")}
+                className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all ${
+                  currentTab === "rosters"
+                    ? "bg-white text-blue-950 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                ตรวจรับบัญชีรายชื่อชมรม (Rosters)
               </button>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* VIEW 1: รายชื่อชมรม */}
-        {viewMode === "clubs" && (
-          <div className="space-y-3">
-            {MOCK_CLUBS.map((club) => {
-              const clubOfficials = officials.filter((o) => o.clubId === club.id);
-              const pendingOfficials = clubOfficials.filter((o) => o.stage === "club_approved").length;
-
-              return (
-                <div
-                  key={club.id}
-                  className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div
-                    onClick={() => router.push(`/staff/applications/${club.id}`)}
-                    className="flex-1 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h2 className="font-semibold text-slate-900">{club.name}</h2>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
-                        {club.sport}
-                      </span>
-                      {club.pendingApplicants > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300 font-semibold">
-                          นักกีฬารอพิจารณา {club.pendingApplicants} คน
-                        </span>
-                      )}
-                      {pendingOfficials > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-300 font-bold">
-                          ผู้ฝึกสอนรอกองกิจตรวจ {pendingOfficials} คน
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      ประธานชมรม: {club.presidentName} · {club.totalCompetitions} รายการแข่งขัน · นักกีฬา {club.totalApplicants} คน · เจ้าหน้าที่ทีม/ผู้ฝึกสอน {clubOfficials.length} คน
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => router.push(`/staff/officials?clubId=${club.id}`)}
-                      className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>ตรวจผู้ฝึกสอน</span>
-                      {pendingOfficials > 0 ? (
-                        <span className="px-1.5 py-0.2 bg-amber-400 text-blue-950 text-[10px] font-bold rounded-full">
-                          {pendingOfficials}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400">({clubOfficials.length})</span>
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => router.push(`/staff/applications/${club.id}`)}
-                      className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <span>ดูชมรม</span>
-                      <span className="text-blue-200">→</span>
-                    </button>
-                  </div>
+        {/* Tab 1: Applications */}
+        {currentTab === "applications" && (
+          <div className="space-y-6">
+            {/* สรุปภาพรวม */}
+            {stats && (
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                  <p className="text-xs text-slate-500 mt-1">ใบสมัครทั้งหมด</p>
                 </div>
-              );
-            })}
+                <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+                  <p className="text-2xl font-bold text-slate-700">{stats.submitted}</p>
+                  <p className="text-xs text-slate-500 mt-1">รอชมรมพิจารณา</p>
+                </div>
+                <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+                  <p className="text-2xl font-bold text-amber-700">{stats.clubApproved}</p>
+                  <p className="text-xs text-slate-500 mt-1">รอกองกิจการนิสิต</p>
+                </div>
+                <div className="bg-white rounded-xl border border-slate-200 p-4 text-center shadow-xs">
+                  <p className="text-2xl font-bold text-blue-900">{stats.finalSelected}</p>
+                  <p className="text-xs text-slate-500 mt-1">ผ่านการคัดเลือก</p>
+                </div>
+              </div>
+            )}
+
+            <StaffReview />
+
+            {/* รายชื่อชมรม */}
+            <RequestState error={resource.error} retry={resource.retry} />
+            {resource.error ? null : loading ? (
+              <div className="text-center py-12 text-slate-400 text-sm">กำลังโหลด...</div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pt-2">
+                  <h2 className="text-sm font-bold text-slate-900">
+                    ชมรมกีฬาทั้งหมดในสังกัด ({clubs.length} ชมรม)
+                  </h2>
+                  <span className="text-xs text-slate-500">คลิกที่ชมรมเพื่อดูใบสมัครและรายการแข่งขันเฉพาะชมรม</span>
+                </div>
+
+                {clubs.length === 0 && (
+                  <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm shadow-xs">
+                    ยังไม่มีชมรม
+                  </div>
+                )}
+                {clubs.map((club) => (
+                  <button
+                    key={club.id}
+                    type="button"
+                    onClick={() => router.push(`/staff/applications/${club.id}`)}
+                    className="w-full text-left bg-white rounded-xl border border-slate-200 shadow-xs p-5 hover:border-blue-900 hover:shadow-sm transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-900">{club.name}</h3>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                            {club.sport}
+                          </span>
+                          {!club.isActive && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                              ปิดใช้งาน
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          กิจกรรม: {club._count.activities} · สมาชิก: {club._count.activities}
+                        </p>
+                      </div>
+                      <span className="text-slate-400 shrink-0 text-sm">→</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* VIEW 2: ตารางใบสมัครรวมทุกชมรม (ข้อ 10) */}
-        {viewMode === "all_applicants" && (
-          <div className="space-y-4">
-            {/* Filter bar */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="ค้นหาชื่อ, สกุล, รหัสนิสิต, คณะ..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs w-60 focus:ring-2 focus:ring-blue-900 outline-none"
-                />
-
-                <select
-                  value={selectedSport}
-                  onChange={(e) => setSelectedSport(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                >
-                  <option value="all">ชนิดกีฬาทั้งหมด</option>
-                  <option value="football">ฟุตบอล</option>
-                  <option value="basketball">บาสเกตบอล</option>
-                  <option value="volleyball">วอลเลย์บอล</option>
-                  <option value="swimming">ว่ายน้ำ</option>
-                  <option value="petanque">เปตอง</option>
-                  <option value="badminton">แบดมินตัน</option>
-                  <option value="thaifencing">ดาบไทย</option>
-                  <option value="esports">อีสปอร์ต</option>
-                </select>
-
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                >
-                  <option value="all">สถานะการพิจารณาทั้งหมด</option>
-                  <option value="approved">ผ่านการคัดเลือก</option>
-                  <option value="pending">รอการพิจารณา</option>
-                  <option value="rejected">ไม่ผ่านเกณฑ์</option>
-                </select>
-
-                <select
-                  value={selectedSquad}
-                  onChange={(e) => setSelectedSquad(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                >
-                  <option value="all">ประเภทการจัดสรรทั้งหมด</option>
-                  <option value="main">นักกีฬาตัวจริง</option>
-                  <option value="reserve">นักกีฬาตัวสำรอง</option>
-                  <option value="unassigned">ยังไม่ระบุประเภท</option>
-                </select>
-
-                {(search || selectedSport !== "all" || selectedStatus !== "all" || selectedSquad !== "all") && (
-                  <button
-                    onClick={() => { setSearch(""); setSelectedSport("all"); setSelectedStatus("all"); setSelectedSquad("all"); }}
-                    className="text-xs text-blue-900 hover:underline cursor-pointer"
-                  >
-                    ล้างการกรอง
-                  </button>
-                )}
-              </div>
-
-              <div className="text-slate-500 text-[11px]">
-                แสดงผล <strong className="text-slate-900">{filteredApplicants.length}</strong> จาก {MOCK_ALL_APPLICANTS.length} รายชื่อ
-              </div>
-            </div>
-
-            {/* Consolidated Table */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
-                    <tr>
-                      <th className="py-3 px-3.5">ลำดับ</th>
-                      <th className="py-3 px-3.5">รหัสนิสิต</th>
-                      <th className="py-3 px-3.5">ชื่อ - นามสกุล</th>
-                      <th className="py-3 px-3.5">คณะต้นสังกัด</th>
-                      <th className="py-3 px-3.5">ชนิดกีฬา / ตำแหน่ง</th>
-                      <th className="py-3 px-3.5 text-center">GPAX</th>
-                      <th className="py-3 px-3.5 text-center">ประเภทที่จัดสรร</th>
-                      <th className="py-3 px-3.5 text-center">ผลการพิจารณา</th>
-                      <th className="py-3 px-3.5 text-right">การจัดการ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredApplicants.map((a, idx) => (
-                      <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-3.5 text-slate-400 font-medium">{idx + 1}</td>
-                        <td className="py-3 px-3.5 font-mono font-medium text-slate-700">{a.studentId}</td>
-                        <td className="py-3 px-3.5">
-                          <span className="font-semibold text-slate-900 block">{a.firstName} {a.lastName}</span>
-                          <span className="text-[10px] text-slate-400">ระดับ {a.studentLevel === "bachelor" ? "ป.ตรี" : "บัณฑิตศึกษา"} ปี {a.year}</span>
-                        </td>
-                        <td className="py-3 px-3.5 text-slate-600">{a.faculty}</td>
-                        <td className="py-3 px-3.5">
-                          <span className="font-semibold text-slate-800 block">{a.sportName}</span>
-                          <span className="text-[10px] text-slate-500">{a.category}</span>
-                        </td>
-                        <td className="py-3 px-3.5 text-center">
-                          <span className={`font-mono font-bold ${a.gpaCumulative < 2.0 ? "text-rose-600" : "text-slate-800"}`}>
-                            {a.gpaCumulative.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3.5 text-center">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${a.squadType === "main"
-                            ? "bg-blue-100 text-blue-900"
-                            : a.squadType === "reserve"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-slate-100 text-slate-600"
-                            }`}>
-                            {a.squadType === "main" ? "ตัวจริง" : a.squadType === "reserve" ? "ตัวสำรอง" : "ยังไม่จัดสรร"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3.5 text-center">
-                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-medium border ${a.status === "approved"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                            : a.status === "rejected"
-                              ? "bg-rose-50 text-rose-800 border-rose-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200"
-                            }`}>
-                            {a.status === "approved" ? "ผ่านการคัดเลือก" : a.status === "rejected" ? "ไม่ผ่านเกณฑ์" : "รอการพิจารณา"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3.5 text-right">
-                          <button
-                            onClick={() => router.push(`/staff/applications/${a.sportId}/1`)}
-                            className="text-xs text-blue-900 hover:underline font-medium cursor-pointer"
-                          >
-                            ตรวจเอกสาร →
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {/* Tab 2: Rosters */}
+        {currentTab === "rosters" && (
+          <div className="space-y-6">
+            <StaffRosterReview />
           </div>
         )}
 
       </div>
     </div>
+  );
+}
+
+export default function StaffApplicationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 text-sm">
+          กำลังโหลด...
+        </div>
+      }
+    >
+      <StaffApplicationsContent />
+    </Suspense>
   );
 }

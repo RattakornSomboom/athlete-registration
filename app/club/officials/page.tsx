@@ -1,23 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
 import {
-  getTeamOfficials,
-  updateClubDocReview,
-  updateClubReview,
   TeamOfficialApplication,
   OfficialDocument,
   OfficialStage,
   POSITION_LABEL,
+  mapOfficialRecordToApplication,
 } from "@/lib/team-official-store";
+
+function documentsReadyForEndorsement(documents: OfficialDocument[]) {
+  return documents.some((document) => document.field === "plan")
+    && documents.some((document) => document.field === "idCard")
+    && documents.every((document) => document.clubStatus === "approved");
+}
+
+async function loadClubOfficials() {
+  const response = await fetch("/api/club/officials", { cache: "no-store" });
+  const data: unknown = await response.json();
+  if (!response.ok) {
+    const message = data && typeof data === "object" && "error" in data && typeof data.error === "string"
+      ? data.error
+      : "โหลดข้อมูลเจ้าหน้าที่ทีมไม่สำเร็จ";
+    throw new Error(message);
+  }
+  if (!data || typeof data !== "object" || !("applications" in data) || !Array.isArray(data.applications)) {
+    throw new Error("รูปแบบข้อมูลจากระบบไม่ถูกต้อง");
+  }
+  return data.applications.map(mapOfficialRecordToApplication);
+}
 
 export default function ClubOfficialsPage() {
   const router = useRouter();
   const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
-  const [selectedClub, setSelectedClub] = useState("football");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [detailOfficialId, setDetailOfficialId] = useState<string | null>(null);
 
   // Per-document reject modal
@@ -32,19 +54,83 @@ export default function ClubOfficialsPage() {
   const [endorsingOfficialId, setEndorsingOfficialId] = useState<string | null>(null);
   const [endorseFeedback, setEndorseFeedback] = useState("ผ่านการรับรองและเห็นชอบแผนการฝึกซ้อมจากชมรมกีฬาเรียบร้อยแล้ว เสนอชื่อต่อกองกิจการนิสิต");
 
-  // Document preview modal
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; filename: string; category: string; officialName: string } | null>(null);
+  const refreshOfficials = useCallback(async () => {
+    try {
+      setOfficials(await loadClubOfficials());
+      setLoadError("");
+      return true;
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "โหลดข้อมูลเจ้าหน้าที่ทีมไม่สำเร็จ");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    setOfficials(getTeamOfficials(selectedClub));
-  }, [selectedClub]);
+    let cancelled = false;
+    loadClubOfficials()
+      .then((data) => {
+        if (cancelled) return;
+        setOfficials(data);
+        setLoadError("");
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : "โหลดข้อมูลเจ้าหน้าที่ทีมไม่สำเร็จ");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const detailOfficial = officials.find((o) => o.id === detailOfficialId);
 
-  // Handlers
-  const handleApproveDoc = (officialId: string, docId: string) => {
-    const updated = updateClubDocReview(officialId, docId, "approved");
-    setOfficials(updated.filter((o) => o.clubId === selectedClub));
+  const persistReview = async (payload: Record<string, unknown>) => {
+    const targetId = payload.id;
+    const target = typeof targetId === "string" ? officials.find((official) => official.id === targetId) : undefined;
+    if (target?.version === undefined) {
+      setActionError("ไม่พบ version ของใบสมัคร กรุณาโหลดข้อมูลใหม่");
+      return false;
+    }
+    setSaving(true);
+    setActionError("");
+    try {
+      const response = await fetch("/api/club/officials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, version: target.version }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        const message = data && typeof data === "object" && "error" in data && typeof data.error === "string"
+          ? data.error
+          : "บันทึกผลการพิจารณาไม่สำเร็จ";
+        throw new Error(message);
+      }
+      setLoading(true);
+      if (!await refreshOfficials()) {
+        setActionError("บันทึกผลแล้ว แต่โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณารีเฟรชหน้า");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "บันทึกผลการพิจารณาไม่สำเร็จ");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApproveDoc = async (officialId: string, docId: string) => {
+    await persistReview({
+      id: officialId,
+      action: "document-review",
+      documentId: docId,
+      decision: "approve",
+    });
   };
 
   const openRejectDocModal = (officialId: string, doc: OfficialDocument) => {
@@ -52,42 +138,45 @@ export default function ClubOfficialsPage() {
     setDocCommentInput(doc.clubComment || "");
   };
 
-  const confirmRejectDoc = () => {
+  const confirmRejectDoc = async () => {
     if (!rejectingDoc) return;
     if (!docCommentInput.trim()) {
-      alert("กรุณาระบุเหตุผลหรือข้อบกพร่องของเอกสารเพื่อให้ผู้สมัครทราบ");
+      setActionError("กรุณาระบุเหตุผลหรือข้อบกพร่องของเอกสารเพื่อให้ผู้สมัครทราบ");
       return;
     }
-    const updated = updateClubDocReview(rejectingDoc.officialId, rejectingDoc.doc.id, "returned", docCommentInput.trim());
-    setOfficials(updated.filter((o) => o.clubId === selectedClub));
+    const saved = await persistReview({
+      id: rejectingDoc.officialId,
+      action: "document-review",
+      documentId: rejectingDoc.doc.id,
+      decision: "return",
+      reason: docCommentInput.trim(),
+    });
+    if (!saved) return;
     setRejectingDoc(null);
     setDocCommentInput("");
   };
 
-  const confirmEndorseToStaff = () => {
+  const confirmEndorseToStaff = async () => {
     if (!endorsingOfficialId) return;
-    const updated = updateClubReview(
-      endorsingOfficialId,
-      "approve",
-      endorseFeedback.trim(),
-      "นายสมชาย ใจดี (ประธานชมรมฟุตบอล)"
-    );
-    setOfficials(updated.filter((o) => o.clubId === selectedClub));
-    setEndorsingOfficialId(null);
+    const saved = await persistReview({
+      id: endorsingOfficialId,
+      action: "approve",
+      reason: endorseFeedback.trim(),
+    });
+    if (saved) setEndorsingOfficialId(null);
   };
 
-  const confirmOverallReject = () => {
+  const confirmOverallReject = async () => {
     if (!rejectingOfficialId || !officialRejectReason.trim()) {
-      alert("กรุณาระบุเหตุผลการไม่อนุมัติ");
+      setActionError("กรุณาระบุเหตุผลการไม่อนุมัติ");
       return;
     }
-    const updated = updateClubReview(
-      rejectingOfficialId,
-      "reject",
-      officialRejectReason.trim(),
-      "นายสมชาย ใจดี (ประธานชมรมฟุตบอล)"
-    );
-    setOfficials(updated.filter((o) => o.clubId === selectedClub));
+    const saved = await persistReview({
+      id: rejectingOfficialId,
+      action: "reject",
+      reason: officialRejectReason.trim(),
+    });
+    if (!saved) return;
     setRejectingOfficialId(null);
     setOfficialRejectReason("");
   };
@@ -195,8 +284,31 @@ export default function ClubOfficialsPage() {
             </span>
           </div>
 
+          {loadError && (
+            <div role="alert" className="m-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800">
+              {loadError}
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  void refreshOfficials();
+                }}
+                className="ml-2 font-semibold underline"
+              >
+                โหลดอีกครั้ง
+              </button>
+            </div>
+          )}
+          {actionError && (
+            <div role="alert" className="m-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800">
+              {actionError}
+            </div>
+          )}
+
           <div className="divide-y divide-slate-100">
-            {officials.length === 0 ? (
+            {loading && officials.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-400">กำลังโหลดข้อมูลจากระบบ...</div>
+            ) : officials.length === 0 && !loadError ? (
               <div className="p-8 text-center text-xs text-slate-400">
                 ยังไม่มีข้อมูลการสมัครเจ้าหน้าที่ทีมในชมรมนี้
               </div>
@@ -204,7 +316,7 @@ export default function ClubOfficialsPage() {
               officials.map((off) => {
                 const docsApproved = off.documents.filter((d) => d.clubStatus === "approved").length;
                 const totalDocs = off.documents.length;
-                const allDocsApproved = docsApproved === totalDocs;
+                const allDocsApproved = documentsReadyForEndorsement(off.documents);
 
                 return (
                   <div
@@ -398,44 +510,44 @@ export default function ClubOfficialsPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreviewDoc({
-                                  title: doc.title,
-                                  filename: doc.filename,
-                                  category: doc.category,
-                                  officialName: `${detailOfficial.firstName} ${detailOfficial.lastName}`,
-                                })
-                              }
+                            <a
+                              href={`/api/documents/${encodeURIComponent(doc.id)}/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-medium cursor-pointer transition-colors border border-slate-300 flex items-center gap-1"
                             >
                               <span>ดูเอกสาร</span>
-                            </button>
+                            </a>
 
-                            <button
-                              type="button"
-                              onClick={() => handleApproveDoc(detailOfficial.id, doc.id)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                                isApproved
-                                  ? "bg-emerald-800 text-white shadow-2xs"
-                                  : "border border-emerald-700 text-emerald-800 hover:bg-emerald-50"
-                              }`}
-                            >
-                              ✓ อนุมัติเอกสาร
-                            </button>
+                            {detailOfficial.stage === "submitted_to_club" && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => void handleApproveDoc(detailOfficial.id, doc.id)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all disabled:cursor-wait disabled:opacity-60 ${
+                                    isApproved
+                                      ? "bg-emerald-800 text-white shadow-2xs"
+                                      : "border border-emerald-700 text-emerald-800 hover:bg-emerald-50"
+                                  }`}
+                                >
+                                  ✓ อนุมัติเอกสาร
+                                </button>
 
-                            <button
-                              type="button"
-                              onClick={() => openRejectDocModal(detailOfficial.id, doc)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                                isReturned
-                                  ? "bg-rose-700 text-white shadow-2xs"
-                                  : "border border-rose-300 text-rose-700 hover:bg-rose-50"
-                              }`}
-                            >
-                              ✕ ให้แก้ไข / แจ้งเหตุผล
-                            </button>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => openRejectDocModal(detailOfficial.id, doc)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all disabled:cursor-wait disabled:opacity-60 ${
+                                    isReturned
+                                      ? "bg-rose-700 text-white shadow-2xs"
+                                      : "border border-rose-300 text-rose-700 hover:bg-rose-50"
+                                  }`}
+                                >
+                                  ✕ ให้แก้ไข / แจ้งเหตุผล
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -460,7 +572,7 @@ export default function ClubOfficialsPage() {
               {/* Modal Footer Controls */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-200">
                 <div className="text-xs text-slate-500">
-                  {detailOfficial.documents.every((d) => d.clubStatus === "approved") ? (
+                  {documentsReadyForEndorsement(detailOfficial.documents) ? (
                     <span className="text-emerald-800 font-bold">
                       ✓ เอกสารและแผนฝึกซ้อมผ่านครบถ้วน พร้อมลงนามเสนอชื่อต่อกองกิจการนิสิต
                     </span>
@@ -483,7 +595,7 @@ export default function ClubOfficialsPage() {
                   {detailOfficial.stage === "submitted_to_club" && (
                     <button
                       type="button"
-                      disabled={!detailOfficial.documents.every((d) => d.clubStatus === "approved")}
+                      disabled={saving || !documentsReadyForEndorsement(detailOfficial.documents)}
                       onClick={() => {
                         setEndorsingOfficialId(detailOfficial.id);
                         setDetailOfficialId(null);
@@ -554,13 +666,15 @@ export default function ClubOfficialsPage() {
                 <button
                   type="button"
                   onClick={() => setRejectingDoc(null)}
+                  disabled={saving}
                   className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  onClick={confirmRejectDoc}
+                  disabled={saving}
+                  onClick={() => void confirmRejectDoc()}
                   className="px-4 py-1.5 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg cursor-pointer shadow-xs"
                 >
                   บันทึกและแจ้งให้ส่งใหม่
@@ -595,7 +709,7 @@ export default function ClubOfficialsPage() {
                   </p>
                 </div>
                 <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-500">
-                  ผู้ลงนาม: <strong>นายสมชาย ใจดี</strong> (ประธานชมรมฟุตบอล มหาวิทยาลัยพะเยา)
+                  ผู้ลงนาม: <strong>ประธานชมรมกีฬา</strong> (ผู้มีสิทธิ์ใช้งานชมรม)
                 </div>
               </div>
 
@@ -615,13 +729,15 @@ export default function ClubOfficialsPage() {
                 <button
                   type="button"
                   onClick={() => setEndorsingOfficialId(null)}
+                  disabled={saving}
                   className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  onClick={confirmEndorseToStaff}
+                  disabled={saving}
+                  onClick={() => void confirmEndorseToStaff()}
                   className="px-5 py-2 text-xs font-bold text-white bg-blue-900 hover:bg-blue-800 rounded-lg cursor-pointer shadow-xs"
                 >
                   ลงนามรับรองและส่งต่อกองกิจ
@@ -662,74 +778,18 @@ export default function ClubOfficialsPage() {
                 <button
                   type="button"
                   onClick={() => setRejectingOfficialId(null)}
+                  disabled={saving}
                   className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  onClick={confirmOverallReject}
+                  disabled={saving}
+                  onClick={() => void confirmOverallReject()}
                   className="px-4 py-1.5 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg cursor-pointer shadow-xs"
                 >
                   ยืนยันไม่อนุมัติ
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Document Preview */}
-        {previewDoc && (
-          <div className="fixed inset-0 z-70 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white rounded-xl border border-slate-300 max-w-xl w-full p-6 shadow-2xl space-y-4">
-              <div className="flex items-start justify-between border-b border-slate-200 pb-3">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                    ระบบตรวจสอบเอกสารราชการออนไลน์ · มหาวิทยาลัยพะเยา
-                  </span>
-                  <h3 className="text-sm font-bold text-slate-900 mt-1.5">{previewDoc.title}</h3>
-                  <p className="text-[11px] text-slate-500 font-mono">{previewDoc.filename}</p>
-                </div>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Document Sheet */}
-              <div className="p-6 bg-slate-50 border-2 border-slate-200 rounded-lg space-y-4 relative overflow-hidden text-xs font-sans">
-                <div className="text-center border-b border-slate-200 pb-3">
-                  <div className="w-9 h-9 bg-blue-900 text-white rounded flex items-center justify-center font-bold text-xs mx-auto mb-1">
-                    UP
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">{previewDoc.title}</h4>
-                  <p className="text-[11px] text-slate-500">มหาวิทยาลัยพะเยา · University of Phayao</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-slate-700">
-                  <div>ผู้ยื่นเอกสาร: <strong className="text-slate-900">{previewDoc.officialName}</strong></div>
-                  <div>หมวดหมู่: <strong className="text-slate-900">{previewDoc.category}</strong></div>
-                  <div>ชนิดเอกสาร: <strong className="font-mono text-blue-900">{previewDoc.filename}</strong></div>
-                  <div>การรับรอง: <strong className="text-emerald-700">ยืนยันตัวตนผ่านระบบสารสนเทศ ✓</strong></div>
-                </div>
-
-                <div className="p-3 bg-white border border-slate-200 rounded text-center text-[11px] text-slate-500 space-y-1">
-                  <p className="font-semibold text-slate-800">เอกสารนี้ได้รับการรับรองผ่านระบบสารสนเทศทะเบียนกลาง มหาวิทยาลัยพะเยา</p>
-                  <p className="text-[10px] text-slate-400 font-mono">Ref: UP-OFFICIAL-VERIFIED</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[11px] text-emerald-800 font-semibold flex items-center gap-1">
-                  ✓ เอกสารถูกต้องตามเกณฑ์ กกมท. ครั้งที่ 52
-                </span>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg cursor-pointer transition-colors"
-                >
-                  ปิดหน้าต่างพรีวิว
                 </button>
               </div>
             </div>

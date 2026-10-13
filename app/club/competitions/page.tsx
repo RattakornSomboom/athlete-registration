@@ -4,20 +4,95 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
-import { getClubCompetitions, ClubCompetition } from "@/lib/club-store";
+import { formatThaiDate } from "@/lib/thai-date";
+import { ClubCompetition } from "@/lib/club-store";
 
 const ROUND_LABEL = {
   qualifier: "รอบคัดเลือกเขตภาคเหนือ",
   final: "รอบมหกรรม",
 };
 
+type CompetitionCard = ClubCompetition & {
+  roundLabel: string;
+  year: number;
+  deadline: string | null;
+  maxStarters: number | null;
+  maxSubstitutes: number | null;
+  status: "OPEN" | "CLOSED" | "COMPLETED";
+};
+
+function getRoundLabel(round: string): string {
+  const normalized = round.toLowerCase();
+  if (normalized === "final") return "รอบมหกรรม";
+  if (normalized === "qualifier") return "รอบคัดเลือก";
+  return round.startsWith("รอบ") ? round : `รอบ${round}`;
+}
+
+type CompetitionListResponse = {
+  competitions: Array<{
+    id: string;
+    sport: string;
+    name: string;
+    eventName: string;
+    category: string;
+    round: string;
+    year: number;
+    deadline: string | null;
+    status: "OPEN" | "CLOSED" | "COMPLETED";
+    isOpen: boolean;
+    totalApplicants: number;
+    pendingCount: number;
+    quotas: Array<{
+      maxStarters: number;
+      maxSubstitutes: number;
+    }>;
+  }>;
+  club: {
+    sport: string;
+  };
+};
+
 export default function ClubCompetitionsPage() {
   const router = useRouter();
-  const [competitions, setCompetitions] = useState<ClubCompetition[]>([]);
+  const [competitions, setCompetitions] = useState<CompetitionCard[]>([]);
   const [selectedSport, setSelectedSport] = useState("ฟุตบอล");
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    setCompetitions(getClubCompetitions());
+    fetch("/api/club/competitions")
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error("ไม่สามารถโหลดรายการแข่งขันได้");
+        }
+        return (await res.json()) as CompetitionListResponse;
+      })
+      .then((data) => {
+        const mapped: CompetitionCard[] = data.competitions.map((competition) => ({
+          id: competition.id,
+          sport: competition.sport || data.club.sport,
+          eventName: competition.eventName || competition.name,
+          category: competition.category,
+          round: competition.round.toLowerCase() === "final" ? "final" : "qualifier",
+          roundLabel: getRoundLabel(competition.round),
+          year: competition.year,
+          deadline: competition.deadline,
+          maxStarters: competition.quotas[0]?.maxStarters ?? null,
+          maxSubstitutes: competition.quotas[0]?.maxSubstitutes ?? null,
+          status: competition.status,
+          totalApplicants: competition.totalApplicants,
+          pendingCount: competition.pendingCount,
+          isOpen: competition.isOpen,
+          submissionStatus: "not_submitted",
+        }));
+        setCompetitions(mapped);
+        if (data.club.sport) setSelectedSport(data.club.sport);
+      })
+      .catch((error: unknown) => {
+        console.error("[ClubCompetitionsPage] Failed to load competitions", error);
+        setLoadError("ไม่สามารถโหลดรายการแข่งขันได้ กรุณาลองใหม่อีกครั้ง");
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const clubCompetitions = competitions.filter((c) => c.sport === selectedSport);
@@ -49,46 +124,6 @@ export default function ClubCompetitionsPage() {
             <p className="text-xs text-slate-500">
               ชมรม{selectedSport} — ซิงค์สถานะเปิด/ปิดรับสมัครกับกองกิจการนิสิต (การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52)
             </p>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center flex-wrap gap-2">
-            <button
-              onClick={() => router.push("/club/officials")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
-            >
-              <span>ตรวจสอบเจ้าหน้าที่ทีม</span>
-              <span className="px-1.5 py-0.2 bg-amber-400 text-blue-950 text-[10px] font-bold rounded-full">
-                ผู้ฝึกสอน/ผจก.
-              </span>
-            </button>
-            <button
-              onClick={() => router.push("/club/tracking")}
-              className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
-            >
-              <span>ติดตามสถานะส่งกองกิจ</span>
-              <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-bold rounded-full">
-                2 เอกสารตีกลับ
-              </span>
-            </button>
-            <button
-              onClick={() => router.push("/club/review")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              จัดทำบัญชีรายชื่อส่งกองกิจ
-            </button>
-            <button
-              onClick={() => router.push("/club/activities")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
-            >
-              กิจกรรมชมรม
-            </button>
-            <button
-              onClick={() => router.push("/club/requests")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors"
-            >
-              คำร้องพิเศษ
-            </button>
           </div>
         </div>
 
@@ -135,17 +170,29 @@ export default function ClubCompetitionsPage() {
               รายการแข่งขันของชมรม{selectedSport} ({clubCompetitions.length} รายการ)
             </h2>
             <span className="text-xs text-slate-500">
-              คลิกที่รายการเปิดรับสมัครเพื่อตรวจสอบรายชื่อและตรวจเอกสารผู้สมัคร
+              คลิกที่รายการเปิดรับสมัครเพื่อพิจารณาผู้สมัครแข่งขันและตรวจเอกสาร
             </span>
           </div>
 
-          {clubCompetitions.length === 0 && (
+          {isLoading && (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-xs shadow-xs">
+              กำลังโหลดรายการแข่งขัน...
+            </div>
+          )}
+
+          {!isLoading && loadError && (
+            <div role="alert" className="bg-rose-50 rounded-xl border border-rose-200 p-6 text-center text-rose-800 text-xs">
+              {loadError}
+            </div>
+          )}
+
+          {!isLoading && !loadError && clubCompetitions.length === 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs shadow-xs">
               ยังไม่มีรายการแข่งขันสำหรับชมรมนี้ในระบบ
             </div>
           )}
 
-          {clubCompetitions.map((c) => (
+          {!loadError && clubCompetitions.map((c) => (
             <div
               key={c.id}
               onClick={() => {
@@ -169,7 +216,7 @@ export default function ClubCompetitionsPage() {
                       {c.category}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
-                      {ROUND_LABEL[c.round]}
+                      {c.roundLabel || ROUND_LABEL[c.round]}
                     </span>
 
                     {/* Status Badge */}
@@ -181,7 +228,7 @@ export default function ClubCompetitionsPage() {
                     ) : (
                       <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-slate-200 text-slate-600 border border-slate-300 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                        ปิดรับสมัคร / กองกิจการนิสิตยังไม่เปิดรับ
+                        {c.status === "COMPLETED" ? "สิ้นสุดการแข่งขัน" : "ปิดรับสมัคร"}
                       </span>
                     )}
 
@@ -193,36 +240,42 @@ export default function ClubCompetitionsPage() {
                     )}
                   </div>
 
-                  {c.isOpen ? (
-                    <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
-                      <span>ผู้สมัครยื่นเอกสารทั้งหมด: <strong className="text-slate-900">{c.totalApplicants} คน</strong></span>
-                      <span>·</span>
-                      <span>
-                        รอพิจารณาคัดเลือก:{" "}
-                        <strong className={c.pendingCount > 0 ? "text-blue-900 font-bold" : "text-slate-600"}>
-                          {c.pendingCount} คน
-                        </strong>
+                  <div className="flex items-center gap-x-4 gap-y-2 text-xs text-slate-500 flex-wrap">
+                    <span>ปีการแข่งขัน: <strong className="text-slate-900">พ.ศ. {c.year + 543}</strong></span>
+                    <span>ปิดรับสมัคร: <strong className="text-slate-900">{formatThaiDate(c.deadline, { format: "medium" }) || "ไม่ระบุ"}</strong></span>
+                    <span>
+                      โควตา:{" "}
+                      <strong className="text-slate-900">
+                        {c.maxStarters !== null && c.maxSubstitutes !== null
+                          ? `ตัวจริง ${c.maxStarters} · สำรอง ${c.maxSubstitutes} คน`
+                          : "ยังไม่กำหนด"}
+                      </strong>
+                    </span>
+                    {c.isOpen && (
+                      <>
+                        <span>ผู้สมัคร: <strong className="text-slate-900">{c.totalApplicants} คน</strong></span>
+                        <span>
+                          รอพิจารณา:{" "}
+                          <strong className={c.pendingCount > 0 ? "text-blue-900 font-bold" : "text-slate-600"}>
+                            {c.pendingCount} คน
+                          </strong>
+                        </span>
+                      </>
+                    )}
+                    {c.approvedCount !== undefined && (
+                      <span className="text-emerald-800 font-medium">
+                        ผ่านการคัดเลือกแล้ว {c.approvedCount} คน
                       </span>
-                      {c.approvedCount !== undefined && (
-                        <>
-                          <span>·</span>
-                          <span className="text-emerald-800 font-medium">
-                            ผ่านการคัดเลือกแล้ว {c.approvedCount} คน
-                          </span>
-                        </>
-                      )}
-                      {c.returnedCount !== undefined && c.returnedCount > 0 && (
-                        <>
-                          <span>·</span>
-                          <span className="text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                            เอกสารถูกตีกลับ {c.returnedCount} ฉบับ
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  ) : (
+                    )}
+                    {c.returnedCount !== undefined && c.returnedCount > 0 && (
+                      <span className="text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        เอกสารถูกตีกลับ {c.returnedCount} ฉบับ
+                      </span>
+                    )}
+                  </div>
+                  {!c.isOpen && c.status !== "COMPLETED" && (
                     <p className="text-xs text-slate-500 italic">
-                      เหตุผล: {c.closedReason || "กองกิจการนิสิตยังไม่เปิดระบบรับสมัครสำหรับประเภทนี้"}
+                      การรับสมัครรายการนี้ยังไม่เปิดหรือปิดรับแล้ว
                     </p>
                   )}
                 </div>

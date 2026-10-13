@@ -1,0 +1,966 @@
+"use client";
+
+import { useState, useCallback, useMemo } from "react";
+import Link from "next/link";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
+import LogoutButton from "@/components/shared/LogoutButton";
+import AdminPasswordReset from "@/components/shared/AdminPasswordReset";
+import BackButton from "@/components/shared/BackButton";
+import DateFilterBar from "@/components/shared/DateFilterBar";
+
+type UserItem = {
+  id: string;
+  studentId: string | null;
+  email: string;
+  role: "ATHLETE" | "STAFF" | "ADMIN" | "TEAM_OFFICIAL" | "CLUB";
+  clubId?: string | null;
+  isActive: boolean;
+  name: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+const ROLE_CONFIG: Record<
+  UserItem["role"],
+  { label: string; badgeClass: string; desc: string }
+> = {
+  CLUB: { label: "ชมรม (Club)", badgeClass: "bg-blue-100 text-blue-700", desc: "จัดการข้อมูลในขอบเขตชมรมที่ผูกไว้" },
+  ADMIN: {
+    label: "ผู้ดูแลระบบ (Admin)",
+    badgeClass: "bg-purple-100 text-purple-700 border-purple-200",
+    desc: "จัดการผู้ใช้และตั้งค่าระบบ",
+  },
+  STAFF: {
+    label: "เจ้าหน้าที่กองกิจฯ (Staff)",
+    badgeClass: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    desc: "ตรวจสอบคุณสมบัติและสถิติ",
+  },
+  TEAM_OFFICIAL: {
+    label: "เจ้าหน้าที่ทีม (Team Staff)",
+    badgeClass: "bg-amber-100 text-amber-800 border-amber-200",
+    desc: "ผู้ฝึกสอนและผู้จัดการทีม",
+  },
+  ATHLETE: {
+    label: "นิสิตนักกีฬา (Athlete)",
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    desc: "นิสิตผู้สมัครเข้าร่วมแข่งขัน",
+  },
+};
+
+export default function AdminUsersPage() {
+  const action = useRequestAction();
+
+  // Search & Filter state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState("ALL");
+  const [selectedStatus, setSelectedStatus] = useState("ALL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [page, setPage] = useState(1);
+
+  // Modal dialog states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserItem | null>(null);
+  const [roleChangeUser, setRoleChangeUser] = useState<UserItem | null>(null);
+  const [statusChangeUser, setStatusChangeUser] = useState<UserItem | null>(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState<UserItem | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteAcknowledged, setDeleteAcknowledged] = useState(false);
+
+  const [now] = useState(() => Date.now());
+
+  // Filter and paginate on the server so every account is reachable.
+  const load = useCallback(async () => {
+    const query = new URLSearchParams({
+      search: searchTerm.trim(), role: selectedRole, status: selectedStatus,
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+      page: String(page), limit: "25",
+    });
+    return fetchJson<{ users: UserItem[]; total: number; totalPages: number }>("/api/admin/users?" + query);
+  }, [searchTerm, selectedRole, selectedStatus, startDate, endDate, page]);
+  const resource = useRemoteData(load);
+  const users = useMemo(() => resource.data?.users ?? [], [resource.data]);
+  const filteredUsers = users;
+
+  const openDeleteModal = (u: UserItem) => {
+    setDeleteUserTarget(u);
+    setDeleteStep(1);
+    setDeleteConfirmText("");
+    setDeleteAcknowledged(false);
+  };
+
+  const handleDeleteUser = () =>
+    action.run(async () => {
+      if (!deleteUserTarget) return;
+      await fetchJson(`/api/admin/users/${deleteUserTarget.id}`, {
+        method: "DELETE",
+      });
+      setDeleteUserTarget(null);
+      resource.retry();
+    }, "ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว");
+
+  // Form states
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "STAFF",
+    clubId: "",
+    phone: "",
+    isActive: true,
+  });
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+
+  const [newRole, setNewRole] = useState<string>("STAFF");
+
+  // Statistics
+  const stats = useMemo(() => {
+    const total = users.length;
+    const active = users.filter((u) => u.isActive).length;
+    const inactive = total - active;
+    const newUsersCount = users.filter(
+      (u) => now - new Date(u.createdAt).getTime() <= NEW_USER_WINDOW_MS
+    ).length;
+    return { total, active, inactive, newUsers: newUsersCount };
+  }, [users, now]);
+
+  // Handlers
+  const handleCreateUser = () =>
+    action.run(async () => {
+      if (new TextEncoder().encode(createForm.password).length > 72) {
+        throw new Error("รหัสผ่านยาวเกิน 72 ไบต์");
+      }
+      await fetchJson("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      });
+      setShowCreateModal(false);
+      setCreateForm({
+        name: "",
+        email: "",
+        password: "",
+        role: "STAFF",
+        clubId: "",
+        phone: "",
+        isActive: true,
+      });
+      resource.retry();
+    });
+
+  const handleEditUser = () =>
+    action.run(async () => {
+      if (!editingUser) return;
+      await fetchJson(`/api/admin/users/${editingUser.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      setEditingUser(null);
+      resource.retry();
+    });
+
+  const handleChangeRole = () =>
+    action.run(async () => {
+      if (!roleChangeUser) return;
+      await fetchJson(`/api/admin/users/${roleChangeUser.id}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole, clubId: null }),
+      });
+      setRoleChangeUser(null);
+      resource.retry();
+    });
+
+  const handleToggleStatus = () =>
+    action.run(async () => {
+      if (!statusChangeUser) return;
+      await fetchJson(`/api/admin/users/${statusChangeUser.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !statusChangeUser.isActive }),
+      });
+      setStatusChangeUser(null);
+      resource.retry();
+    });
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4 font-sans text-slate-800">
+      <div className="max-w-full lg:max-w-7xl mx-auto space-y-6">
+
+        {/* Top Header */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
+          <div>
+            <div className="mb-3"><BackButton href="/admin" label="กลับหน้า Admin" /></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-800">Identity & Access</p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 tracking-tight">การจัดการผู้ใช้งาน</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Admin — จัดการสิทธิ์ กำหนดบทบาท และระงับ/เปิดใช้งานบัญชีผู้ใช้ในระบบ
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>+</span> เพิ่มผู้ใช้
+            </button>
+            <LogoutButton />
+          </div>
+          </div>
+        </div>
+        <nav aria-label="เมนูจัดการระบบ" className="flex gap-2 border-b border-gray-200">
+          <Link
+            href="/admin/users"
+            aria-current="page"
+            className="border-b-2 border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600"
+          >
+            👥 การจัดการผู้ใช้งาน
+          </Link>
+          <Link
+            href="/admin/clubs"
+            className="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+          >
+            🏟️ จัดการชมรมกีฬา
+          </Link>
+        </nav>
+        {/* Action Notifications & Request State */}
+        <RequestState
+          loading={resource.loading}
+          error={resource.error || action.error}
+          retry={resource.retry}
+        />
+        {action.success && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3.5 text-sm text-green-800 flex items-center gap-2">
+            <span>✅</span>
+            <span>{action.success}</span>
+          </div>
+        )}
+
+        {/* Overview Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs">
+            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-xs text-gray-500 mt-1">ผู้ใช้ในหน้านี้</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs">
+            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            <p className="text-xs text-gray-500 mt-1">เปิดใช้งานในหน้านี้</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs">
+            <p className="text-2xl font-bold text-rose-600">{stats.inactive}</p>
+            <p className="text-xs text-gray-500 mt-1">ระงับในหน้านี้</p>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-amber-100 to-transparent opacity-50" />
+            <p className="text-2xl font-bold text-amber-600">{stats.newUsers}</p>
+            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+              <span>ผู้ใช้ใหม่ในหน้านี้ (1 วัน)</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Search & Filters */}
+        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">ค้นหาผู้ใช้</label>
+              <input
+                type="text"
+                placeholder="ชื่อ-นามสกุล, อีเมล หรือรหัสนิสิต..."
+                value={searchTerm}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">กรองตามสิทธิ์ (Role)</label>
+              <select
+                value={selectedRole}
+                onChange={(e) => { setSelectedRole(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="ALL">สิทธิ์ทั้งหมด</option>
+                <option value="ADMIN">ADMIN — ผู้ดูแลระบบ</option>
+                <option value="STAFF">STAFF — เจ้าหน้าที่กองกิจฯ</option>
+                <option value="TEAM_OFFICIAL">TEAM_OFFICIAL — เจ้าหน้าที่ทีม</option>
+                <option value="CLUB">CLUB — ชมรม</option>
+                <option value="ATHLETE">ATHLETE — นิสิตนักกีฬา</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">กรองตามสถานะ (Status)</label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => { setSelectedStatus(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="ALL">สถานะทั้งหมด</option>
+                <option value="ACTIVE">เปิดใช้งาน (ACTIVE)</option>
+                <option value="INACTIVE">ระงับการใช้งาน (SUSPENDED)</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-100">
+            <span>แสดง {filteredUsers.length} จาก {resource.data?.total ?? 0} รายการ</span>
+            {(searchTerm || selectedRole !== "ALL" || selectedStatus !== "ALL" || startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedRole("ALL");
+                  setSelectedStatus("ALL");
+                  setStartDate("");
+                  setEndDate("");
+                  setPage(1);
+                }}
+                className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+              >
+                ล้างตัวกรองทั้งหมด
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <DateFilterBar
+          title="กรองตามวันที่สมัคร/วันที่สร้างบัญชี"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
+          onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
+          onClear={() => { setStartDate(""); setEndDate(""); setPage(1); }}
+        />
+
+        {/* User Table */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-700">
+              <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <tr>
+                  <th scope="col" className="px-5 py-3.5">ผู้ใช้งาน</th>
+                  <th scope="col" className="px-5 py-3.5">อีเมล / ติดต่อ</th>
+                  <th scope="col" className="px-5 py-3.5">สิทธิ์ (Role)</th>
+                  <th scope="col" className="px-5 py-3.5">สถานะ</th>
+                  <th scope="col" className="px-5 py-3.5">วันที่สร้าง</th>
+                  <th scope="col" className="px-5 py-3.5 text-right">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {!resource.loading && filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-12 text-center text-gray-400">
+                      ไม่พบข้อมูลผู้ใช้งานที่ตรงกับเงื่อนไข
+                    </td>
+                  </tr>
+                )}
+                {filteredUsers.map((u) => {
+                  const isNewUser = now - new Date(u.createdAt).getTime() <= NEW_USER_WINDOW_MS;
+                  const roleConfig = ROLE_CONFIG[u.role] || {
+                    label: u.role,
+                    badgeClass: "bg-gray-100 text-gray-700 border-gray-200",
+                    desc: "",
+                  };
+
+                  return (
+                    <tr
+                      key={u.id}
+                      className={`transition-colors ${
+                        isNewUser
+                          ? "bg-amber-50/30 hover:bg-amber-50/80 border-l-2 border-l-amber-300"
+                          : "hover:bg-gray-50/80"
+                      }`}
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-900">{u.name || "-"}</span>
+                        </div>
+                        {u.studentId && (
+                          <div className="text-xs text-gray-500 font-mono mt-0.5">
+                            รหัสนิสิต: {u.studentId}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="text-gray-900">{u.email}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">โทร: {u.phone}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleConfig.badgeClass}`}
+                        >
+                          {roleConfig.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {u.isActive ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                            เปิดใช้งาน
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                            ระงับการใช้งาน
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-xs text-gray-500">
+                        {new Date(u.createdAt).toLocaleDateString("th-TH", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setEditingUser(u);
+                              setEditForm({
+                                name: u.name,
+                                email: u.email,
+                                phone: u.phone !== "-" ? u.phone : "",
+                              });
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-yellow-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                          >
+                            แก้ไข
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRoleChangeUser(u);
+                              setNewRole(u.role);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer"
+                          >
+                            เปลี่ยนสิทธิ์
+                          </button>
+                          <AdminPasswordReset id={u.id} label={u.email} />
+                          <button
+                            onClick={() => setStatusChangeUser(u)}
+                            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                              u.isActive
+                                ? "border-rose-200 text-rose-700 hover:bg-rose-50"
+                                : "border-green-200 text-green-700 hover:bg-green-50"
+                            }`}
+                          >
+                            {u.isActive ? "ระงับ" : "เปิดใช้"}
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(u)}
+                            className="px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs font-medium text-rose-700 hover:bg-rose-50 hover:border-rose-400 transition-colors cursor-pointer"
+                            title="ลบบัญชีผู้ใช้งานถาวร"
+                          >
+                            ลบ
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <nav aria-label="หน้ารายการผู้ใช้" className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <button type="button" disabled={page <= 1 || resource.loading} onClick={() => setPage((current) => current - 1)} className="rounded-lg border px-4 py-2 disabled:opacity-40">หน้าก่อนหน้า</button>
+          <span>หน้า {page} / {Math.max(1, resource.data?.totalPages ?? page)}</span>
+          <button type="button" disabled={resource.loading || page >= (resource.data?.totalPages ?? page)} onClick={() => setPage((current) => current + 1)} className="rounded-lg border px-4 py-2 disabled:opacity-40">หน้าถัดไป</button>
+        </nav>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          Modal 1: Create Internal User
+      ───────────────────────────────────────────────────────────── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <form onSubmit={(event) => { event.preventDefault(); void handleCreateUser(); }} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">เพิ่มผู้ใช้งานภายในระบบ</h2>
+              <p className="text-gray-500 text-xs mt-1">
+                สร้างบัญชีสำหรับเจ้าหน้าที่กองกิจการนิสิต, ผู้ดูแลระบบ, ชมรมกีฬา หรือเจ้าหน้าที่ทีม
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  ชื่อ-นามสกุล <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={200}
+                  placeholder="เช่น นายสมชาย ใจดี"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  อีเมล (สำหรับเข้าสู่ระบบ) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  maxLength={254}
+                  placeholder="user@up.ac.th"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  สิทธิ์การใช้งาน (Role) <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={createForm.role}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value, clubId: "" }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="STAFF">STAFF — เจ้าหน้าที่กองกิจการนิสิต</option>
+                  <option value="ADMIN">ADMIN — ผู้ดูแลระบบ</option>
+                  <option value="TEAM_OFFICIAL">TEAM_OFFICIAL — เจ้าหน้าที่ทีม</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  รหัสผ่านเริ่มต้น <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="อย่างน้อย 8 ตัวอักษร ไม่เกิน 72 ไบต์"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+                <p className={`mt-1 text-xs ${new TextEncoder().encode(createForm.password).length > 72 ? "text-rose-700" : "text-gray-500"}`}>
+                  อย่างน้อย 8 ตัวอักษร และไม่เกิน 72 ไบต์ ({new TextEncoder().encode(createForm.password).length}/72 ไบต์)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  เบอร์โทรศัพท์ติดต่อ
+                </label>
+                <input
+                  type="tel"
+                  maxLength={50}
+                  placeholder="08xxxxxxxx"
+                  value={createForm.phone}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="create-isActive"
+                  checked={createForm.isActive}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, isActive: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="create-isActive" className="text-xs text-gray-700 select-none">
+                  เปิดใช้งานบัญชีทันทีหลังสร้าง
+                </label>
+              </div>
+            </div>
+
+            <RequestState error={action.error} retry={resource.retry} />
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={action.busy}
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={action.busy || !createForm.name.trim() || !createForm.email.trim() || createForm.password.length < 8 || new TextEncoder().encode(createForm.password).length > 72}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                {action.busy ? "กำลังสร้าง..." : "บันทึกและสร้าง"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Modal 2: Edit User Basic Information
+      ───────────────────────────────────────────────────────────── */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <form onSubmit={(event) => { event.preventDefault(); void handleEditUser(); }} className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">แก้ไขข้อมูลผู้ใช้งาน</h2>
+              <p className="text-gray-500 text-xs mt-1">
+                แก้ไขชื่อ อีเมล หรือเบอร์โทรศัพท์สำหรับ {editingUser.email}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  ชื่อ-นามสกุล <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={200}
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  อีเมล <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  maxLength={254}
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  เบอร์โทรศัพท์ติดต่อ
+                </label>
+                <input
+                  type="tel"
+                  maxLength={50}
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <RequestState error={action.error} retry={resource.retry} />
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={action.busy}
+                onClick={() => setEditingUser(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={action.busy || !editForm.name.trim() || !editForm.email.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                {action.busy ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Modal 3: Change Role Confirmation
+      ───────────────────────────────────────────────────────────── */}
+      {roleChangeUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">เปลี่ยนสิทธิ์ผู้ใช้งาน</h2>
+              <p className="text-gray-500 text-xs mt-1">
+                การเปลี่ยนสิทธิ์จะส่งผลต่อเมนูและการเข้าถึงข้อมูลในระบบทันที
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-200 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-gray-500">ผู้ใช้:</span>
+                  <span className="font-semibold text-gray-800">{roleChangeUser.name || roleChangeUser.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">อีเมล:</span>
+                <span className="text-gray-700 font-mono">{roleChangeUser.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">สิทธิ์ปัจจุบัน:</span>
+                <span className="font-medium text-purple-700">
+                  {ROLE_CONFIG[roleChangeUser.role]?.label || roleChangeUser.role}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                เลือกสิทธิ์ใหม่ <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-purple-500 bg-white"
+              >
+                <option value="STAFF">STAFF — เจ้าหน้าที่กองกิจการนิสิต</option>
+                <option value="ADMIN">ADMIN — ผู้ดูแลระบบ</option>
+                <option value="TEAM_OFFICIAL">TEAM_OFFICIAL — เจ้าหน้าที่ทีม</option>
+                {roleChangeUser.studentId && (
+                  <option value="ATHLETE">ATHLETE — นิสิตนักกีฬา</option>
+                )}
+              </select>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+              ⚠️ <strong>ข้อควรระวัง:</strong> การเปลี่ยนสิทธิ์จะได้รับการบันทึกลงใน Audit Log
+              และระบบจะป้องกันไม่ให้ลดสิทธิ์ของตนเอง หรือลดสิทธิ์ Admin บัญชีสุดท้าย
+            </div>
+
+            <RequestState error={action.error} retry={resource.retry} />
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRoleChangeUser(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleChangeRole}
+                disabled={action.busy || newRole === roleChangeUser.role}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                {action.busy ? "กำลังเปลี่ยน..." : "ยืนยันเปลี่ยนสิทธิ์"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Modal 4: Toggle Status Confirmation Dialog
+      ───────────────────────────────────────────────────────────── */}
+      {statusChangeUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {statusChangeUser.isActive ? "ยืนยันการระงับบัญชี" : "ยืนยันการเปิดใช้งานบัญชี"}
+              </h2>
+              <p className="text-gray-500 text-xs mt-1">
+                {statusChangeUser.isActive
+                  ? `คุณต้องการระงับการใช้งานบัญชี ${statusChangeUser.name ? `"${statusChangeUser.name}" (${statusChangeUser.email})` : `"${statusChangeUser.email}"`} ใช่หรือไม่? ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้`
+                  : `คุณต้องการเปิดใช้งานบัญชี ${statusChangeUser.name ? `"${statusChangeUser.name}" (${statusChangeUser.email})` : `"${statusChangeUser.email}"`} ใช่หรือไม่? ผู้ใช้จะสามารถเข้าสู่ระบบได้ตามปกติ`}
+              </p>
+            </div>
+
+            {statusChangeUser.isActive && statusChangeUser.role === "ADMIN" && (
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800">
+                ⚠️ การระงับบัญชี Admin จะไม่สามารถทำได้หากเป็น Admin บัญชีสุดท้ายที่ใช้งานอยู่
+              </div>
+            )}
+
+            <RequestState error={action.error} retry={resource.retry} />
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setStatusChangeUser(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleStatus}
+                disabled={action.busy}
+                className={`flex-1 font-medium py-2 rounded-lg text-sm text-white transition-colors cursor-pointer ${
+                  statusChangeUser.isActive
+                    ? "bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300"
+                    : "bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
+                }`}
+              >
+                {action.busy
+                  ? "กำลังบันทึก..."
+                  : statusChangeUser.isActive
+                  ? "ยืนยันระงับบัญชี"
+                  : "ยืนยันเปิดใช้งาน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Modal 5: Delete User 2-Step Confirmation Dialog
+      ───────────────────────────────────────────────────────────── */}
+      {deleteUserTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
+            {deleteStep === 1 ? (
+              <>
+                <div className="flex items-center gap-3 text-rose-700">
+                  <span className="text-2xl">⚠️</span>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      ยืนยันการลบบัญชี (ขั้นตอนที่ 1 จาก 2)
+                    </h2>
+                    <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      โปรดตรวจสอบข้อมูลก่อนดำเนินการ
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">ชื่อผู้ใช้งาน:</span>
+                    <span className="font-semibold text-gray-800">{deleteUserTarget.name || "-"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">อีเมล / Username:</span>
+                    <span className="font-mono text-gray-800 font-semibold">{deleteUserTarget.email}</span>
+                  </div>
+                  {deleteUserTarget.studentId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">รหัสนิสิต:</span>
+                      <span className="font-mono text-gray-800">{deleteUserTarget.studentId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">บทบาท:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${ROLE_CONFIG[deleteUserTarget.role]?.badgeClass}`}>
+                      {ROLE_CONFIG[deleteUserTarget.role]?.label || deleteUserTarget.role}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 space-y-1">
+                  <p className="font-bold">⚠️ สิ่งที่จะเกิดขึ้นเมื่อลบบัญชี:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-700">
+                    <li>ข้อมูลบัญชีผู้ใช้งานจะถูกลบออกจากฐานข้อมูลอย่างถาวร</li>
+                    <li>ข้อมูลประวัตินักกีฬา ใบสมัครแข่งขัน และเอกสารแนบที่เกี่ยวข้องจะถูกลบออก</li>
+                    <li>ผู้ใช้งานจะไม่สามารถเข้าสู่ระบบหรือกู้คืนข้อมูลเดิมได้อีก</li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteUserTarget(null)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteStep(2)}
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer shadow-xs"
+                  >
+                    ดำเนินการต่อ (ขั้นตอนที่ 2) →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 text-rose-700">
+                  <span className="text-2xl">🚨</span>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      ยืนยันความปลอดภัยขั้นสุดท้าย (ขั้นตอนที่ 2 จาก 2)
+                    </h2>
+                    <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                      ขั้นตอนสุดท้ายก่อนลบถาวร
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <p className="text-gray-600">
+                    เพื่อยืนยันว่าคุณต้องการลบบัญชี <strong className="text-gray-900 font-mono">{deleteUserTarget.email}</strong> อย่างแน่นอน กรุณาพิมพ์คำว่า <code className="bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded font-mono font-bold">DELETE</code> ลงในช่องด้านล่าง:
+                  </p>
+
+                  <input
+                    type="text"
+                    placeholder="พิมพ์คำว่า DELETE"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-rose-300 font-mono text-sm focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                  />
+
+                  <label className="flex items-start gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={deleteAcknowledged}
+                      onChange={(e) => setDeleteAcknowledged(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                    />
+                    <span className="text-gray-700 text-[11px] leading-relaxed">
+                      ฉันเข้าใจผลกระทบอย่างครบถ้วน และขอยืนยันการลบบัญชีผู้ใช้งานนี้ออกจากระบบอย่างถาวร
+                    </span>
+                  </label>
+                </div>
+
+                <RequestState error={action.error} retry={resource.retry} />
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={action.busy}
+                    onClick={() => setDeleteStep(1)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg text-sm transition-colors cursor-pointer"
+                  >
+                    ← ย้อนกลับ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteUser}
+                    disabled={
+                      action.busy ||
+                      !deleteAcknowledged ||
+                      deleteConfirmText.trim().toUpperCase() !== "DELETE"
+                    }
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 rounded-lg text-sm transition-colors cursor-pointer shadow-xs"
+                  >
+                    {action.busy ? "กำลังลบบัญชี..." : "ยืนยันลบบัญชีถาวร"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+
+    </div>
+  );
+}

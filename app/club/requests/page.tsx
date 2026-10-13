@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
@@ -15,16 +15,15 @@ type SpecialRequest = {
   rejectedReason?: string;
 };
 
-const MOCK_REQUESTS: SpecialRequest[] = [
-  {
-    id: "1",
-    title: "ขอผ่อนผันเกณฑ์ผลงานการแข่งขันระดับชาติ",
-    reason: "นักกีฬามีผลงานเกิน 2 ปีย้อนหลังเล็กน้อย แต่ผ่านการทดสอบสมรรถภาพทางกายภาพในเกณฑ์ดีเยี่ยมและเพิ่งฟื้นตัวจากอาการบาดเจ็บ",
-    date: "15 พ.ค. 2568",
-    document: "หนังสือขออนุมัติกรณีพิเศษ_001.pdf",
-    status: "pending",
-  },
-];
+type RequestRow = {
+  id: string;
+  title: string;
+  createdAt: string;
+  reason?: string | null;
+  documentUrl?: string | null;
+  status?: string;
+  rejectedReason?: string;
+};
 
 const STATUS_LABEL = {
   pending: { label: "รอการพิจารณา", className: "bg-slate-100 text-slate-700 border-slate-200" },
@@ -34,7 +33,41 @@ const STATUS_LABEL = {
 
 export default function ClubRequestsPage() {
   const router = useRouter();
-  const [requests] = useState<SpecialRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<SpecialRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let current = true;
+    const loadRequests = async () => {
+      setIsLoading(true);
+      setLoadError("");
+      try {
+        const response = await fetch("/api/clubs/requests");
+        const data = (await response.json()) as { requests?: RequestRow[]; error?: string };
+        if (!response.ok) throw new Error(data.error || "ไม่สามารถโหลดคำร้องได้");
+        if (!Array.isArray(data.requests)) throw new Error("รูปแบบข้อมูลคำร้องไม่ถูกต้อง");
+        if (!current) return;
+        setRequests(data.requests.map((request) => ({
+          id: request.id,
+          title: request.title,
+          date: new Date(request.createdAt).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" }),
+          reason: request.reason || "",
+          document: request.documentUrl || "",
+          status: request.status === "APPROVED" ? "approved" : request.status === "REJECTED" ? "rejected" : "pending",
+          rejectedReason: request.rejectedReason,
+        })));
+      } catch (error) {
+        if (current) setLoadError(error instanceof Error ? error.message : "ไม่สามารถโหลดคำร้องได้");
+      } finally {
+        if (current) setIsLoading(false);
+      }
+    };
+    void loadRequests();
+    return () => {
+      current = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -77,7 +110,17 @@ export default function ClubRequestsPage() {
 
         {/* Requests List */}
         <div className="space-y-3">
-          {requests.length === 0 && (
+          {loadError && (
+            <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              {loadError}
+            </div>
+          )}
+          {isLoading && (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-xs shadow-xs">
+              กำลังโหลดคำร้อง...
+            </div>
+          )}
+          {!isLoading && !loadError && requests.length === 0 && (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-xs shadow-xs">
               ยังไม่มีประวัติการยื่นคำร้องกรณีพิเศษ
             </div>
@@ -99,13 +142,12 @@ export default function ClubRequestsPage() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span>เอกสารประกอบ: <strong className="text-blue-900">{r.document}</strong></span>
-                <button
-                  onClick={() => alert(`เปิดดูเอกสาร ${r.document}`)}
-                  className="text-blue-900 hover:underline font-medium cursor-pointer"
-                >
-                  เปิดดูเอกสารแนบ →
-                </button>
+                <span>เอกสารประกอบ: <strong className="text-blue-900">{r.document ? "เอกสารแนบ" : "ไม่มีเอกสาร"}</strong></span>
+                {r.document && (
+                  <a href={r.document} target="_blank" rel="noreferrer" className="text-blue-900 hover:underline font-medium">
+                    เปิดดูเอกสารแนบ →
+                  </a>
+                )}
               </div>
 
               {r.status === "rejected" && r.rejectedReason && (

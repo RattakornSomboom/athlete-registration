@@ -1,38 +1,132 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
 import BackButton from "@/components/shared/BackButton";
-import LogoutButton from "@/components/shared/LogoutButton";
-import { getTeamOfficials, TeamOfficialApplication, POSITION_LABEL } from "@/lib/team-official-store";
+import { requestJson, errorMessage, statusLabel, type CompetitionOption, type OfficialRecord } from "@/lib/phase4-client";
+import { positionLabels } from "@/lib/official-labels";
 
-const SELECTED_ATHLETES = [
-  { id: "1", firstName: "สมชาย", lastName: "ใจดี", studentId: "66027012", faculty: "คณะวิทยาศาสตร์", sport: "ฟุตบอล", position: "กองหน้า", club: "ชมรมฟุตบอล", squadType: "ตัวจริง" },
-  { id: "2", firstName: "กิตติศักดิ์", lastName: "มั่นคง", studentId: "66028114", faculty: "คณะวิศวกรรมศาสตร์", sport: "ฟุตบอล", position: "กองกลาง", club: "ชมรมฟุตบอล", squadType: "ตัวจริง" },
-  { id: "3", firstName: "นภา", lastName: "ฟ้าใส", studentId: "66045002", faculty: "คณะมนุษยศาสตร์", sport: "วอลเลย์บอล", position: "ตัวรับ", club: "ชมรมวอลเลย์บอล", squadType: "ตัวจริง" },
-  { id: "4", firstName: "ธนกฤต", lastName: "วงศ์สว่าง", studentId: "67015520", faculty: "คณะวิศวกรรมศาสตร์", sport: "ฟุตบอล", position: "กองหน้า", club: "ชมรมฟุตบอล", squadType: "ตัวสำรอง" },
-];
+type AnnounceAthlete = {
+  id: string;
+  sport: string;
+  user: {
+    studentId: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+    } | null;
+  };
+};
 
 export default function StaffSelectionPage() {
   const router = useRouter();
-  const [announced, setAnnounced] = useState(false);
-  const [loading, setLoading] = useState(false);
+
+  const [competitions, setCompetitions] = useState<CompetitionOption[]>([]);
+  const [selectedCompId, setSelectedCompId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"athletes" | "officials">("athletes");
-  const [officials, setOfficials] = useState<TeamOfficialApplication[]>([]);
+
+  const [athletes, setAthletes] = useState<AnnounceAthlete[]>([]);
+  const [selectedAthleteIds, setSelectedAthleteIds] = useState<Set<string>>(new Set());
+  const [officials, setOfficials] = useState<OfficialRecord[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [announcing, setAnnouncing] = useState(false);
+  const [announced, setAnnounced] = useState(false);
+  const [errorMessageState, setErrorMessageState] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
-    const list = getTeamOfficials();
-    setOfficials(list);
+    let active = true;
+    Promise.all([
+      requestJson<{ competitions: CompetitionOption[] }>("/api/competitions"),
+      requestJson<{ applications: OfficialRecord[] }>("/api/staff/officials"),
+    ])
+      .then(([compData, offData]) => {
+        if (!active) return;
+        setCompetitions(compData.competitions);
+        setOfficials(offData.applications);
+        if (compData.competitions.length > 0) {
+          setSelectedCompId(compData.competitions[0].id);
+        }
+      })
+      .catch((e) => {
+        if (active) setErrorMessageState(errorMessage(e));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const certifiedOfficials = officials.filter((o) => o.stage === "staff_approved");
-  const pendingOfficials = officials.filter((o) => o.stage === "club_approved");
+  useEffect(() => {
+    if (!selectedCompId) return;
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) {
+        setLoading(true);
+        setErrorMessageState("");
+      }
+    });
+    requestJson<{ competitionId: string; applications: AnnounceAthlete[] }>(
+      "/api/staff/applications/announce?competitionId=" + encodeURIComponent(selectedCompId),
+      undefined,
+      "GET"
+    )
+      .then((data) => {
+        if (!active) return;
+        setAthletes(data.applications);
+        setSelectedAthleteIds(new Set(data.applications.map((a) => a.id)));
+      })
+      .catch((e) => {
+        if (active) setErrorMessageState(errorMessage(e));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedCompId]);
+
+  const certifiedOfficials = officials.filter((o) => o.status === "STAFF_APPROVED" || o.status === "FINAL_SELECTED");
+  const pendingOfficials = officials.filter((o) => o.status === "CLUB_APPROVED");
+
+  const toggleSelectAthlete = (id: string) => {
+    setSelectedAthleteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAthleteIds.size === athletes.length) {
+      setSelectedAthleteIds(new Set());
+    } else {
+      setSelectedAthleteIds(new Set(athletes.map((a) => a.id)));
+    }
+  };
 
   const handleAnnounce = async () => {
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setAnnounced(true);
-    setLoading(false);
+    if (!selectedCompId || selectedAthleteIds.size === 0) return;
+    setAnnouncing(true);
+    setErrorMessageState("");
+    try {
+      await requestJson("/api/staff/applications/announce", {
+        competitionId: selectedCompId,
+        applicationIds: Array.from(selectedAthleteIds),
+      });
+      setAnnounced(true);
+      setShowConfirmModal(false);
+    } catch (e) {
+      setErrorMessageState(errorMessage(e));
+      setShowConfirmModal(false);
+    } finally {
+      setAnnouncing(false);
+    }
   };
 
   if (announced) {
@@ -44,20 +138,25 @@ export default function StaffSelectionPage() {
           </div>
           <h2 className="text-base font-bold text-slate-900">ประกาศผลการคัดเลือกและขึ้นทะเบียนสำเร็จ</h2>
           <p className="text-xs text-slate-500 leading-relaxed">
-            ระบบได้บันทึกและเผยแพร่ประกาศรายชื่อนักกีฬาตัวแทนสถาบัน และทะเบียนเจ้าหน้าที่ทีมกีฬาอย่างเป็นทางการ พร้อมเปิดให้นักกีฬาเข้ารายงานตัวยืนยันสิทธิ์เรียบร้อยแล้ว
+            ระบบได้บันทึกและเผยแพร่ประกาศรายชื่อนักกีฬาตัวแทนสถาบัน ({selectedAthleteIds.size} คน) อย่างเป็นทางการในฐานข้อมูล พร้อมเปิดให้นิสิตรายงานตัวยืนยันสิทธิ์เรียบร้อยแล้ว
           </p>
-          <div className="pt-2 flex items-center justify-center gap-2">
+          <div className="pt-2 flex flex-col gap-2">
             <button
+              type="button"
               onClick={() => router.push("/staff/analytics")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
             >
               ไปที่แดชบอร์ดวิเคราะห์ผล
             </button>
             <button
-              onClick={() => router.push("/staff/applications")}
+              type="button"
+              onClick={() => {
+                setAnnounced(false);
+                setSelectedAthleteIds(new Set());
+              }}
               className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
             >
-              กลับหน้ารายการใบสมัคร
+              กลับหน้ารายการคัดเลือก
             </button>
           </div>
         </div>
@@ -69,14 +168,13 @@ export default function StaffSelectionPage() {
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
       <div className="max-w-5xl mx-auto space-y-5">
 
-        {/* Top navigation: Backward */}
+        {/* Top Navigation */}
         <div className="flex items-center justify-between">
-          <BackButton href="/staff/applications" />
-          <LogoutButton />
+          <BackButton href="/staff/applications" label="กลับหน้ารายการใบสมัคร" />
         </div>
 
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 gap-3">
           <div>
             <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา · คณะกรรมการอำนวยการกีฬา
@@ -88,130 +186,169 @@ export default function StaffSelectionPage() {
               การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/staff/officials")}
-              className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              ระบบตรวจเอกสารเจ้าหน้าที่ทีม
-            </button>
-            <button
-              onClick={() => router.push("/staff/analytics")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              แดชบอร์ดวิเคราะห์ผล
-            </button>
-          </div>
         </div>
 
         {/* Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs text-center">
-            <span className="text-xs text-slate-500 block">นักกีฬาตัวแทนสถาบันที่ผ่านคัดเลือก</span>
-            <span className="text-2xl font-bold text-blue-900">{SELECTED_ATHLETES.length} คน</span>
+            <span className="text-xs text-slate-500 block">นักกีฬาที่พร้อมประกาศผล</span>
+            <span className="text-2xl font-bold text-blue-900">{athletes.length} คน</span>
             <p className="text-[11px] text-slate-400 mt-1">
-              ตัวจริง {SELECTED_ATHLETES.filter(a => a.squadType === "ตัวจริง").length} · สำรอง {SELECTED_ATHLETES.filter(a => a.squadType === "ตัวสำรอง").length}
+              เลือกแล้ว {selectedAthleteIds.size} / {athletes.length} คน
             </p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs text-center">
-            <span className="text-xs text-slate-500 block">เจ้าหน้าที่ทีม/ผู้ฝึกสอนที่ขึ้นทะเบียนแล้ว</span>
+            <span className="text-xs text-slate-500 block">เจ้าหน้าที่ทีมที่ขึ้นทะเบียนแล้ว</span>
             <span className="text-2xl font-bold text-emerald-800">{certifiedOfficials.length} ท่าน</span>
             <p className="text-[11px] text-slate-400 mt-1">
-              ออกรหัสใบอนุญาต กกมท.52 แล้ว
+              ผู้จัดการทีม / ผู้ฝึกสอน / ผู้ช่วยฯ
             </p>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs text-center">
-            <span className="text-xs text-slate-500 block">เจ้าหน้าที่ทีมที่รอกองกิจอนุมัติ</span>
-            <span className="text-2xl font-bold text-amber-600">{pendingOfficials.length} ท่าน</span>
+            <span className="text-xs text-slate-500 block">เจ้าหน้าที่รอตรวจสอบ</span>
+            <span className="text-2xl font-bold text-amber-700">{pendingOfficials.length} ท่าน</span>
             <p className="text-[11px] text-slate-400 mt-1">
-              รอตรวจสอบขั้นสุดท้ายก่อนออกประกาศ
+              ชมรมกีฬาเสนอชื่อเข้ามา
             </p>
           </div>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        {/* Competition Selector */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveTab("athletes")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "athletes"
-                  ? "bg-blue-900 text-white shadow-2xs"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
+            <span className="text-xs font-bold text-slate-700">เลือกรายการแข่งขัน:</span>
+            <select
+              value={selectedCompId}
+              onChange={(e) => setSelectedCompId(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-slate-50 text-slate-800 font-semibold outline-none cursor-pointer"
             >
-              1. บัญชีรายชื่อนักกีฬาตัวแทนสถาบัน ({SELECTED_ATHLETES.length} คน)
-            </button>
-            <button
-              onClick={() => setActiveTab("officials")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === "officials"
-                  ? "bg-blue-900 text-white shadow-2xs"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              <span>2. บัญชีรายชื่อเจ้าหน้าที่ทีม/ผู้ฝึกสอน ({certifiedOfficials.length} ท่าน)</span>
-              {certifiedOfficials.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-700 text-white font-bold">
-                  ✓ พร้อมประกาศ
-                </span>
-              )}
-            </button>
+              {competitions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({statusLabel[c.status] || c.status})
+                </option>
+              ))}
+            </select>
           </div>
 
+          {activeTab === "athletes" && athletes.length > 0 && (
+            <button
+              type="button"
+              disabled={selectedAthleteIds.size === 0 || announcing}
+              onClick={() => setShowConfirmModal(true)}
+              className="px-4 py-2 bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
+            >
+              ประกาศผลและขึ้นทะเบียน ({selectedAthleteIds.size} คน)
+            </button>
+          )}
+        </div>
+
+        {/* Error message */}
+        {errorMessageState && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+            {errorMessageState}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
           <button
-            onClick={() => window.print()}
-            className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+            type="button"
+            onClick={() => setActiveTab("athletes")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              activeTab === "athletes"
+                ? "bg-blue-900 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
           >
-            พิมพ์ประกาศทางการ
+            รายชื่อนักกีฬาตัวแทนที่ผ่านการคัดเลือก ({athletes.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("officials")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+              activeTab === "officials"
+                ? "bg-blue-900 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            รายชื่อเจ้าหน้าที่ทีม/ผู้ฝึกสอนที่ขึ้นทะเบียน ({certifiedOfficials.length})
           </button>
         </div>
 
-        {/* TAB 1: Athletes List Table */}
+        {/* Tab 1: Athletes Table */}
         {activeTab === "athletes" && (
           <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  บัญชีรายชื่อนักกีฬาตัวแทนที่พร้อมออกประกาศ
+                  รายชื่อนักกีฬาตัวแทนสถาบัน (สถานะ: กองกิจฯ อนุมัติแล้ว)
                 </h2>
-                <p className="text-xs text-slate-500">
-                  ตรวจสอบความถูกต้องก่อนกดบันทึกผลขึ้นระบบและออกประกาศทางการ
+                <p className="text-[11px] text-slate-500">
+                  ผู้ที่ได้รับการคัดเลือกในรายการแข่งขันนี้ที่พร้อมประกาศผลอย่างเป็นทางการ
                 </p>
               </div>
+              {athletes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="text-xs text-blue-900 font-semibold hover:underline cursor-pointer"
+                >
+                  {selectedAthleteIds.size === athletes.length ? "ยกเลิกการเลือกทั้งหมด" : "เลือกทั้งหมด"}
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-semibold">
                   <tr>
-                    <th className="py-3 px-4">ลำดับ</th>
-                    <th className="py-3 px-4">ชื่อ - นามสกุล</th>
-                    <th className="py-3 px-4">รหัสนิสิต</th>
-                    <th className="py-3 px-4">คณะต้นสังกัด</th>
-                    <th className="py-3 px-4">ชนิดกีฬา / ตำแหน่ง</th>
-                    <th className="py-3 px-4">ชมรมที่สังกัด</th>
-                    <th className="py-3 px-4 text-center">ประเภท</th>
+                    <th scope="col" className="p-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={athletes.length > 0 && selectedAthleteIds.size === athletes.length}
+                        onChange={toggleSelectAll}
+                        className="rounded border-slate-300 text-blue-900 cursor-pointer"
+                      />
+                    </th>
+                    <th scope="col" className="p-3">รหัสนิสิต</th>
+                    <th scope="col" className="p-3">ชื่อ - สกุล</th>
+                    <th scope="col" className="p-3">ชนิดกีฬา</th>
+                    <th scope="col" className="p-3 text-center">สถานะปัจจุบัน</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {SELECTED_ATHLETES.map((a, index) => (
-                    <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-4 text-slate-400 font-medium">{index + 1}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900">{a.firstName} {a.lastName}</td>
-                      <td className="py-3 px-4 font-mono text-slate-600">{a.studentId}</td>
-                      <td className="py-3 px-4 text-slate-600">{a.faculty}</td>
-                      <td className="py-3 px-4 text-slate-800 font-medium">{a.sport} ({a.position})</td>
-                      <td className="py-3 px-4 text-slate-600">{a.club}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                          a.squadType === "ตัวจริง"
-                            ? "bg-blue-100 text-blue-900 font-semibold"
-                            : "bg-slate-100 text-slate-700"
-                        }`}>
-                          {a.squadType}
+                  {loading && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">กำลังโหลดรายชื่อนักกีฬา...</td>
+                    </tr>
+                  )}
+                  {!loading && athletes.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">
+                        ยังไม่มีนักกีฬาที่ผ่านการอนุมัติระดับกองกิจฯ ในการแข่งขันนี้
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && athletes.map((a) => (
+                    <tr key={a.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedAthleteIds.has(a.id)}
+                          onChange={() => toggleSelectAthlete(a.id)}
+                          className="rounded border-slate-300 text-blue-900 cursor-pointer"
+                        />
+                      </td>
+                      <td className="p-3 font-mono font-medium text-slate-700">{a.user?.studentId || "-"}</td>
+                      <td className="p-3 font-semibold text-slate-900">
+                        {a.user?.profile?.firstName} {a.user?.profile?.lastName}
+                      </td>
+                      <td className="p-3 text-slate-600">{a.sport}</td>
+                      <td className="p-3 text-center">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          ผ่านการอนุมัติกองกิจฯ
                         </span>
                       </td>
                     </tr>
@@ -222,90 +359,92 @@ export default function StaffSelectionPage() {
           </div>
         )}
 
-        {/* TAB 2: Officials List Table */}
+        {/* Tab 2: Officials Table */}
         {activeTab === "officials" && (
           <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  บัญชีรายชื่อเจ้าหน้าที่ทีมและผู้ฝึกสอนที่ผ่านการขึ้นทะเบียน (กกมท. ครั้งที่ 52)
-                </h2>
-                <p className="text-xs text-slate-500">
-                  ผ่านการตรวจสอบเอกสารและออกรหัส License ID โดยกองกิจการนิสิตเรียบร้อยแล้ว
-                </p>
-              </div>
+            <div className="p-4 border-b border-slate-100">
+              <h2 className="text-sm font-bold text-slate-900">
+                รายชื่อเจ้าหน้าที่ทีมและผู้ฝึกสอนกีฬาที่ขึ้นทะเบียนแล้ว
+              </h2>
             </div>
-
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-semibold">
                   <tr>
-                    <th className="py-3 px-4">ลำดับ</th>
-                    <th className="py-3 px-4">ชื่อ - นามสกุล</th>
-                    <th className="py-3 px-4">ตำแหน่ง</th>
-                    <th className="py-3 px-4">ชมรมกีฬา</th>
-                    <th className="py-3 px-4">หน่วยงานต้นสังกัด</th>
-                    <th className="py-3 px-4 font-mono">รหัสบัตร กกมท.</th>
-                    <th className="py-3 px-4 text-center">สถานะ</th>
+                    <th scope="col" className="p-3 w-12 text-center">ที่</th>
+                    <th scope="col" className="p-3">ชื่อ - สกุล</th>
+                    <th scope="col" className="p-3">ตำแหน่ง</th>
+                    <th scope="col" className="p-3">ชมรม / กีฬา</th>
+                    <th scope="col" className="p-3">หน่วยงาน</th>
+                    <th scope="col" className="p-3 text-center">สถานะ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {certifiedOfficials.length === 0 ? (
+                  {certifiedOfficials.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-slate-400">
-                        ยังไม่มีเจ้าหน้าที่ทีมที่ขึ้นทะเบียนสำเร็จ (ไปที่ระบบตรวจสอบเพื่ออนุมัติ)
+                      <td colSpan={6} className="p-8 text-center text-slate-400">
+                        ยังไม่มีเจ้าหน้าที่ทีมที่ผ่านการขึ้นทะเบียน
                       </td>
                     </tr>
-                  ) : (
-                    certifiedOfficials.map((o, index) => (
-                      <tr key={o.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 px-4 text-slate-400 font-medium">{index + 1}</td>
-                        <td className="py-3 px-4 font-semibold text-slate-900">{o.firstName} {o.lastName}</td>
-                        <td className="py-3 px-4 font-medium text-blue-900">{POSITION_LABEL[o.appliedPosition]}</td>
-                        <td className="py-3 px-4 text-slate-600">ชมรม{o.sportName}</td>
-                        <td className="py-3 px-4 text-slate-600">{o.workplace}</td>
-                        <td className="py-3 px-4 font-mono font-semibold text-amber-700 bg-amber-50/60 px-2 py-0.5 rounded">
-                          {o.officialLicenseId}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            ขึ้นทะเบียนสำเร็จ ✓
-                          </span>
-                        </td>
-                      </tr>
-                    ))
                   )}
+                  {certifiedOfficials.map((off, idx) => (
+                    <tr key={off.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 text-center text-slate-400">{idx + 1}</td>
+                      <td className="p-3 font-semibold text-slate-900">
+                        {off.profile?.firstName} {off.profile?.lastName}
+                      </td>
+                      <td className="p-3">
+                        <span className="text-[10px] font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          {positionLabels[off.profile?.appliedPosition] || off.profile?.appliedPosition}
+                        </span>
+                      </td>
+                      <td className="p-3 text-slate-600">{off.club?.name || "-"}</td>
+                      <td className="p-3 text-slate-600">{off.profile?.workplace || "-"}</td>
+                      <td className="p-3 text-center">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          ขึ้นทะเบียนสำเร็จ ✓
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* Action Panel for Official Publishing */}
-        <div className="bg-gradient-to-r from-blue-900 to-indigo-950 text-white rounded-2xl p-6 shadow-lg border border-blue-800 flex flex-col sm:flex-row items-center justify-between gap-5">
-          <div className="space-y-1 text-center sm:text-left">
-            <div className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">
-                ขั้นตอนสุดท้าย · Final Official Ratification
-              </span>
-            </div>
-            <h3 className="text-base font-bold text-white">
-              ลงนามอนุมัติ บันทึกผลขึ้นระบบ และออกประกาศทางการ
-            </h3>
-            <p className="text-xs text-blue-200 leading-relaxed max-w-xl">
-              ระบบจะบันทึกสถานะนักกีฬาและเจ้าหน้าที่ทีมเข้าสู่ฐานข้อมูลกลางของมหาวิทยาลัยพะเยา ออกประกาศผลอย่างเป็นทางการ และเปิดให้นักกีฬาเข้ารายงานตัวยืนยันสิทธิ์ทันที
-            </p>
-          </div>
+        {/* Confirmation Modal */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl border border-slate-300 max-w-md w-full p-6 space-y-4 shadow-xl">
+              <h3 className="text-base font-bold text-slate-900">
+                ยืนยันการออกประกาศผลการคัดเลือก
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                ระบบจะเปลี่ยนสถานะของผู้สมัครที่เลือก ({selectedAthleteIds.size} คน) ให้เป็น <strong>&quot;ผ่านการคัดเลือกขั้นสุดท้าย (FINAL_SELECTED)&quot;</strong> และบันทึกประวัติการประกาศผลในฐานข้อมูล
+              </p>
 
-          <button
-            onClick={handleAnnounce}
-            disabled={loading}
-            className="w-full sm:w-auto bg-amber-400 hover:bg-amber-300 disabled:bg-slate-500 text-slate-950 text-xs font-extrabold px-8 py-3.5 rounded-xl transition-all cursor-pointer shadow-md whitespace-nowrap ring-4 ring-amber-400/30 hover:scale-105 active:scale-95"
-          >
-            {loading ? "กำลังบันทึกและประกาศผล..." : "ลงนามอนุมัติ บันทึกผลเข้าระบบ และออกประกาศผลทางการ"}
-          </button>
-        </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={announcing}
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  disabled={announcing}
+                  onClick={handleAnnounce}
+                  className="px-5 py-2 bg-blue-900 hover:bg-blue-800 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 shadow-xs"
+                >
+                  {announcing ? "กำลังประกาศผล..." : "ยืนยันประกาศผล"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

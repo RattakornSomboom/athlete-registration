@@ -1,696 +1,937 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import BackButton from "@/components/shared/BackButton";
-import LogoutButton from "@/components/shared/LogoutButton";
+import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import { Page, Notice, buttonClass, fieldClass } from "@/components/shared/Phase4UI";
+import { errorMessage, requestJson } from "@/lib/phase4-client";
 
-type SportCategory = "mandatory" | "international" | "general" | "thai" | "demonstration" | "";
-
-type Sport = {
+type LegacySport = {
   id: string;
   name: string;
-  category: SportCategory;
+  category: string;
   maxAthletes: number;
   isOpen: boolean;
   positions: string[];
-  requirements: string;
-  competitionType: "qualifier" | "final_only" | "";
-  qualifierNote: string;
-  reachedTop16LastYear: boolean | null;
-  top16Note: string;
+  requirements: string | null;
 };
 
-const CATEGORY_LABEL: Record<string, { label: string; className: string }> = {
-  mandatory: { label: "กีฬาบังคับ", className: "bg-rose-50 text-rose-800 border-rose-200" },
-  international: { label: "กีฬาเลือกสากล", className: "bg-blue-50 text-blue-900 border-blue-200" },
-  general: { label: "กีฬาเลือกทั่วไป", className: "bg-purple-50 text-purple-900 border-purple-200" },
-  thai: { label: "กีฬาไทย", className: "bg-amber-50 text-amber-900 border-amber-200" },
-  demonstration: { label: "กีฬาสาธิต", className: "bg-slate-100 text-slate-700 border-slate-200" },
+export type CompetitionEditionCriteria = {
+  year: string;
+  name: string;
+  hostUniversity?: string;
+  region?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  note?: string;
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  minGpax: number;
+  firstYearExempt: boolean;
+  maxAge: number;
+  maxBachelorParticipations: number;
+  maxGraduateParticipations: number;
+  pointsWin: number;
+  pointsDraw: number;
+  pointsLoss: number;
+  enabledSportsQualifier: string[];
+  enabledSportsMain: string[];
+  enabledSports?: string[];
 };
 
-const CATEGORY_REQUIREMENT: Record<string, string> = {
-  mandatory: "ต้องจัดการแข่งขัน (ข้อ 9.1) — 6 ชนิด",
-  international: "เลือกจัดอย่างน้อย 17 ชนิด (ข้อ 9.2)",
-  general: "เลือกจัดอย่างน้อย 1 ชนิด (ข้อ 9.3)",
-  thai: "เลือกจัดอย่างน้อย 1 ชนิด (ข้อ 9.4)",
-  demonstration: "ชนิดกีฬาที่ไม่เคยจัดมาก่อน (ข้อ 9.6)",
+type EditionsConfig = {
+  activeYear: string;
+  editions: Record<string, CompetitionEditionCriteria>;
 };
 
-const INITIAL_SPORTS: Sport[] = [
-  { id: "1", name: "ฟุตบอล", category: "mandatory", maxAthletes: 22, isOpen: true, positions: ["กองหน้า", "กองกลาง", "กองหลัง", "ผู้รักษาประตู"], requirements: "ต้องผ่านการคัดเลือกจากชมรม", competitionType: "qualifier", qualifierNote: "ต้องเป็นตัวแทนภาคเหนือก่อนเข้ารอบมหกรรม", reachedTop16LastYear: null, top16Note: "" },
-  { id: "2", name: "บาสเกตบอล", category: "mandatory", maxAthletes: 12, isOpen: true, positions: ["Point Guard", "Shooting Guard", "Small Forward", "Power Forward", "Center"], requirements: "ประสบการณ์อย่างน้อย 1 ปี", competitionType: "final_only", qualifierNote: "ต้องเคยผ่านเข้ารอบ 16 ทีม ปีที่ผ่านมา", reachedTop16LastYear: true, top16Note: "ผ่านเข้ารอบ 16 ทีม กีฬามหาวิทยาลัยฯ ครั้งที่ 48" },
-  { id: "3", name: "วอลเลย์บอล", category: "mandatory", maxAthletes: 12, isOpen: false, positions: ["ตัวรับ", "ตัวต้าน", "ตัวเซต", "ตัวรุก"], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-  { id: "4", name: "เปตอง", category: "international", maxAthletes: 8, isOpen: true, positions: ["เดี่ยว", "คู่", "ทีม"], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-  { id: "5", name: "ดาบไทย", category: "thai", maxAthletes: 6, isOpen: false, positions: [], requirements: "", competitionType: "", qualifierNote: "", reachedTop16LastYear: null, top16Note: "" },
-];
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
-
-type QualifierSchedule = {
-  region: string;
-  hostUniversity: string;
-  startDate: string;
-  endDate: string;
-  location: string;
-  note: string;
+type SettingsResponse = {
+  allSports?: string[];
+  sports: LegacySport[];
+  schedule: { region?: string; hostUniversity?: string; startDate?: string; endDate?: string; location?: string; note?: string };
+  editionsConfig?: EditionsConfig;
 };
 
-const INITIAL_SCHEDULE: QualifierSchedule = {
-  region: "เขตภาคเหนือ",
-  hostUniversity: "มหาวิทยาลัยราชภัฏนครสวรรค์",
-  startDate: "2026-10-24",
-  endDate: "2026-10-29",
-  location: "มหาวิทยาลัยราชภัฏนครสวรรค์",
-  note: "การแข่งขันกีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 52 รอบคัดเลือกเขตภาคเหนือ",
+const defaultCriteria: CompetitionEditionCriteria = {
+  year: "2568",
+  name: "กีฬามหาวิทยาลัยแห่งประเทศไทย ครั้งที่ 50",
+  hostUniversity: "มหาวิทยาลัยพะเยา",
+  region: "ภาคเหนือ",
+  location: "สนามกีฬา มหาวิทยาลัยพะเยา",
+  startDate: "",
+  endDate: "",
+  note: "",
+  status: "ACTIVE",
+  minGpax: 2.0,
+  firstYearExempt: true,
+  maxAge: 28,
+  maxBachelorParticipations: 5,
+  maxGraduateParticipations: 3,
+  pointsWin: 3,
+  pointsDraw: 1,
+  pointsLoss: 0,
+  enabledSportsQualifier: [],
+  enabledSportsMain: [],
+};
+
+const categoryLabels: Record<string, string> = {
+  mandatory: "กีฬาบังคับ",
+  international: "กีฬาเลือกสากล",
+  general: "กีฬาเลือกทั่วไป",
+  thai: "กีฬาไทย",
+  demonstration: "กีฬาสาธิต",
 };
 
 export default function StaffSettingsPage() {
-  const router = useRouter();
-  const [sports, setSports] = useState<Sport[]>(INITIAL_SPORTS);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [schedule, setSchedule] = useState<QualifierSchedule>(INITIAL_SCHEDULE);
-  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [legacySports, setLegacySports] = useState<LegacySport[]>([]);
+  const [legacySchedule, setLegacySchedule] = useState<SettingsResponse["schedule"]>({});
+  const [showLegacy, setShowLegacy] = useState(false);
 
-  const formatDateRange = (start: string, end: string) => {
-    if (!start || !end) return "ยังไม่กำหนด";
-    const s = new Date(start);
-    const e = new Date(end);
-    const thMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-    const sBE = s.getFullYear() + 543;
-    const eBE = e.getFullYear() + 543;
-    if (s.getMonth() === e.getMonth() && sBE === eBE) {
-      return `${s.getDate()} - ${e.getDate()} ${thMonths[e.getMonth()]} ${eBE}`;
-    }
-    return `${s.getDate()} ${thMonths[s.getMonth()]} ${sBE} - ${e.getDate()} ${thMonths[e.getMonth()]} ${eBE}`;
-  };
+  const [systemSports, setSystemSports] = useState<string[]>([]);
+  const [sportSearch, setSportSearch] = useState("");
+  const [sportTab, setSportTab] = useState<"qualifier" | "main">("qualifier");
 
-  const [newSport, setNewSport] = useState<Omit<Sport, "id">>({
-    name: "",
-    category: "",
-    maxAthletes: 10,
-    isOpen: true,
-    positions: [],
-    requirements: "",
-    competitionType: "",
-    qualifierNote: "",
-    reachedTop16LastYear: null,
-    top16Note: "",
+  const [editionsConfig, setEditionsConfig] = useState<EditionsConfig>({
+    activeYear: "2568",
+    editions: {
+      "2568": { ...defaultCriteria },
+    },
   });
+  const [selectedYear, setSelectedYear] = useState<string>("2568");
+  const [currentCriteria, setCurrentCriteria] = useState<CompetitionEditionCriteria>({ ...defaultCriteria });
+  const [newYearInput, setNewYearInput] = useState("");
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  const [positionInput, setPositionInput] = useState("");
-  const [editPositionInput, setEditPositionInput] = useState("");
+  useEffect(() => {
+    let active = true;
 
-  const toggleOpen = (id: string) =>
-    setSports((prev) => prev.map((s) => s.id === id ? { ...s, isOpen: !s.isOpen } : s));
+    requestJson<SettingsResponse>("/api/staff/settings")
+      .then((data) => {
+        if (!active) return;
+        setLegacySports(data.sports || []);
+        setSystemSports(data.allSports || []);
+        setLegacySchedule(data.schedule || {});
 
-  const deleteSport = (id: string) => {
-    if (confirm("ยืนยันการลบชนิดกีฬานี้ออกจากระบบ?")) {
-      setSports((prev) => prev.filter((s) => s.id !== id));
-      if (editingId === id) setEditingId(null);
+        if (data.editionsConfig && data.editionsConfig.editions && Object.keys(data.editionsConfig.editions).length > 0) {
+          setEditionsConfig(data.editionsConfig);
+          const currentActive = data.editionsConfig.activeYear || Object.keys(data.editionsConfig.editions)[0];
+          setSelectedYear(currentActive);
+          const crit = data.editionsConfig.editions[currentActive] || { ...defaultCriteria, year: currentActive };
+          if (crit.enabledSports && (!crit.enabledSportsQualifier || !crit.enabledSportsMain)) {
+            crit.enabledSportsQualifier = [...crit.enabledSports];
+            crit.enabledSportsMain = [...crit.enabledSports];
+          }
+          if (!crit.enabledSportsQualifier) crit.enabledSportsQualifier = [...(data.allSports || [])];
+          if (!crit.enabledSportsMain) crit.enabledSportsMain = [...(data.allSports || [])];
+          if (false) {
+            crit.enabledSports = [...(data.allSports || [])];
+          }
+          setCurrentCriteria(crit);
+        } else {
+          const initialYear = "2568";
+          const initialConfig: EditionsConfig = {
+            activeYear: initialYear,
+            editions: {
+              [initialYear]: {
+                ...defaultCriteria,
+                hostUniversity: data.schedule?.hostUniversity || defaultCriteria.hostUniversity,
+                region: data.schedule?.region || defaultCriteria.region,
+                location: data.schedule?.location || defaultCriteria.location,
+                startDate: data.schedule?.startDate || "",
+                endDate: data.schedule?.endDate || "",
+                note: data.schedule?.note || "",
+              enabledSportsQualifier: [...(data.allSports || [])],
+                enabledSportsMain: [...(data.allSports || [])],
+              },
+            },
+          };
+          setEditionsConfig(initialConfig);
+          setSelectedYear(initialYear);
+          setCurrentCriteria(initialConfig.editions[initialYear]);
+        }
+      })
+      .catch((err) => {
+        if (active) setMessage(errorMessage(err));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSelectYear = (year: string) => {
+    setSelectedYear(year);
+    setIsCreatingNew(false);
+    setMessage("");
+    setSuccessMessage("");
+    if (editionsConfig.editions[year]) {
+      const crit = { ...editionsConfig.editions[year] };
+      if (crit.enabledSports && (!crit.enabledSportsQualifier || !crit.enabledSportsMain)) {
+        crit.enabledSportsQualifier = [...crit.enabledSports];
+        crit.enabledSportsMain = [...crit.enabledSports];
+      }
+      if (!crit.enabledSportsQualifier) crit.enabledSportsQualifier = [...systemSports];
+      if (!crit.enabledSportsMain) crit.enabledSportsMain = [...systemSports];
+      if (false) {
+        crit.enabledSports = [...systemSports];
+      }
+      setCurrentCriteria(crit);
     }
   };
 
-  const addPosition = () => {
-    if (!positionInput.trim()) return;
-    setNewSport((prev) => ({ ...prev, positions: [...prev.positions, positionInput.trim()] }));
-    setPositionInput("");
+  const handleFieldChange = <K extends keyof CompetitionEditionCriteria>(field: K, value: CompetitionEditionCriteria[K]) => {
+    setCurrentCriteria((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const addEditPosition = (id: string) => {
-    if (!editPositionInput.trim()) return;
-    setSports((prev) => prev.map((s) => s.id === id ? { ...s, positions: [...s.positions, editPositionInput.trim()] } : s));
-    setEditPositionInput("");
+  const handleAddNewYear = () => {
+    const trimmed = newYearInput.trim();
+    if (!trimmed) {
+      setMessage("กรุณาระบุปีการแข่งขัน (พ.ศ.)");
+      return;
+    }
+    if (editionsConfig.editions[trimmed]) {
+      setMessage(`ปีการแข่งขัน ${trimmed} มีอยู่ในระบบแล้ว`);
+      return;
+    }
+
+    const newEdition: CompetitionEditionCriteria = {
+      ...defaultCriteria,
+      year: trimmed,
+      name: `กีฬามหาวิทยาลัยแห่งประเทศไทย (ปี ${trimmed})`,
+      status: "DRAFT",
+      enabledSportsQualifier: [...systemSports],
+      enabledSportsMain: [...systemSports],
+    };
+
+    const updatedEditions = {
+      ...editionsConfig.editions,
+      [trimmed]: newEdition,
+    };
+
+    setEditionsConfig((prev) => ({
+      ...prev,
+      editions: updatedEditions,
+    }));
+    setSelectedYear(trimmed);
+    setCurrentCriteria(newEdition);
+    setNewYearInput("");
+    setIsCreatingNew(false);
+    setMessage("");
+    setSuccessMessage(`เพิ่มปีการแข่งขัน ${trimmed} เรียบร้อย (อย่าลืมกดบันทึกการตั้งค่า)`);
   };
 
-  const handleAddSport = () => {
-    if (!newSport.name.trim() || !newSport.category) return;
-    setSports((prev) => [...prev, { ...newSport, id: generateId() }]);
-    setNewSport({
-      name: "",
-      category: "",
-      maxAthletes: 10,
-      isOpen: true,
-      positions: [],
-      requirements: "",
-      competitionType: "",
-      qualifierNote: "",
-      reachedTop16LastYear: null,
-      top16Note: "",
+  const handleCloneYear = () => {
+    const trimmed = newYearInput.trim();
+    if (!trimmed) {
+      setMessage("กรุณาระบุปี พ.ศ. ใหม่ที่จะคัดลอกไป");
+      return;
+    }
+    if (editionsConfig.editions[trimmed]) {
+      setMessage(`ปีการแข่งขัน ${trimmed} มีอยู่ในระบบแล้ว`);
+      return;
+    }
+
+    const cloned: CompetitionEditionCriteria = {
+      ...currentCriteria,
+      year: trimmed,
+      name: `${currentCriteria.name} (คัดลอกจากปี ${currentCriteria.year})`,
+      status: "DRAFT",
+    };
+
+    const updatedEditions = {
+      ...editionsConfig.editions,
+      [trimmed]: cloned,
+    };
+
+    setEditionsConfig((prev) => ({
+      ...prev,
+      editions: updatedEditions,
+    }));
+    setSelectedYear(trimmed);
+    setCurrentCriteria(cloned);
+    setNewYearInput("");
+    setIsCreatingNew(false);
+    setMessage("");
+    setSuccessMessage(`คัดลอกเกณฑ์จากปี ${currentCriteria.year} ไปยังปี ${trimmed} แล้ว (อย่าลืมกดบันทึก)`);
+  };
+
+  const handleSetActiveYear = () => {
+    setEditionsConfig((prev) => ({
+      ...prev,
+      activeYear: selectedYear,
+    }));
+    setSuccessMessage(`ตั้งให้ปี ${selectedYear} เป็นปีการแข่งขันหลักที่เปิดใช้งาน`);
+  };
+
+
+
+  const handleToggleSport = (sportName: string) => {
+    setCurrentCriteria((prev) => {
+      const key = sportTab === "qualifier" ? "enabledSportsQualifier" : "enabledSportsMain";
+      const currentList = prev[key] || systemSports;
+      const set = new Set(currentList);
+      if (set.has(sportName)) set.delete(sportName);
+      else set.add(sportName);
+      return { ...prev, [key]: Array.from(set) };
     });
-    setShowAddForm(false);
   };
 
-  const handleEdit = (id: string, field: keyof Sport, value: unknown) =>
-    setSports((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s));
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleEnableAllSports = (enable: boolean) => {
+    setCurrentCriteria((prev) => {
+      const key = sportTab === "qualifier" ? "enabledSportsQualifier" : "enabledSportsMain";
+      return { ...prev, [key]: enable ? [...systemSports] : [] };
+    });
   };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setMessage("");
+      setSuccessMessage("");
+
+      const updatedEditions = {
+        ...editionsConfig.editions,
+        [selectedYear]: { ...currentCriteria },
+      };
+
+      const newConfig: EditionsConfig = {
+        activeYear: editionsConfig.activeYear || selectedYear,
+        editions: updatedEditions,
+      };
+
+      const response = await fetch("/api/staff/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateEditions",
+          editionsConfig: newConfig,
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
+
+      setEditionsConfig(newConfig);
+      setSuccessMessage("บันทึกการตั้งค่าเกณฑ์การแข่งขันเรียบร้อยแล้ว");
+    } catch (err) {
+      setMessage(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  const filteredSports = useMemo(() => {
+    if (!sportSearch.trim()) return systemSports;
+    const term = sportSearch.trim().toLowerCase();
+    return systemSports.filter((s) => s.toLowerCase().includes(term));
+  }, [systemSports, sportSearch]);
+
+  const activeSportsSet = useMemo(() => {
+    const list = sportTab === "qualifier" ? currentCriteria.enabledSportsQualifier : currentCriteria.enabledSportsMain;
+    return new Set(list || systemSports);
+  }, [currentCriteria.enabledSportsQualifier, currentCriteria.enabledSportsMain, systemSports, sportTab]);
+
+  const yearsList = Object.keys(editionsConfig.editions).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-5">
-
-        {/* Top navigation: Backward */}
-        <div className="flex items-center justify-between">
-          <BackButton href="/staff/applications" />
-          <LogoutButton />
+    <Page title="เกณฑ์และการตั้งค่าการแข่งขันประจำปี">
+      <Notice text={message} />
+      {successMessage && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-900">
+          {successMessage}
         </div>
+      )}
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+      {/* Quick Navigation / Help Header */}
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-              กองกิจการนิสิต มหาวิทยาลัยพะเยา
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
-              ตั้งค่าชนิดกีฬาและเงื่อนไขการรับสมัคร
-            </h1>
-            <p className="text-xs text-slate-500">
-              จัดการโควตานักกีฬา และคุณสมบัติตามระเบียบ กกมท. ครั้งที่ 52
+            <h2 className="text-lg font-bold text-slate-900">ระบบตั้งค่าเกณฑ์การแข่งขันยืดหยุ่นตามปีการแข่งขัน</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              กำหนดคุณสมบัตินักกีฬา (GPAX, อายุ, จำนวนครั้ง), กำหนดการ, และกติกาการคิดคะแนนแยกตามแต่ละปีการแข่งขันโดยไม่กระทบข้อมูลย้อนหลัง
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push("/staff/analytics")}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/staff/competitions"
+              className="rounded-lg border border-blue-900/20 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-100"
             >
-              แดชบอร์ดวิเคราะห์ผล
-            </button>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3.5 py-2 rounded-lg transition-colors cursor-pointer border border-slate-300"
+              จัดการการแข่งขัน (กองกิจฯ)
+            </Link>
+            <Link
+              href="/staff/sports-config"
+              className="rounded-lg border border-violet-900/20 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 hover:bg-violet-100"
             >
-              + เพิ่มชนิดกีฬา
-            </button>
-            <button
-              onClick={handleSave}
-              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
-            >
-              {saved ? "บันทึกข้อมูลแล้ว ✓" : "บันทึกการตั้งค่า"}
-            </button>
+              กำหนดประเภท/รุ่นแข่งขัน
+            </Link>
           </div>
         </div>
+      </section>
 
-        {/* Category summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {(["mandatory", "international", "general", "thai", "demonstration"] as const).map((cat) => {
-            const count = sports.filter((s) => s.category === cat).length;
-            return (
-              <div key={cat} className="bg-white rounded-xl border border-slate-200 p-3.5 text-center shadow-xs">
-                <p className="text-xl font-bold text-slate-900">{count}</p>
-                <p className="text-slate-500 text-xs mt-1">{CATEGORY_LABEL[cat].label}</p>
-              </div>
-            );
-          })}
+      {loading ? (
+        <div className="flex items-center justify-center p-12 text-slate-500" role="status">
+          กำลังโหลดข้อมูลเกณฑ์การแข่งขัน…
         </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Year / Edition Switcher Bar */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-slate-700">เลือกปีการแข่งขัน:</span>
+                {yearsList.map((yr) => {
+                  const isSelected = yr === selectedYear;
+                  const isActiveYear = yr === editionsConfig.activeYear;
+                  return (
+                    <button
+                      key={yr}
+                      type="button"
+                      onClick={() => handleSelectYear(yr)}
+                      className={`relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                        isSelected
+                          ? "bg-blue-900 text-white shadow-sm"
+                          : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>พ.ศ. {yr}</span>
+                      {isActiveYear && (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                            isSelected ? "bg-blue-700 text-blue-100" : "bg-emerald-100 text-emerald-800"
+                          }`}
+                        >
+                          ใช้งานหลัก
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-        {/* Qualifier schedule */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">กำหนดการแข่งขันรอบคัดเลือกเขตภาคเหนือ</h2>
-              <p className="text-[11px] text-slate-500">ข้อมูลสถานที่และช่วงวันแข่งขันตามประกาศ กกมท.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {!isCreatingNew ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingNew(true)}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    + เพิ่มปีการแข่งขัน / คัดลอกเกณฑ์
+                  </button>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50/50 p-2">
+                    <input
+                      type="text"
+                      placeholder="ระบุปี เช่น 2569"
+                      value={newYearInput}
+                      onChange={(e) => setNewYearInput(e.target.value)}
+                      className="w-32 rounded border border-slate-300 bg-white px-2 py-1 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddNewYear}
+                      className="rounded bg-blue-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-800"
+                    >
+                      สร้างใหม่
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCloneYear}
+                      className="rounded bg-violet-800 px-2.5 py-1 text-xs font-medium text-white hover:bg-violet-700"
+                      title="คัดลอกค่าและเกณฑ์จากปีที่เปิดอยู่"
+                    >
+                      คัดลอกจากปี {selectedYear}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingNew(false);
+                        setNewYearInput("");
+                      }}
+                      className="text-xs text-slate-500 hover:text-slate-800"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <button
-              onClick={() => setEditingSchedule(!editingSchedule)}
-              className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs hover:bg-slate-50 transition-colors cursor-pointer font-medium"
-            >
-              {editingSchedule ? "ปิดการแก้ไข" : "แก้ไขกำหนดการ"}
-            </button>
-          </div>
 
-          {!editingSchedule ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block">เขตการแข่งขัน</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{schedule.region}</p>
+            {/* Active Year indicator */}
+            <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>ปีที่กำลังตั้งค่า: <strong className="text-slate-900">พ.ศ. {selectedYear}</strong></span>
+                <span className="text-slate-300">|</span>
+                <span>
+                  สถานะการใช้งาน:{" "}
+                  {editionsConfig.activeYear === selectedYear ? (
+                    <strong className="text-emerald-700">ปีการแข่งขันหลักของระบบ</strong>
+                  ) : (
+                    <span className="text-slate-500">ไม่ใช่ปีหลัก</span>
+                  )}
+                </span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block">มหาวิทยาลัยเจ้าภาพ</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{schedule.hostUniversity}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block">ช่วงวันแข่งขัน</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{formatDateRange(schedule.startDate, schedule.endDate)}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="text-slate-400 block">สถานที่จัดการแข่งขัน</span>
-                <p className="font-semibold text-slate-900 mt-0.5">{schedule.location}</p>
-              </div>
-              {schedule.note && (
-                <div className="sm:col-span-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="text-slate-400 block">หมายเหตุ</span>
-                  <p className="font-medium text-slate-900 mt-0.5">{schedule.note}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">เขตการแข่งขัน</label>
-                  <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    value={schedule.region}
-                    onChange={(e) => setSchedule((p) => ({ ...p, region: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">มหาวิทยาลัยเจ้าภาพ</label>
-                  <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    value={schedule.hostUniversity}
-                    onChange={(e) => setSchedule((p) => ({ ...p, hostUniversity: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่เริ่มแข่งขัน</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    value={schedule.startDate}
-                    onChange={(e) => setSchedule((p) => ({ ...p, startDate: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">วันที่สิ้นสุดแข่งขัน</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    value={schedule.endDate}
-                    onChange={(e) => setSchedule((p) => ({ ...p, endDate: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">สถานที่จัดการแข่งขัน</label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  value={schedule.location}
-                  onChange={(e) => setSchedule((p) => ({ ...p, location: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">หมายเหตุ</label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  value={schedule.note}
-                  onChange={(e) => setSchedule((p) => ({ ...p, note: e.target.value }))}
-                />
-              </div>
-
-              <div className="flex justify-end pt-2">
+              {editionsConfig.activeYear !== selectedYear && (
                 <button
-                  onClick={() => setEditingSchedule(false)}
-                  className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer"
+                  type="button"
+                  onClick={handleSetActiveYear}
+                  className="font-medium text-blue-900 underline hover:text-blue-700"
                 >
-                  บันทึกกำหนดการแข่งขัน
+                  ตั้งเป็นปีการแข่งขันหลัก (Set as Active)
                 </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Add Sport Form */}
-        {showAddForm && (
-          <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-6 space-y-4">
-            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">เพิ่มชนิดกีฬาและเงื่อนไขการรับสมัครใหม่</h2>
-                <p className="text-[11px] text-slate-500">กำหนดโควตาและประเภทการแข่งขันตามข้อบังคับ กกมท.</p>
-              </div>
-              <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 text-sm">✕</button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่ชนิดกีฬา <span className="text-rose-600">*</span></label>
-                <select
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
-                  value={newSport.category}
-                  onChange={(e) => setNewSport((p) => ({ ...p, category: e.target.value as SportCategory }))}
-                >
-                  <option value="">-- เลือกหมวดหมู่กีฬาตามระเบียบ --</option>
-                  <option value="mandatory">กีฬาบังคับ (ข้อ 9.1)</option>
-                  <option value="international">กีฬาเลือกสากล (ข้อ 9.2)</option>
-                  <option value="general">กีฬาเลือกทั่วไป (ข้อ 9.3)</option>
-                  <option value="thai">กีฬาไทย (ข้อ 9.4)</option>
-                  <option value="demonstration">กีฬาสาธิต (ข้อ 9.6)</option>
-                </select>
-                {newSport.category && (
-                  <p className="text-[11px] text-slate-500 mt-1">{CATEGORY_REQUIREMENT[newSport.category]}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อชนิดกีฬา <span className="text-rose-600">*</span></label>
-                  <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="เช่น กรีฑา, เทนนิส"
-                    value={newSport.name}
-                    onChange={(e) => setNewSport((p) => ({ ...p, name: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">โควตานักกีฬาสูงสุด (คน) <span className="text-rose-600">*</span></label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    value={newSport.maxAthletes}
-                    onChange={(e) => setNewSport((p) => ({ ...p, maxAthletes: Number(e.target.value) }))}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">ประเภทการแข่งขัน</label>
-                <select
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
-                  value={newSport.competitionType}
-                  onChange={(e) => setNewSport((p) => ({ ...p, competitionType: e.target.value as Sport["competitionType"] }))}
-                >
-                  <option value="">เลือกประเภทการแข่งขัน</option>
-                  <option value="qualifier">มีรอบคัดเลือก (ต้องเป็นตัวแทนเขตภาคเหนือก่อน)</option>
-                  <option value="final_only">มีเฉพาะรอบมหกรรม (ต้องเคยผ่านเข้ารอบ 16 ทีม)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขศักยภาพ / คุณสมบัติพิเศษ</label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="เช่น ต้องมีผลงานระดับจังหวัดขึ้นไป"
-                  value={newSport.qualifierNote}
-                  onChange={(e) => setNewSport((p) => ({ ...p, qualifierNote: e.target.value }))}
-                />
-              </div>
-
-              {newSport.competitionType === "final_only" && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
-                  <label className="block text-xs font-semibold text-slate-800">ผลการแข่งขันปีที่ผ่านมา (ตามประกาศข้อ 8(2))</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: true }))}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                        newSport.reachedTop16LastYear === true ? "bg-emerald-800 text-white border-emerald-800 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      ผ่านเข้ารอบ 16 ทีม
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewSport((p) => ({ ...p, reachedTop16LastYear: false }))}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                        newSport.reachedTop16LastYear === false ? "bg-rose-700 text-white border-rose-700 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      ไม่ผ่านเข้ารอบ
-                    </button>
-                  </div>
-                  <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="หมายเหตุ เช่น ผ่านเข้ารอบ 16 ทีม กีฬามหาวิทยาลัยฯ ครั้งที่ 51"
-                    value={newSport.top16Note}
-                    onChange={(e) => setNewSport((p) => ({ ...p, top16Note: e.target.value }))}
-                  />
-                  {newSport.reachedTop16LastYear === false && (
-                    <p className="text-[11px] text-rose-700 font-medium">
-                      หมายเหตุ: ตามประกาศข้อ 8(2) ชนิดกีฬานี้อาจไม่มีสิทธิ์ส่งเข้าร่วมแข่งขัน เนื่องจากไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา
-                    </p>
-                  )}
-                </div>
               )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">ตำแหน่ง / ประเภทการแข่งขันย่อย</label>
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="เช่น กองหน้า หรือ รุ่นน้ำหนักไม่เกิน 60 กก."
-                    value={positionInput}
-                    onChange={(e) => setPositionInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addPosition()}
-                  />
-                  <button onClick={addPosition} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer">เพิ่มตำแหน่ง</button>
-                </div>
-                {newSport.positions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {newSport.positions.map((p, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-xs px-2.5 py-0.5 rounded border border-slate-200">
-                        {p}
-                        <button onClick={() => setNewSport((prev) => ({ ...prev, positions: prev.positions.filter((_, idx) => idx !== i) }))} className="text-slate-400 hover:text-slate-700">✕</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขการรับสมัครเพิ่มเติม</label>
-                <textarea
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none resize-none"
-                  rows={2}
-                  placeholder="ระบุข้อกำหนดหรือเงื่อนไขพิเศษ"
-                  value={newSport.requirements}
-                  onChange={(e) => setNewSport((p) => ({ ...p, requirements: e.target.value }))}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg transition-colors cursor-pointer">ยกเลิก</button>
-                <button onClick={handleAddSport} disabled={!newSport.name || !newSport.category} className="bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium px-5 py-2 rounded-lg transition-colors cursor-pointer">บันทึกชนิดกีฬา</button>
-              </div>
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* Sport Cards */}
-        <div className="space-y-3">
-          {sports.map((sport) => (
-            <div key={sport.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-bold text-slate-900 text-sm">{sport.name}</h2>
-                  {sport.category && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${CATEGORY_LABEL[sport.category].className}`}>
-                      {CATEGORY_LABEL[sport.category].label}
-                    </span>
-                  )}
-                  <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${
-                    sport.isOpen
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                      : "bg-slate-100 text-slate-600 border-slate-200"
-                  }`}>
-                    {sport.isOpen ? "เปิดรับสมัคร" : "ปิดรับสมัคร"}
-                  </span>
+          {/* Form Content */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Left 2 Cols: Details & Rules */}
+            <div className="space-y-6 lg:col-span-2">
+              {/* Card 1: General Info */}
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="font-bold text-slate-900">1. ข้อมูลการแข่งขันและเจ้าภาพ (ปี {selectedYear})</h3>
+                  <p className="text-xs text-slate-500">ข้อมูลทั่วไปและสถานที่จัดการแข่งขันประจำรอบนี้</p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => toggleOpen(sport.id)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                      sport.isOpen
-                        ? "border border-slate-300 text-slate-700 hover:bg-slate-50"
-                        : "bg-blue-900 text-white hover:bg-blue-800"
-                    }`}
-                  >
-                    {sport.isOpen ? "ปิดรับสมัคร" : "เปิดรับสมัคร"}
-                  </button>
-                  <button
-                    onClick={() => setEditingId(editingId === sport.id ? null : sport.id)}
-                    className="px-2.5 py-1 rounded border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    {editingId === sport.id ? "ปิด" : "แก้ไข"}
-                  </button>
-                  <button
-                    onClick={() => deleteSport(sport.id)}
-                    className="px-2.5 py-1 rounded border border-rose-300 text-rose-700 text-xs font-medium hover:bg-rose-50 transition-colors cursor-pointer"
-                  >
-                    ลบ
-                  </button>
-                </div>
-              </div>
 
-              {/* Info */}
-              {editingId !== sport.id && (
-                <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100">
-                  <p>โควตานักกีฬาสูงสุด: <strong className="text-slate-900">{sport.maxAthletes} คน</strong></p>
-                  {sport.competitionType && (
-                    <p className="flex items-center gap-2">
-                      <span className={`text-[10px] px-2 py-0.2 rounded border font-medium ${
-                        sport.competitionType === "qualifier"
-                          ? "bg-blue-50 text-blue-900 border-blue-200"
-                          : "bg-amber-50 text-amber-900 border-amber-200"
-                      }`}>
-                        {sport.competitionType === "qualifier" ? "มีรอบคัดเลือกเขตภาคเหนือ" : "ส่งเฉพาะรอบมหกรรม"}
-                      </span>
-                      {sport.qualifierNote && <span className="text-slate-400">{sport.qualifierNote}</span>}
-                    </p>
-                  )}
-                  {sport.competitionType === "final_only" && sport.reachedTop16LastYear !== null && (
-                    <p className="text-[11px] mt-1">
-                      <span className={sport.reachedTop16LastYear ? "text-emerald-700 font-medium" : "text-rose-700 font-medium"}>
-                        {sport.reachedTop16LastYear ? "✓ ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา" : "✕ ไม่ผ่านเข้ารอบ 16 ทีมปีที่ผ่านมา"}
-                      </span>
-                      {sport.top16Note && <span className="text-slate-400 ml-2">({sport.top16Note})</span>}
-                    </p>
-                  )}
-                  {sport.positions.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {sport.positions.map((p, i) => (
-                        <span key={i} className="bg-slate-100 text-slate-700 text-[11px] px-2 py-0.2 rounded border border-slate-200">{p}</span>
-                      ))}
-                    </div>
-                  )}
-                  {sport.requirements && <p className="text-[11px] text-slate-400 mt-1">เงื่อนไข: {sport.requirements}</p>}
-                </div>
-              )}
-
-              {/* Edit Form */}
-              {editingId === sport.id && (
-                <div className="space-y-3 pt-3 border-t border-slate-100 text-xs">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">หมวดหมู่ชนิดกีฬา</label>
-                    <select
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
-                      value={sport.category}
-                      onChange={(e) => handleEdit(sport.id, "category", e.target.value)}
-                    >
-                      <option value="">เลือกหมวดหมู่กีฬา</option>
-                      <option value="mandatory">กีฬาบังคับ</option>
-                      <option value="international">กีฬาเลือกสากล</option>
-                      <option value="general">กีฬาเลือกทั่วไป</option>
-                      <option value="thai">กีฬาไทย</option>
-                      <option value="demonstration">กีฬาสาธิต</option>
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">ชื่อชนิดกีฬา</label>
-                      <input
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                        value={sport.name}
-                        onChange={(e) => handleEdit(sport.id, "name", e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">โควตานักกีฬาสูงสุด</label>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                        value={sport.maxAthletes}
-                        onChange={(e) => handleEdit(sport.id, "maxAthletes", Number(e.target.value))}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">ประเภทการแข่งขัน</label>
-                      <select
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 bg-white outline-none"
-                        value={sport.competitionType}
-                        onChange={(e) => handleEdit(sport.id, "competitionType", e.target.value)}
-                      >
-                        <option value="">เลือกประเภท</option>
-                        <option value="qualifier">มีรอบคัดเลือกเขตภาคเหนือ</option>
-                        <option value="final_only">เฉพาะรอบมหกรรม</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขศักยภาพ</label>
-                      <input
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                        value={sport.qualifierNote}
-                        onChange={(e) => handleEdit(sport.id, "qualifierNote", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {sport.competitionType === "final_only" && (
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
-                      <label className="block text-xs font-semibold text-slate-800">ผลการแข่งขันปีที่ผ่านมา</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(sport.id, "reachedTop16LastYear", true)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                            sport.reachedTop16LastYear === true ? "bg-emerald-800 text-white border-emerald-800 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                          }`}
-                        >
-                          ผ่านเข้ารอบ 16 ทีม
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(sport.id, "reachedTop16LastYear", false)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                            sport.reachedTop16LastYear === false ? "bg-rose-700 text-white border-rose-700 font-bold" : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                          }`}
-                        >
-                          ไม่ผ่านเข้ารอบ
-                        </button>
-                      </div>
-                      <input
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                        placeholder="หมายเหตุ"
-                        value={sport.top16Note}
-                        onChange={(e) => handleEdit(sport.id, "top16Note", e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">ตำแหน่ง / ประเภท</label>
-                    <div className="flex gap-2">
-                      <input
-                        className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                        placeholder="เพิ่มตำแหน่ง"
-                        value={editPositionInput}
-                        onChange={(e) => setEditPositionInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addEditPosition(sport.id)}
-                      />
-                      <button onClick={() => addEditPosition(sport.id)} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer">เพิ่ม</button>
-                    </div>
-                    {sport.positions.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {sport.positions.map((p, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 bg-slate-100 text-slate-800 text-[11px] px-2.5 py-0.5 rounded border border-slate-200">
-                            {p}
-                            <button onClick={() => handleEdit(sport.id, "positions", sport.positions.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-slate-700">✕</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">ชื่อการแข่งขัน</label>
+                    <input
+                      type="text"
+                      value={currentCriteria.name}
+                      onChange={(e) => handleFieldChange("name", e.target.value)}
+                      className={fieldClass}
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">เงื่อนไขการรับสมัคร</label>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">มหาวิทยาลัยเจ้าภาพ</label>
+                    <input
+                      type="text"
+                      value={currentCriteria.hostUniversity || ""}
+                      onChange={(e) => handleFieldChange("hostUniversity", e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">เขต / ภาคการแข่งขัน</label>
+                    <input
+                      type="text"
+                      value={currentCriteria.region || ""}
+                      onChange={(e) => handleFieldChange("region", e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">วันที่เริ่มต้นการแข่งขัน</label>
+                    <input
+                      type="date"
+                      value={currentCriteria.startDate || ""}
+                      onChange={(e) => handleFieldChange("startDate", e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">วันที่สิ้นสุดการแข่งขัน</label>
+                    <input
+                      type="date"
+                      value={currentCriteria.endDate || ""}
+                      onChange={(e) => handleFieldChange("endDate", e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">สถานที่จัดการแข่งขัน</label>
+                    <input
+                      type="text"
+                      value={currentCriteria.location || ""}
+                      onChange={(e) => handleFieldChange("location", e.target.value)}
+                      className={fieldClass}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">หมายเหตุ / คำชี้แจงประจำปี</label>
                     <textarea
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none resize-none"
                       rows={2}
-                      value={sport.requirements}
-                      onChange={(e) => handleEdit(sport.id, "requirements", e.target.value)}
+                      value={currentCriteria.note || ""}
+                      onChange={(e) => handleFieldChange("note", e.target.value)}
+                      className={fieldClass}
                     />
                   </div>
                 </div>
-              )}
+              </section>
+
+
+              {/* Card: Sports Inclusion */}
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900">2. ชนิดกีฬาที่เปิดแข่งขันประจำปี (Sports Inclusion)</h3>
+                    <p className="text-xs text-slate-500">
+                      แยกตั้งค่าชนิดกีฬาอิสระระหว่างรอบคัดเลือกและรอบมหกรรมของปี {selectedYear} (เปิดอยู่ {activeSportsSet.size} จาก {systemSports.length} ชนิดกีฬา)
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEnableAllSports(true)}
+                      className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-100"
+                    >
+                      เปิดทั้งหมด
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleEnableAllSports(false)}
+                      className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      ปิดทั้งหมด
+                    </button>
+                  </div>
+                </div>
+
+
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setSportTab("qualifier")}
+                    className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                      sportTab === "qualifier"
+                        ? "bg-blue-900 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    1. รอบคัดเลือก (Qualifier)
+                    <span className="ml-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">
+                      {(currentCriteria.enabledSportsQualifier || systemSports).length} ชนิด
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSportTab("main")}
+                    className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                      sportTab === "main"
+                        ? "bg-violet-900 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    2. รอบมหกรรม (Main Tournament)
+                    <span className="ml-1.5 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">
+                      {(currentCriteria.enabledSportsMain || systemSports).length} ชนิด
+                    </span>
+                  </button>
+                </div>
+
+                <div>
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      placeholder={sportTab === "qualifier" ? "ค้นหาชนิดกีฬาในรอบคัดเลือก..." : "ค้นหาชนิดกีฬาในรอบมหกรรม..."}
+                      value={sportSearch}
+                      onChange={(e) => setSportSearch(e.target.value)}
+                      className="w-full max-w-sm rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-800"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {filteredSports.map((sport) => {
+                      const isEnabled = activeSportsSet.has(sport);
+                      return (
+                        <button
+                          key={sport}
+                          type="button"
+                          onClick={() => handleToggleSport(sport)}
+                          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                            isEnabled
+                              ? sportTab === "qualifier" ? "border-blue-300 bg-blue-50 text-blue-900 shadow-sm" : "border-violet-300 bg-violet-50 text-violet-900 shadow-sm"
+                              : "border-slate-200 bg-slate-50/60 text-slate-400 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-600"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-2 w-2 rounded-full ${
+                              isEnabled ? (sportTab === "qualifier" ? "bg-blue-600" : "bg-violet-600") : "bg-slate-300"
+                            }`}
+                          />
+                          <span>{sport}</span>
+                          <span className={`text-[10px] ${isEnabled ? (sportTab === "qualifier" ? "text-blue-700 font-semibold" : "text-violet-700 font-semibold") : "text-slate-400"}`}>
+                            {isEnabled ? "(เปิด)" : "(ปิด)"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {filteredSports.length === 0 && (
+                      <p className="text-xs text-slate-500">ไม่พบชนิดกีฬาที่ค้นหา</p>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              {/* Card 3: Qualification Criteria */}
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="font-bold text-slate-900">3. เกณฑ์คุณสมบัตินักกีฬา (Eligibility Rules)</h3>
+                  <p className="text-xs text-slate-500">เกณฑ์คัดกรองอัตโนมัติตามระเบียบการแข่งขันของปีนี้</p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      เกรดเฉลี่ยสะสมขั้นต่ำ (GPAX)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="4"
+                      value={currentCriteria.minGpax}
+                      onChange={(e) => handleFieldChange("minGpax", parseFloat(e.target.value) || 0)}
+                      className={fieldClass}
+                    />
+                    <span className="text-[11px] text-slate-500">มาตรฐานคือ 2.00</span>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      เกณฑ์อายุสูงสุด (ปีบริบูรณ์)
+                    </label>
+                    <input
+                      type="number"
+                      min="15"
+                      max="40"
+                      value={currentCriteria.maxAge}
+                      onChange={(e) => handleFieldChange("maxAge", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                    <span className="text-[11px] text-slate-500">มาตรฐานกีฬามหาวิทยาลัยคือ 28 ปี</span>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      โควตาเข้าร่วมสูงสุด - ระดับปริญญาตรี (ครั้ง)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={currentCriteria.maxBachelorParticipations}
+                      onChange={(e) => handleFieldChange("maxBachelorParticipations", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                    <span className="text-[11px] text-slate-500">เกณฑ์ระเบียบคือไม่เกิน 5 ครั้ง</span>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      โควตาเข้าร่วมสูงสุด - ระดับบัณฑิตศึกษา (ครั้ง)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={currentCriteria.maxGraduateParticipations}
+                      onChange={(e) => handleFieldChange("maxGraduateParticipations", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                    <span className="text-[11px] text-slate-500">รวม ป.โท และ ป.เอก ไม่เกิน 3 ครั้ง</span>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={currentCriteria.firstYearExempt}
+                        onChange={(e) => handleFieldChange("firstYearExempt", e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-900 focus:ring-blue-800"
+                      />
+                      <span className="text-sm font-medium text-slate-800">
+                        ยกเว้นเกณฑ์ GPAX สำหรับนิสิตปี 1 ภาคเรียนที่ 1
+                      </span>
+                    </label>
+                    <p className="mt-1 text-xs text-slate-500 ml-6">
+                      หากเปิดใช้งาน นิสิตชั้นปีที่ 1 ภาคการศึกษาแรกที่ยังไม่มีเกรดเฉลี่ยสะสมจะผ่านเกณฑ์คุณสมบัตินี้ได้
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Card 3: Scoring Rules */}
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="border-b border-slate-100 pb-3">
+                  <h3 className="font-bold text-slate-900">4. ระบบคิดคะแนนและจัดอันดับ (Scoring Rules)</h3>
+                  <p className="text-xs text-slate-500">คะแนนสำหรับรอบแบ่งกลุ่มและการจัดอันดับผลการแข่งขัน</p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">ชนะ (คะแนน)</label>
+                    <input
+                      type="number"
+                      value={currentCriteria.pointsWin}
+                      onChange={(e) => handleFieldChange("pointsWin", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">เสมอ (คะแนน)</label>
+                    <input
+                      type="number"
+                      value={currentCriteria.pointsDraw}
+                      onChange={(e) => handleFieldChange("pointsDraw", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">แพ้ (คะแนน)</label>
+                    <input
+                      type="number"
+                      value={currentCriteria.pointsLoss}
+                      onChange={(e) => handleFieldChange("pointsLoss", parseInt(e.target.value, 10) || 0)}
+                      className={fieldClass}
+                    />
+                  </div>
+                </div>
+              </section>
             </div>
-          ))}
+
+            {/* Right 1 Col: Actions & Summary */}
+            <div className="space-y-6">
+              {/* Action Box */}
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 shadow-sm">
+                <h3 className="font-bold text-blue-950">สถานะและบันทึกข้อมูล</h3>
+                <p className="mt-1 text-xs text-blue-800">
+                  การแก้ไขจะมีผลต่อรอบการแข่งขัน พ.ศ. {selectedYear}
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">สถานะปีการแข่งขัน</label>
+                    <select
+                      value={currentCriteria.status}
+                      onChange={(e) => handleFieldChange("status", e.target.value as CompetitionEditionCriteria["status"])}
+                      className={fieldClass}
+                    >
+                      <option value="DRAFT">ฉบับร่าง (DRAFT)</option>
+                      <option value="ACTIVE">เปิดใช้งาน (ACTIVE)</option>
+                      <option value="ARCHIVED">ปิด/เก็บประวัติ (ARCHIVED)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className={`w-full ${buttonClass} py-2.5 text-center`}
+                  >
+                    {saving ? "กำลังบันทึก…" : `บันทึกการตั้งค่าปี ${selectedYear}`}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Summary Card */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h4 className="text-sm font-bold text-slate-900">สรุปเกณฑ์ปี {selectedYear}</h4>
+                <ul className="mt-3 space-y-2 text-xs text-slate-600">
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>ปีการแข่งขัน:</span>
+                    <strong className="text-slate-900">พ.ศ. {currentCriteria.year}</strong>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>สถานะ:</span>
+                    <span className="font-semibold text-blue-900">{currentCriteria.status}</span>
+                  </li>
+
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>กีฬาคัดเลือก (Qualifier):</span>
+                    <strong className="text-blue-700">{(currentCriteria.enabledSportsQualifier || systemSports).length} / {systemSports.length} ชนิด</strong>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>กีฬามหกรรม (Main):</span>
+                    <strong className="text-violet-700">{(currentCriteria.enabledSportsMain || systemSports).length} / {systemSports.length} ชนิด</strong>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>GPAX ขั้นต่ำ:</span>
+                    <span className="font-medium text-slate-900">{currentCriteria.minGpax.toFixed(2)}</span>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>อายุสูงสุด:</span>
+                    <span className="font-medium text-slate-900">{currentCriteria.maxAge} ปี</span>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>แข่ง ป.ตรี ได้สูงสุด:</span>
+                    <span className="font-medium text-slate-900">{currentCriteria.maxBachelorParticipations} ครั้ง</span>
+                  </li>
+                  <li className="flex justify-between border-b border-slate-100 pb-1.5">
+                    <span>แข่ง บัณฑิตศึกษา ได้สูงสุด:</span>
+                    <span className="font-medium text-slate-900">{currentCriteria.maxGraduateParticipations} ครั้ง</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>ระบบคะแนน (ช/ส/พ):</span>
+                    <span className="font-medium text-slate-900">
+                      {currentCriteria.pointsWin} / {currentCriteria.pointsDraw} / {currentCriteria.pointsLoss}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Toggle Legacy Schedule & Sports */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setShowLegacy(!showLegacy)}
+                  className="flex w-full items-center justify-between text-left text-xs font-semibold text-slate-700 hover:text-slate-900"
+                >
+                  <span>ข้อมูลกีฬาและกำหนดการเดิม (Legacy)</span>
+                  <span>{showLegacy ? "ซ่อน ▲" : "แสดง ▼"}</span>
+                </button>
+
+                {showLegacy && (
+                  <div className="mt-4 space-y-3 text-xs text-slate-600">
+                    <p className="rounded bg-amber-50 p-2 text-amber-800">
+                      ข้อมูลกีฬาเดิมในระบบ ({legacySports.length} ชนิดกีฬา) เก็บไว้เป็นข้อมูลอ้างอิงย้อนหลัง
+                    </p>
+                    {legacySchedule && (
+                      <dl className="grid gap-1.5">
+                        <div>
+                          <dt className="text-slate-400">เจ้าภาพเดิม:</dt>
+                          <dd className="font-medium">{legacySchedule.hostUniversity || "-"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-slate-400">สถานที่เดิม:</dt>
+                          <dd className="font-medium">{legacySchedule.location || "-"}</dd>
+                        </div>
+                      </dl>
+                    )}
+                    <ul className="max-h-48 space-y-1.5 overflow-y-auto border-t border-slate-100 pt-2">
+                      {legacySports.map((s) => (
+                        <li key={s.id} className="border-b border-slate-50 pb-1">
+                          <span className="font-medium text-slate-800">{s.name}</span>
+                          <span className="ml-1 text-slate-400">({categoryLabels[s.category] || s.category})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </Page>
   );
 }

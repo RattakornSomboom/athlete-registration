@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BackButton from "@/components/shared/BackButton";
 import LogoutButton from "@/components/shared/LogoutButton";
+import ThaiDateInput from "@/components/shared/ThaiDateInput";
 
 export default function NewActivityPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
+  const [submitError, setSubmitError] = useState("");
   const [form, setForm] = useState({
     title: "",
     date: "",
@@ -28,22 +30,81 @@ export default function NewActivityPage() {
   };
 
   const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((f) => f.size <= 10 * 1024 * 1024);
-    setImages((prev) => [...prev, ...files]);
+    const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
+    if (selected.some((file) => !["image/jpeg", "image/png"].includes(file.type))) {
+      setSubmitError("ภาพถ่ายต้องเป็นไฟล์ JPG หรือ PNG เท่านั้น");
+      e.target.value = "";
+      return;
+    }
+    if (selected.some((file) => file.size > 5 * 1024 * 1024)) {
+      setSubmitError("ภาพถ่ายแต่ละไฟล์ต้องมีขนาดไม่เกิน 5 MB");
+      e.target.value = "";
+      return;
+    }
+    if (images.length + selected.length > 5) {
+      setSubmitError(`แนบภาพถ่ายประกอบกิจกรรมได้สูงสุด 5 รูป (เลือกแล้ว ${images.length} รูป)`);
+      e.target.value = "";
+      return;
+    }
+    setSubmitError("");
+    setImages((previous) => [...previous, ...selected]);
+    e.target.value = "";
+  };
+
+  const removeImage = (index: number) => {
+    setImages((previous) => previous.filter((_, imageIndex) => imageIndex !== index));
   };
 
   const handleSubmit = async () => {
     setLoading(true);
+    setSubmitError("");
     try {
-      console.log("submit activity", { ...form, documents, images });
-      await new Promise((r) => setTimeout(r, 800));
+      if (!documents[0]) throw new Error("กรุณาแนบเอกสารประกอบกิจกรรม");
+      if (images.length === 0) throw new Error("กรุณาแนบภาพถ่ายประกอบการดำเนินกิจกรรมอย่างน้อย 1 รูป");
+      if (images.length > 5) throw new Error("แนบภาพถ่ายประกอบการดำเนินกิจกรรมได้ไม่เกิน 5 รูป");
+      const formData = new FormData();
+      formData.append("file", documents[0]);
+      const upload = await fetch("/api/documents", { method: "POST", body: formData });
+      const uploaded = (await upload.json()) as { document?: { id: string }; error?: string };
+      if (!upload.ok || !uploaded.document?.id) {
+        throw new Error(uploaded.error || "อัปโหลดเอกสารประกอบกิจกรรมไม่สำเร็จ");
+      }
+      const imageUrls: string[] = [];
+      for (const image of images) {
+        const imageForm = new FormData();
+        imageForm.append("file", image);
+        const imageUpload = await fetch("/api/documents", { method: "POST", body: imageForm });
+        const imageUploaded = (await imageUpload.json()) as { document?: { id: string }; error?: string };
+        if (!imageUpload.ok || !imageUploaded.document?.id) {
+          throw new Error(imageUploaded.error || `อัปโหลดภาพ ${image.name} ไม่สำเร็จ`);
+        }
+        imageUrls.push(`/api/documents/${imageUploaded.document.id}/download`);
+      }
+      const response = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          date: form.date,
+          location: form.location,
+          description: `${form.description}\n(จำนวนผู้เข้าร่วม: ${form.participants} คน)${form.note ? `\nหมายเหตุ: ${form.note}` : ""}`,
+          documentUrl: `/api/documents/${uploaded.document.id}/download`,
+          imageUrls,
+          status: "planned",
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "บันทึกรายงานกิจกรรมไม่สำเร็จ");
       router.push("/club/activities");
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
       setLoading(false);
     }
   };
 
-  const isValid = form.title && form.date && form.location && form.participants && form.description;
+  const isValid = form.title && form.date && form.location && form.participants && form.description && documents.length > 0 && images.length >= 1 && images.length <= 5;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -92,11 +153,13 @@ export default function NewActivityPage() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 วันที่จัดกิจกรรม <span className="text-rose-600">*</span>
               </label>
-              <input
-                type="date"
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+              <ThaiDateInput
+                id="activity-date"
                 value={form.date}
-                onChange={(e) => set("date", e.target.value)}
+                onChange={(value) => set("date", value)}
+                required
+                compact
+                ariaLabel="วันที่จัดกิจกรรม"
               />
             </div>
             <div>
@@ -153,15 +216,29 @@ export default function NewActivityPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                ภาพถ่ายประกอบการดำเนินกิจกรรม (ไฟล์ภาพ)
+                ภาพถ่ายประกอบการดำเนินกิจกรรม (1–5 รูป รูปละไม่เกิน 5 MB) <span className="text-rose-600">*</span>
               </label>
               <input
                 type="file"
                 multiple
-                accept=".jpg,.jpeg,.png"
+                accept="image/jpeg,image/png"
+                disabled={loading || images.length >= 5}
                 onChange={handleImages}
-                className="text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                className="text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 disabled:opacity-50"
               />
+              <p className="mt-1 text-[11px] text-slate-500">
+                เลือกภาพถ่ายได้ 1–5 รูป (JPG หรือ PNG ขนาดไม่เกิน 5 MB ต่อรูป) {images.length > 0 && `(เลือกแล้ว ${images.length}/5 รูป)`}
+              </p>
+              {images.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {images.map((image, index) => (
+                    <li key={`${image.name}-${image.size}-${index}`} className="flex items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700">
+                      <span className="truncate">📷 รูปที่ {index + 1}: {image.name} ({(image.size / 1024 / 1024).toFixed(2)} MB)</span>
+                      <button type="button" disabled={loading} onClick={() => removeImage(index)} className="shrink-0 text-xs font-medium text-rose-700 hover:underline disabled:opacity-50">ลบ</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
@@ -177,6 +254,7 @@ export default function NewActivityPage() {
               {loading ? "กำลังบันทึกข้อมูล..." : "บันทึกและส่งรายงานกิจกรรม"}
             </button>
           </div>
+          {submitError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">{submitError}</p>}
 
         </div>
 

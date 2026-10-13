@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import BackButton from "@/components/shared/BackButton";
+import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
+import { fetchJson } from "@/lib/http-client";
+import { RequestState, useRemoteData, useRequestAction } from "@/components/shared/RequestState";
 import LogoutButton from "@/components/shared/LogoutButton";
+import AdminPasswordReset from "@/components/shared/AdminPasswordReset";
+import BackButton from "@/components/shared/BackButton";
 
 type Advisor = {
   name: string;
@@ -19,109 +22,9 @@ type ClubAccount = {
   email: string;
   advisors: Advisor[];
   status: "active" | "pending" | "inactive";
+  isActive: boolean;
   createdAt: string;
 };
-
-const MOCK_CLUBS: ClubAccount[] = [
-  { 
-    id: "1", clubName: "ชมรมวิ่ง ว่าย พาย ปั่น (กรีฑา ว่ายน้ำ)", sport: "กรีฑา ว่ายน้ำ", 
-    presidentName: "นางสาวภณิตา สุขโข", presidentPhone: "09 8753 9936", email: "phanita@up.ac.th", 
-    advisors: [
-      { name: "นายสัณห์ชัย หยีวิยม", phone: "0816809005" },
-      { name: "ดร.พัชรินทร์ ตั้งชัยสุริยา", phone: "0979636465" },
-      { name: "นางสาวจุมพิศตรา ผูกจิต", phone: "0895521917" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "2", clubName: "ชมรมบาสเกตบอล", sport: "บาสเกตบอล", 
-    presidentName: "นายจตุรเทพ อินทนนท์", presidentPhone: "09 5672 0118", email: "jaturothep@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ภญ.จันทิมา ชูรัศมี", phone: "0865912228" },
-      { name: "รศ.ดร.พยุงศักดิ์ ตันติไพบูลย์วงศ์", phone: "0847120880" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "3", clubName: "ชมรมฟุตบอล มหาวิทยาลัยพะเยา", sport: "ฟุตบอล", 
-    presidentName: "นายปราบปกป้อง ถาเเหล่ง", presidentPhone: "09 6145 5647", email: "prabpokpong@up.ac.th", 
-    advisors: [
-      { name: "ดร.พิเชษฐ์ ชัยเลิศ", phone: "0868252946" },
-      { name: "นายคะนอง ปิงเมือง", phone: "0869099087" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "4", clubName: "ชมรมวอลเลย์บอล", sport: "วอลเลย์บอล", 
-    presidentName: "นายอิทธิพัทธ์ กลิ่นทอง", presidentPhone: "09 4621 0026", email: "itthipat@up.ac.th", 
-    advisors: [
-      { name: "นายปัณณธร วุฒิปริยาธร", phone: "0621952839" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "5", clubName: "ชมรมเทควันโด มหาวิทยาลัยพะเยา TKB UP", sport: "เทควันโด", 
-    presidentName: "นางสาววรัญญา นาระกันทา", presidentPhone: "08 9430 8140", email: "waranya@up.ac.th", 
-    advisors: [
-      { name: "นายตฤณ ธุระพ่อค้า", phone: "0988195665" },
-      { name: "นายเพ็ชร พงษ์เฉย", phone: "0846130680" },
-      { name: "นางสาวพรทิพา นุโปจา", phone: "0904407416" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "6", clubName: "ชมรมมวยมหาวิทยาลัยพะเยา (มวยไทยสมัครเล่น)", sport: "มวยไทยสมัครเล่น", 
-    presidentName: "นายณัฐชนน ตาหล้า", presidentPhone: "08 2896 2373", email: "natchanon@up.ac.th", 
-    advisors: [
-      { name: "นายเกรียงไกร แถบคำ", phone: "0956865743" },
-      { name: "ดร.อทิติ วลัญฐ์เพียร", phone: "0849417721" },
-      { name: "ผศ.ดร. ธีรภัทร ศรีรัตนโชติ", phone: "0865902493" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "7", clubName: "ชมรมเปตอง มหาวิทยาลัยพะเยา", sport: "เปตอง", 
-    presidentName: "นางสาวภัทรวนันท์ เรือนคำ", presidentPhone: "0828962373", email: "phatrawanan@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.ธเนศ ทองเดชศรี", phone: "0865670396" },
-      { name: "นายพงศกร ศิริคำน้อย", phone: "0875445792" },
-      { name: "นางสาวลานนา หมื่นจันทร์", phone: "0831546007" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "8", clubName: "ชมรมปิงปองมหาวิทยาลัยพะเยา", sport: "เทเบิลเทนนิส", 
-    presidentName: "นายนพวิชญ์ เชิงสุขศิริกุล", presidentPhone: "08 6557 6810", email: "nopawit@up.ac.th", 
-    advisors: [
-      { name: "นายณัฐกร คำปวน", phone: "0847139284" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "9", clubName: "ชมรมแบดมินตัน มหาวิทยาลัยพะเยา", sport: "แบดมินตัน", 
-    presidentName: "นายธนทัศน์ ชาววังฆ้อง", presidentPhone: "09 7964 4093", email: "thanathat@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.อักษรากร คำมาสุข", phone: "0956982162" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "10", clubName: "ชมรมฟุตซอล มหาวิทยาลัยพะเยา", sport: "ฟุตซอล", 
-    presidentName: "นายณัฐภูมินทร์ เถาเปียง", presidentPhone: "09 3574 6467", email: "natthapoomin@up.ac.th", 
-    advisors: [
-      { name: "ผศ.ดร.กฤษดา ตามประดิษฐ์", phone: "0876295552" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  },
-  { 
-    id: "11", clubName: "ชมรมวู้ดบอล มหาวิทยาลัยพะเยา", sport: "วู้ดบอล", 
-    presidentName: "นายพีรเดช สินประเสริฐ", presidentPhone: "08 0003 7723", email: "peeradet@up.ac.th", 
-    advisors: [
-      { name: "นายสิทธิวิทย์ อิ่มปัญญา", phone: "0988108101" }
-    ],
-    status: "active", createdAt: "1 ม.ค. 2568" 
-  }
-];
 
 const STATUS_LABEL = {
   active: { label: "เปิดใช้งาน", className: "bg-green-100 text-green-700" },
@@ -130,12 +33,20 @@ const STATUS_LABEL = {
 };
 
 export default function AdminClubsPage() {
-  const router = useRouter();
-  const [clubs, setClubs] = useState<ClubAccount[]>(MOCK_CLUBS);
+  const action = useRequestAction();
+  const [statusClub, setStatusClub] = useState<ClubAccount | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
   const [newPresidentForm, setNewPresidentForm] = useState({ presidentName: "", presidentPhone: "", email: "" });
   const [showAddNewClubModal, setShowAddNewClubModal] = useState(false);
+
+  const [sportsList, setSportsList] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/sports")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data.sports)) setSportsList(data.sports); })
+      .catch(() => undefined);
+  }, []);
   const [newClubForm, setNewClubForm] = useState({
     clubName: "",
     sport: "",
@@ -145,112 +56,122 @@ export default function AdminClubsPage() {
     password: ""
   });
 
-  const pendingCount = clubs.filter((c) => c.status === "pending").length;
-
-  const handleApprove = (id: string) => {
-    setClubs((prev) => prev.map((c) => c.id === id ? { ...c, status: "active" } : c));
-  };
-
-  const handleSetPresident = () => {
-    if (!selectedClubId || !newPresidentForm.presidentName || !newPresidentForm.email) return;
-    setClubs((prev) => prev.map((c) =>
-      c.id === selectedClubId
-        ? { ...c, presidentName: newPresidentForm.presidentName, presidentPhone: newPresidentForm.presidentPhone, email: newPresidentForm.email, status: "pending", createdAt: "วันนี้" }
-        : c
-    ));
-    setShowAddModal(false);
-    setSelectedClubId(null);
+  const load = useCallback(async () => {
+    const data = await fetchJson<{ clubs: { id: string; name: string; sport: string; presidentName?: string; presidentPhone?: string; email: string; advisors?: unknown; status?: string; isActive: boolean; createdAt: string }[] }>("/api/clubs");
+    return data.clubs.map((c): ClubAccount => ({ id: c.id, clubName: c.name, sport: c.sport, presidentName: c.presidentName || "-", presidentPhone: c.presidentPhone || "-", email: c.email,
+      advisors: Array.isArray(c.advisors) ? c.advisors.filter((a): a is Advisor => !!a && typeof a.name === "string" && typeof a.phone === "string") : [],
+      isActive: c.isActive,
+      status: c.status === "PENDING" ? "pending" : c.isActive ? "active" : "inactive", createdAt: new Date(c.createdAt).toLocaleDateString("th-TH") }));
+  }, []);
+  const resource = useRemoteData(load);
+  const clubs = resource.data ?? [];
+  const pendingCount = clubs.filter(c => c.status === "pending").length;
+  const handleStatusChange = () => action.run(async () => {
+    if (!statusClub) return;
+    await fetchJson(`/api/clubs/${statusClub.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !statusClub.isActive }),
+    });
+    setStatusClub(null);
+    resource.retry();
+  });
+  const handleApprove = (id: string) => action.run(async () => {
+    await fetchJson(`/api/admin/clubs/${id}/approve`, { method: "PUT" });
+    resource.retry();
+  });
+  const handleSetPresident = () => action.run(async () => {
+    if (!selectedClubId) return;
+    await fetchJson(`/api/admin/clubs/${selectedClubId}/president`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newPresidentForm) });
+    setShowAddModal(false); setSelectedClubId(null);
     setNewPresidentForm({ presidentName: "", presidentPhone: "", email: "" });
-  };
-
-  const handleAddNewClub = () => {
-    if (!newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password) return;
-    
-    const newClub: ClubAccount = {
-      id: Math.random().toString(36).substr(2, 9),
-      clubName: newClubForm.clubName,
-      sport: newClubForm.sport,
-      presidentName: newClubForm.presidentName,
-      presidentPhone: newClubForm.presidentPhone,
-      email: newClubForm.username,
-      advisors: [],
-      status: "active",
-      createdAt: "วันนี้"
-    };
-    
-    setClubs([...clubs, newClub]);
+    resource.retry();
+  });
+  const handleAddNewClub = () => action.run(async () => {
+    await fetchJson("/api/clubs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newClubForm.clubName, sport: newClubForm.sport, email: newClubForm.username, password: newClubForm.password, presidentName: newClubForm.presidentName, presidentPhone: newClubForm.presidentPhone }) });
     setShowAddNewClubModal(false);
     setNewClubForm({ clubName: "", sport: "", presidentName: "", presidentPhone: "", username: "", password: "" });
-  };
+    resource.retry();
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
-      <div className="max-w-7xl mx-auto space-y-5">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 font-sans text-slate-800">
+      <div className="max-w-full lg:max-w-7xl mx-auto space-y-6">
 
-        {/* Top navigation: Backward */}
-        <div className="flex items-center justify-between">
-          <BackButton />
-          <LogoutButton />
-        </div>
-
-        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+        {/* Top Header */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="h-1.5 bg-gradient-to-r from-blue-950 via-blue-700 to-violet-700" />
+          <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
-            <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-              ระบบผู้ดูแลระบบกลาง · กองกิจการนิสิต มหาวิทยาลัยพะเยา
-            </span>
-            <h1 className="text-xl font-bold text-slate-900 mt-0.5">
-              การบริหารจัดการบัญชีผู้ใช้งานประธานชมรมกีฬา
-            </h1>
-            <p className="text-xs text-slate-500">
-              กำหนดสิทธิ์และแต่งตั้งผู้รับผิดชอบชมรมกีฬาแต่ละชนิด สำหรับการแข่งขัน กกมท. ครั้งที่ 52
-            </p>
+            <div className="mb-3"><BackButton href="/admin" label="กลับหน้า Admin" /></div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-800">Club Administration</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950">จัดการบัญชีประธานชมรม</h1>
+            <p className="text-slate-500 text-sm mt-1">สร้างชมรม แต่งตั้งประธาน และอนุมัติบัญชีจากข้อมูลจริงในระบบ</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowAddNewClubModal(true)}
-              className="bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg text-xs transition-colors cursor-pointer"
+              className="bg-blue-900 hover:bg-blue-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              + เพิ่มชมรมกีฬาใหม่
+              <span>+</span> เพิ่มชมรมใหม่
             </button>
+            <LogoutButton />
+          </div>
           </div>
         </div>
 
+        <nav aria-label="เมนูจัดการระบบ" className="flex gap-2 border-b border-gray-200">
+          <Link
+            href="/admin/users"
+            className="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+          >
+            👥 การจัดการผู้ใช้งาน
+          </Link>
+          <Link
+            href="/admin/clubs"
+            aria-current="page"
+            className="border-b-2 border-blue-600 px-4 py-2 text-sm font-semibold text-blue-600"
+          >
+            🏟️ จัดการชมรมกีฬา
+          </Link>
+        </nav>
+        <RequestState loading={resource.loading} error={resource.error || action.error} retry={resource.retry} />
+        {action.success && <p role="status">{action.success}</p>}
+        {!resource.loading && !resource.error && clubs.length === 0 && <p>ยังไม่มีชมรม</p>}
         {pendingCount > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between shadow-xs">
-            <div>
-              <h3 className="text-xs font-bold text-amber-900">คำขอแต่งตั้งหรือเปลี่ยนตัวประธานชมรมรอการอนุมัติ</h3>
-              <p className="text-xs text-amber-800 mt-0.5">มีคำขอจำนวน <span className="font-bold">{pendingCount}</span> รายการ ที่รอการอนุมัติจากผู้ดูแลระบบ</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔔</span>
+              <div>
+                <h3 className="text-sm font-semibold text-amber-900">แจ้งเตือน: คำขอรอการอนุมัติ</h3>
+                <p className="text-sm text-amber-800 mt-0.5">มีคำขอเปลี่ยน/แต่งตั้งประธานชมรมใหม่จำนวน <span className="font-bold">{pendingCount}</span> รายการ ที่รอการอนุมัติจากคุณ</p>
+              </div>
             </div>
           </div>
         )}
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 shadow-xs">
-          <strong>แนวปฏิบัติ:</strong> เมื่อมีการจัดตั้งชมรมใหม่หรือเปลี่ยนวาระประธานชมรม ผู้ดูแลระบบต้องกำหนดบัญชีผู้ใช้งานและอนุมัติสิทธิ์ในระบบนี้ เพื่อให้ประธานชมรมสามารถเข้าสู่ระบบและจัดทำบัญชีรายชื่อนักกีฬาได้
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-sm text-blue-800 shadow-sm">
+          📋 เมื่อชมรมจัดตั้งใหม่ ให้ Admin กำหนด Account และสิทธิ์ประธานชมรมในหน้านี้ ประธานชมรมจะสามารถ Login เข้าระบบได้หลังจาก Admin อนุมัติแล้วเท่านั้น
         </div>
 
         <div className="space-y-3">
           {clubs.map((club) => (
-            <div key={club.id} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+            <div key={club.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h2 className="font-semibold text-slate-900 text-sm">{club.clubName}</h2>
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-medium ${
-                      club.status === "active"
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                        : club.status === "pending"
-                        ? "bg-amber-50 text-amber-800 border-amber-200"
-                        : "bg-slate-100 text-slate-600 border-slate-200"
-                    }`}>
+                    <h2 className="font-medium text-gray-900">{club.clubName}</h2>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_LABEL[club.status].className}`}>
                       {STATUS_LABEL[club.status].label}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">ชนิดกีฬา: {club.sport}</p>
+                  <p className="text-sm font-medium">การเข้าใช้งาน: {club.isActive ? "เปิดใช้งาน" : "ถูกระงับ"}</p>
+                  <p className="text-sm text-gray-500">กีฬา: {club.sport}</p>
                   {club.presidentName !== "-" && (
-                    <div className="mt-3 text-xs text-slate-600">
-                      <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 space-y-2">
+                    <div className="mt-2 text-sm text-gray-500">
+                      <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                         <div>
-                          <p className="font-semibold text-slate-800">ประธานชมรม</p>
+                          <p className="font-medium text-gray-700">ประธานชมรม</p>
                           <p>{club.presidentName} {club.presidentPhone && `(โทร: ${club.presidentPhone})`}</p>
                           <p className="text-xs text-gray-400">{club.email}</p>
                         </div>
@@ -269,20 +190,19 @@ export default function AdminClubsPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex gap-2 shrink-0">
                   {club.status === "pending" && (
-                    <button
-                      onClick={() => handleApprove(club.id)}
-                      className="px-3 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 text-white text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      อนุมัติ
-                    </button>
+                    <button disabled={action.busy} onClick={() => handleApprove(club.id)} className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm transition-colors">อนุมัติ</button>
                   )}
+                  <button type="button" disabled={action.busy} onClick={() => setStatusClub(club)} className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm disabled:opacity-50">
+                    {club.isActive ? "ระงับบัญชี" : "เปิดใช้งานบัญชี"}
+                  </button>
+                  <AdminPasswordReset id={club.id} kind="clubs" label={club.email} />
                   <button
                     onClick={() => { setSelectedClubId(club.id); setShowAddModal(true); }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
                   >
-                    {club.status === "inactive" ? "แต่งตั้งประธาน" : "เปลี่ยนตัวประธาน"}
+                    {club.status === "inactive" ? "กำหนดประธาน" : "เปลี่ยนประธาน"}
                   </button>
                 </div>
               </div>
@@ -291,77 +211,64 @@ export default function AdminClubsPage() {
         </div>
       </div>
 
+      {statusClub && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div role="dialog" aria-modal="true" aria-labelledby="club-status-title" className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <h2 id="club-status-title" className="text-lg font-semibold">{statusClub.isActive ? "ยืนยันระงับบัญชีชมรม" : "ยืนยันเปิดใช้งานบัญชีชมรม"}</h2>
+            <p className="mt-3">{statusClub.clubName} ({statusClub.email})</p>
+            <p className="mt-2 text-sm">{statusClub.isActive ? "บัญชีชมรมและผู้ใช้ที่เชื่อมกับชมรมนี้จะเข้าใช้งานไม่ได้ แม้รีเซ็ตรหัสผ่าน" : "อนุญาตให้บัญชีชมรมกลับเข้าใช้งานได้"}</p>
+            <RequestState error={action.error} />
+            <div className="mt-5 flex gap-3">
+              <button type="button" disabled={action.busy} onClick={() => setStatusClub(null)} className="border rounded-lg px-4 py-2">ยกเลิก</button>
+              <button type="button" disabled={action.busy} onClick={handleStatusChange} className="bg-blue-900 text-white rounded-lg px-4 py-2 disabled:opacity-50">{action.busy ? "กำลังบันทึก…" : "ยืนยัน"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal กำหนด/เปลี่ยนประธาน */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-xl border border-slate-300 shadow-xl max-w-sm w-full p-6 space-y-4">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">แต่งตั้งประธานชมรมกีฬา</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {clubs.find((c) => c.id === selectedClubId)?.clubName}
-                </p>
-              </div>
-              <button
-                onClick={() => { setShowAddModal(false); setSelectedClubId(null); }}
-                className="text-slate-400 hover:text-slate-600 text-sm"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">กำหนดประธานชมรม</h2>
+            <p className="text-gray-500 text-sm mb-4">
+              {clubs.find((c) => c.id === selectedClubId)?.clubName}
+            </p>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชื่อ - นามสกุล ประธานชมรม <span className="text-rose-600">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล ประธานชมรม</label>
                 <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="เช่น นายสมชาย ใจดี"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newPresidentForm.presidentName}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, presidentName: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
                 <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="0XX-XXX-XXXX"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={newPresidentForm.presidentPhone}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, presidentPhone: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  อีเมลมหาวิทยาลัย (@up.ac.th) <span className="text-rose-600">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email มหาวิทยาลัย</label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="xxxxxxxx@up.ac.th"
                   value={newPresidentForm.email}
                   onChange={(e) => setNewPresidentForm((p) => ({ ...p, email: e.target.value }))}
                 />
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed bg-slate-50 p-2 rounded border border-slate-100">
-                เมื่อบันทึกแล้ว ระบบจะส่งสถานะเป็น "รอการอนุมัติ" ให้ผู้ดูแลระบบตรวจสอบอีกครั้งก่อนเปิดสิทธิ์การใช้งาน
-              </p>
+              <p className="text-xs text-gray-400">หลังจากบันทึก ระบบจะส่ง status เป็น &quot;รอการอนุมัติ&quot; ให้ Admin ยืนยันอีกครั้งก่อนที่ประธานชมรมจะ login ได้</p>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => { setShowAddModal(false); setSelectedClubId(null); }}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleSetPresident}
-                disabled={!newPresidentForm.presidentName || !newPresidentForm.email}
-                className="px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
-              >
-                บันทึกข้อมูล
-              </button>
+            <RequestState error={action.error} retry={resource.retry} />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowAddModal(false); setSelectedClubId(null); }} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ยกเลิก</button>
+              <button onClick={handleSetPresident} disabled={action.busy || !newPresidentForm.presidentName || !newPresidentForm.email} className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">บันทึก</button>
             </div>
           </div>
         </div>
@@ -369,94 +276,72 @@ export default function AdminClubsPage() {
 
       {/* Modal เพิ่มชมรมใหม่ */}
       {showAddNewClubModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-xl border border-slate-300 shadow-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">เพิ่มชมรมกีฬาใหม่และกำหนดบัญชีผู้ใช้</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  ขึ้นทะเบียนชมรมสังกัดมหาวิทยาลัยพะเยาและสร้างสิทธิ์เข้าใช้งานระบบ
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddNewClubModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">เพิ่มชมรมกีฬาใหม่</h2>
+            <p className="text-gray-500 text-sm mb-4">
+              กำหนดสิทธิ์ Username และ Password ให้กับประธานชมรมใหม่
+            </p>
 
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 text-xs">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชื่อชมรมกีฬา <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="เช่น ชมรมฟุตซอล มหาวิทยาลัยพะเยา"
-                  value={newClubForm.clubName}
-                  onChange={(e) => setNewClubForm((p) => ({ ...p, clubName: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชนิดกีฬาที่รับผิดชอบ <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                  placeholder="เช่น ฟุตซอล"
-                  value={newClubForm.sport}
-                  onChange={(e) => setNewClubForm((p) => ({ ...p, sport: e.target.value }))}
-                />
-              </div>
-
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    ชื่อ - นามสกุล ประธานชมรม <span className="text-rose-600">*</span>
-                  </label>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อชมรม</label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="ชื่อ - นามสกุล"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="เช่น ชมรมฟุตซอล"
+                    value={newClubForm.clubName}
+                    onChange={(e) => setNewClubForm((p) => ({ ...p, clubName: e.target.value }))}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชนิดกีฬา</label>
+                  <input
+                    list="admin-sports-list"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    placeholder="เลือกหรือพิมพ์ชนิดกีฬา..."
+                    value={newClubForm.sport}
+                    onChange={(e) => setNewClubForm((p) => ({ ...p, sport: e.target.value }))}
+                  />
+                  <datalist id="admin-sports-list">
+                    {sportsList.map((s) => <option key={s} value={s} />)}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล ประธาน</label>
+                  <input
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={newClubForm.presidentName}
                     onChange={(e) => setNewClubForm((p) => ({ ...p, presidentName: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ติดต่อ</label>
                   <input
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
-                    placeholder="0XX-XXX-XXXX"
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={newClubForm.presidentPhone}
                     onChange={(e) => setNewClubForm((p) => ({ ...p, presidentPhone: e.target.value }))}
                   />
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-3 mt-1">
-                <p className="text-xs font-bold text-slate-800 mb-2 uppercase tracking-wider">
-                  กำหนดบัญชีผู้ใช้งานสำหรับ Login (ประธานชมรม)
-                </p>
+              <div className="border-t border-gray-200 pt-4 mt-2">
+                <p className="text-sm font-medium text-blue-700 mb-3">ตั้งค่าบัญชีผู้ใช้ (สำหรับ Login)</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Username <span className="text-rose-600">*</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">อีเมลสำหรับเข้าสู่ระบบ</label>
                     <input
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-blue-900 outline-none"
-                      placeholder="เช่น futsal_up"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      type="email" placeholder="club@example.ac.th"
                       value={newClubForm.username}
                       onChange={(e) => setNewClubForm((p) => ({ ...p, username: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Password <span className="text-rose-600">*</span>
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                     <input
                       type="password"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
+                      className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="••••••••"
                       value={newClubForm.password}
                       onChange={(e) => setNewClubForm((p) => ({ ...p, password: e.target.value }))}
@@ -466,19 +351,15 @@ export default function AdminClubsPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => setShowAddNewClubModal(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                ยกเลิก
-              </button>
+            <RequestState error={action.error} retry={resource.retry} />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowAddNewClubModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition-colors">ยกเลิก</button>
               <button
                 onClick={handleAddNewClub}
-                disabled={!newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password}
-                className="px-4 py-1.5 rounded-lg bg-blue-900 hover:bg-blue-800 disabled:bg-slate-300 text-white text-xs font-medium transition-colors cursor-pointer"
+                disabled={action.busy || !newClubForm.clubName || !newClubForm.sport || !newClubForm.presidentName || !newClubForm.username || !newClubForm.password}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium py-2.5 rounded-lg text-sm transition-colors"
               >
-                บันทึกและขึ้นทะเบียนชมรม
+                บันทึกและสร้างชมรม
               </button>
             </div>
           </div>
