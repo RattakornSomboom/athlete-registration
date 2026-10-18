@@ -9,12 +9,12 @@ import { ATHLETICS_EVENTS, ATHLETICS_GENDERS, eventLabel, type Heatmap, type Hea
 
 type HeatmapData = Heatmap & { isDemo: boolean };
 
-// สีตามระดับ + ตัวอักษรระดับในช่องเสมอ (ไม่พึ่งสีอย่างเดียว) ระดับ พอใช้ลงไปคือจุดอ่อน
+// สีตามระดับ + ตัวอักษรระดับในช่องเสมอ (ไม่พึ่งสีอย่างเดียว) ระดับ ต่ำ และ ต่ำมาก คือจุดอ่อน (ปานกลางไม่ใช่จุดอ่อน)
 function cellClass(cell: HeatmapCell | null): string {
   if (!cell) return "bg-white text-slate-300";
-  if (cell.score >= 80) return "bg-emerald-100 text-emerald-900";
-  if (cell.score >= 60) return "bg-slate-100 text-slate-800";
-  if (cell.score >= 40) return "bg-amber-100 text-amber-900";
+  if (cell.score >= 75) return "bg-emerald-100 text-emerald-900";
+  if (cell.score >= 50) return "bg-slate-100 text-slate-800";
+  if (cell.score >= 25) return "bg-amber-100 text-amber-900";
   return "bg-rose-200 text-rose-900";
 }
 
@@ -72,7 +72,7 @@ export default function ExcellenceHeatmapPage() {
         <EmptyText>ไม่พบนักกีฬาตามตัวกรองที่เลือก หรือยังไม่มีนักกีฬากรีฑาที่ผ่านการคัดเลือก</EmptyText>
       ) : (
         <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
             <caption className="sr-only">ระดับผลทดสอบสมรรถภาพรายสถานีของนักกีฬาแต่ละคน</caption>
             <thead className="bg-slate-50 text-slate-600">
               <tr>
@@ -119,7 +119,7 @@ export default function ExcellenceHeatmapPage() {
         </section>
       ))}
       <p className="text-xs text-slate-500">
-        จุดอ่อน = สถานีระดับพอใช้ลงไป · เรียงคนที่มีจุดอ่อนมากที่สุดก่อน · แถวสรุปนับเฉพาะคนที่ทดสอบสถานีนั้น (คนที่ไม่มีผลไม่ถูกนับเป็นจุดอ่อน) · คะแนนเฉลี่ย: ดีมาก 100, ดี 80, ปานกลาง 60, พอใช้ 40, ต่ำ 20, ต่ำมาก 0
+        จุดอ่อน = สถานีระดับต่ำและต่ำมาก (ปานกลางไม่นับ) · เรียงคนที่มีจุดอ่อนมากที่สุดก่อน · แถวสรุปนับเฉพาะคนที่ทดสอบสถานีนั้น (คนที่ไม่มีผลไม่ถูกนับเป็นจุดอ่อน) · คะแนนเฉลี่ย: ดีมาก 100, ดี 75, ปานกลาง 50, ต่ำ 25, ต่ำมาก 0 · สถานีและระดับตามเกณฑ์สมรรถภาพกลุ่ม 9
       </p>
     </Page>
   );

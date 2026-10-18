@@ -21,7 +21,8 @@
 ## 4. Fitness และสู่ความเป็นเลิศ (Excellence)
 - นำเข้าผลสมรรถภาพจาก Excel (`staff/fitness-tests/import`, `lib/fitness-import-service.ts`) → `FitnessTestResult` (คง `_excellence` ไว้ด้วย `preserveExcellenceMetadata`)
 - Excellence อยู่ที่หน้า `/staff/excellence` (ภาพรวม), `/staff/excellence/[applicationId]` (รายคน), `/staff/excellence/heatmap` (แผนที่จุดอ่อนทีม × สถานี), `/staff/excellence/benchmarks` (เป้าหมาย) เฉพาะกรีฑา ลู่ (เวลา) และลาน (ระยะ) ใบสมัครสถานะ `STAFF_APPROVED`/`FINAL_SELECTED`
-- ลำดับงาน: ผลทดสอบสมรรถภาพ → จุดอ่อน (ระดับพอใช้ลงไป) → แผนพัฒนาที่แต่ละข้อผูกกับสถานี → บันทึกผลแข่ง → ทดสอบซ้ำ (สถานีเทียบครั้งก่อน, ผลแข่งเทียบผลล่าสุดด้วย SWC; ทิศทาง: ลู่ น้อยกว่าดีกว่า, ลาน มากกว่าดีกว่า)
+- ลำดับงาน: ผลทดสอบสมรรถภาพ → จุดอ่อน (ระดับต่ำและต่ำมาก ตามเกณฑ์กลุ่ม 9) → แผนพัฒนาที่แต่ละข้อผูกกับสถานี → บันทึกผลแข่ง → ทดสอบซ้ำ (สถานีเทียบครั้งก่อน, ผลแข่งเทียบผลล่าสุดด้วย SWC; ทิศทาง: ลู่ น้อยกว่าดีกว่า, ลาน มากกว่าดีกว่า)
+- สถานีของ Excellence = 11 รายการของเกณฑ์กลุ่ม 9 (key ตรงกับ `Group9TestKey`) ระดับมาจากข้อความที่บันทึกไว้ หรือคำนวณจากตัวเลขดิบใต้ key ของสถานีด้วย `rateGroup9Value` ตามเพศของนักกีฬา (service ส่ง rater เข้า `extractStationRatings`)
 - Logic อยู่ใน `lib/excellence-athletics.ts` (pure), `excellence-validation.ts`, `excellence-service.ts`, ชุดสาธิต `excellence-demo.ts` (`?demo=true`, อ่านอย่างเดียว)
 
 ## 5. เอกสาร

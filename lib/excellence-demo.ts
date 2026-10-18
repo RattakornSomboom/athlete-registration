@@ -78,9 +78,26 @@ function athlete(
   };
 }
 
-const STRONG: Record<string, FitnessRating> = {
-  sprint40m: "ดีมาก", legPower: "ดีมาก", agility: "ดี", flexibility: "ดี", grip: "ดี", aerobic: "ดี", body: "ดีมาก",
+// สถานีตามเกณฑ์กลุ่ม 9 ครบ 11 รายการ เริ่มจากระดับ "ปานกลาง" แล้วกำหนดเฉพาะรายการที่ต่างออกไปของแต่ละคน
+const MIDDLE: Record<string, FitnessRating> = {
+  bodyFatPercent: "ปานกลาง",
+  sitAndReachCm: "ปานกลาง",
+  backExtensionCm: "ปานกลาง",
+  gripStrengthRatio: "ปานกลาง",
+  legStrengthRatio: "ปานกลาง",
+  sitUps1Min: "ปานกลาง",
+  pushUps1Min: "ปานกลาง",
+  sprint40mSec: "ปานกลาง",
+  wingatePowerWkg: "ปานกลาง",
+  wingateCapacityWkg: "ปานกลาง",
+  vo2maxMlKgMin: "ปานกลาง",
 };
+const ratings = (overrides: Record<string, FitnessRating>): Record<string, FitnessRating> => ({ ...MIDDLE, ...overrides });
+
+const STRONG = ratings({
+  bodyFatPercent: "ดีมาก", sitAndReachCm: "ดี", backExtensionCm: "ดี", gripStrengthRatio: "ดี", legStrengthRatio: "ดีมาก",
+  sitUps1Min: "ดี", pushUps1Min: "ดี", sprint40mSec: "ดีมาก", wingatePowerWkg: "ดี", wingateCapacityWkg: "ดี", vo2maxMlKgMin: "ดี",
+});
 
 export function getDemoAthletes(): AthleteRecord[] {
   return [
@@ -90,44 +107,44 @@ export function getDemoAthletes(): AthleteRecord[] {
       ["100m", 10.98, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
     ]),
     athlete(2, "นายภานุวัฒน์ ศรีสุข", "ชาย", "คณะวิศวกรรมศาสตร์",
-      { sprint40m: "พอใช้", legPower: "ต่ำ", agility: "ดี", flexibility: "ปานกลาง", grip: "ปานกลาง", aerobic: "ปานกลาง", body: "ดี" },
+      ratings({ sprint40mSec: "ต่ำ", legStrengthRatio: "ต่ำ", bodyFatPercent: "ดี" }),
       [
         ["100m", 11.62, "2026-03-14", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["100m", 11.48, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-2-p1", "2026-08-25", "2026-10-20", "ACTIVE", [
-        ["legPower", "Plyometrics (box jump, bounding) สัปดาห์ละ 2 ครั้ง"],
-        ["sprint40m", "ฝึกออกตัวจากบล็อกและเร่งความเร็วช่วง 30 เมตรแรก"],
+        ["legStrengthRatio", "Squat และ plyometrics (box jump, bounding) สัปดาห์ละ 2 ครั้ง"],
+        ["sprint40mSec", "ฝึกออกตัวจากบล็อกและเร่งความเร็วช่วง 30 เมตรแรก"],
       ])],
-      [retest("demo-2-t1", "demo-2-p1", "2026-10-05", { sprint40m: "ปานกลาง", legPower: "ปานกลาง" }, "100m", 11.3)],
+      [retest("demo-2-t1", "demo-2-p1", "2026-10-05", { sprint40mSec: "ปานกลาง", legStrengthRatio: "ปานกลาง" }, "100m", 11.3)],
     ),
     athlete(3, "นางสาวพิมพ์ชนก แก้วมณี", "หญิง", "คณะพยาบาลศาสตร์",
-      { sprint40m: "ดี", legPower: "ดี", agility: "ปานกลาง", flexibility: "ต่ำ", grip: "ปานกลาง", aerobic: "ดี", body: "ดี" },
+      ratings({ sprint40mSec: "ดี", legStrengthRatio: "ดี", sitAndReachCm: "ต่ำ", vo2maxMlKgMin: "ดี", bodyFatPercent: "ดี" }),
       [
         ["100m", 12.95, "2026-03-14", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["100m", 12.88, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-3-p1", "2026-08-25", "2026-10-20", "ACTIVE", [
-        ["flexibility", "ยืดเหยียดสะโพกและต้นขาด้านหลังก่อน-หลังซ้อมทุกวัน"],
+        ["sitAndReachCm", "ยืดเหยียดสะโพกและต้นขาด้านหลังก่อน-หลังซ้อมทุกวัน"],
       ])],
-      [retest("demo-3-t1", "demo-3-p1", "2026-10-05", { flexibility: "พอใช้" }, "100m", 12.84)],
+      [retest("demo-3-t1", "demo-3-p1", "2026-10-05", { sitAndReachCm: "ปานกลาง" }, "100m", 12.84)],
     ),
     athlete(4, "นางสาวณัฐธิดา บุญมา", "หญิง", "คณะแพทยศาสตร์", STRONG, [
       ["100m", 12.55, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
     ]),
     athlete(5, "นายธนกร มีสุข", "ชาย", "คณะเกษตรศาสตร์",
-      { sprint40m: "ดี", legPower: "ดี", agility: "ดี", flexibility: "ปานกลาง", grip: "ดี", aerobic: "ต่ำ", body: "ดี" },
+      ratings({ sprint40mSec: "ดี", legStrengthRatio: "ดี", gripStrengthRatio: "ดี", bodyFatPercent: "ดี", vo2maxMlKgMin: "ต่ำ" }),
       [
         ["400m", 51.8, "2026-03-15", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["400m", 50.9, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-5-p1", "2026-08-25", "2026-10-30", "ACTIVE", [
-        ["aerobic", "Tempo run 6×300 เมตร พักเดิน 90 วินาที สัปดาห์ละ 2 ครั้ง"],
+        ["vo2maxMlKgMin", "Tempo run 6×300 เมตร พักเดิน 90 วินาที สัปดาห์ละ 2 ครั้ง"],
       ])],
-      [retest("demo-5-t1", "demo-5-p1", "2026-10-06", { aerobic: "ปานกลาง" }, "400m", 50.4)],
+      [retest("demo-5-t1", "demo-5-p1", "2026-10-06", { vo2maxMlKgMin: "ปานกลาง" }, "400m", 50.4)],
     ),
     athlete(6, "นายอภิสิทธิ์ ทองดี", "ชาย", "คณะบริหารธุรกิจ",
-      { sprint40m: "ปานกลาง", legPower: "พอใช้", agility: "ต่ำ", flexibility: "ปานกลาง", grip: "ปานกลาง", aerobic: "ปานกลาง", body: "ปานกลาง" },
+      ratings({ legStrengthRatio: "ต่ำ", sitUps1Min: "ต่ำ" }),
       [["400m", 53.2, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"]],
     ),
     athlete(7, "นางสาวกมลชนก สายทอง", "หญิง", "คณะศิลปศาสตร์", STRONG, [
@@ -135,46 +152,46 @@ export function getDemoAthletes(): AthleteRecord[] {
       ["400m", 59.4, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"],
     ]),
     athlete(8, "นางสาวสุภาวดี จันทร์หอม", "หญิง", "คณะวิทยาศาสตร์",
-      { sprint40m: "ปานกลาง", legPower: "พอใช้", agility: "ปานกลาง", flexibility: "ดี", grip: "ปานกลาง", aerobic: "ดี", body: "ดี" },
+      ratings({ legStrengthRatio: "ต่ำ", sitAndReachCm: "ดี", vo2maxMlKgMin: "ดี", bodyFatPercent: "ดี" }),
       [
         ["400m", 62.3, "2026-03-15", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["400m", 61.8, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-8-p1", "2026-08-25", "2026-10-30", "ACTIVE", [
-        ["legPower", "Squat และ lunge แบบมีน้ำหนัก สัปดาห์ละ 2 ครั้ง"],
+        ["legStrengthRatio", "Squat และ lunge แบบมีน้ำหนัก สัปดาห์ละ 2 ครั้ง"],
       ])],
-      [retest("demo-8-t1", "demo-8-p1", "2026-10-06", { legPower: "พอใช้" }, "400m", 62.1)],
+      [retest("demo-8-t1", "demo-8-p1", "2026-10-06", { legStrengthRatio: "ต่ำ" }, "400m", 62.1)],
     ),
     athlete(9, "นายวรเมธ คำแก้ว", "ชาย", "คณะเทคโนโลยีสารสนเทศและการสื่อสาร", STRONG, [
       ["200m", 22.4, "2026-08-24", "กีฬามหาวิทยาลัยรอบมหกรรม"],
     ]),
     athlete(10, "นางสาวอรอุมา ปัญญาดี", "หญิง", "คณะนิติศาสตร์",
-      { sprint40m: "ดี", legPower: "ปานกลาง", agility: "ดี", flexibility: "ดี", grip: "พอใช้", aerobic: "ปานกลาง", body: "ดี" },
+      ratings({ gripStrengthRatio: "ต่ำ", sprint40mSec: "ดี", sitAndReachCm: "ดี", bodyFatPercent: "ดี" }),
       [],
     ),
     // รายการลาน (วัดระยะ ยิ่งมากยิ่งดี)
     athlete(11, "นายปฏิภาณ เจริญสุข", "ชาย", "คณะสาธารณสุขศาสตร์",
-      { sprint40m: "ดี", legPower: "พอใช้", agility: "ดี", flexibility: "ปานกลาง", grip: "ดี", aerobic: "ปานกลาง", body: "ดี" },
+      ratings({ legStrengthRatio: "ต่ำ", sprint40mSec: "ดี", gripStrengthRatio: "ดี", bodyFatPercent: "ดี" }),
       [
         ["longJump", 6.85, "2025-11-20", "คัดตัวภายในมหาวิทยาลัย 2568"],
         ["longJump", 7.05, "2026-03-14", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["longJump", 7.18, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-11-p1", "2026-08-25", "2026-10-20", "ACTIVE", [
-        ["legPower", "Plyometrics และ jump squat สัปดาห์ละ 2 ครั้ง"],
+        ["legStrengthRatio", "Squat หนัก และ jump squat สัปดาห์ละ 2 ครั้ง"],
       ])],
-      [retest("demo-11-t1", "demo-11-p1", "2026-10-05", { legPower: "ปานกลาง" }, "longJump", 7.3)],
+      [retest("demo-11-t1", "demo-11-p1", "2026-10-05", { legStrengthRatio: "ปานกลาง" }, "longJump", 7.3)],
     ),
     athlete(12, "นางสาวชลธิชา แสงทอง", "หญิง", "คณะรัฐศาสตร์และสังคมศาสตร์",
-      { sprint40m: "ปานกลาง", legPower: "ปานกลาง", agility: "ปานกลาง", flexibility: "ดี", grip: "ต่ำ", aerobic: "ปานกลาง", body: "ดี" },
+      ratings({ gripStrengthRatio: "ต่ำ", sitAndReachCm: "ดี", bodyFatPercent: "ดี" }),
       [
         ["shotPut", 12.1, "2026-03-15", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
         ["shotPut", 12.8, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"],
       ],
       [plan("demo-12-p1", "2026-08-25", "2026-10-30", "ACTIVE", [
-        ["grip", "ฝึกแรงบีบมือและแรงดึง สัปดาห์ละ 2 ครั้ง"],
+        ["gripStrengthRatio", "ฝึกแรงบีบมือและแรงดึง สัปดาห์ละ 2 ครั้ง"],
       ])],
-      [retest("demo-12-t1", "demo-12-p1", "2026-10-06", { grip: "พอใช้" }, "shotPut", 12.82)],
+      [retest("demo-12-t1", "demo-12-p1", "2026-10-06", { gripStrengthRatio: "ปานกลาง" }, "shotPut", 12.82)],
     ),
   ];
 }

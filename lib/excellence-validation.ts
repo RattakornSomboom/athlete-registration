@@ -37,8 +37,21 @@ export const EVENT_RULES: Record<string, EventRule> = {
   javelin: { kind: "FIELD", genders: BOTH, min: 20, max: 95 },
   hammer: { kind: "FIELD", genders: BOTH, min: 20, max: 85 },
 };
-export const VALID_STATION_KEYS = ["sprint40m", "legPower", "agility", "flexibility", "grip", "aerobic", "body"] as const;
-const RATINGS: readonly FitnessRating[] = ["ดีมาก", "ดี", "ปานกลาง", "พอใช้", "ต่ำ", "ต่ำมาก"];
+// ตรงกับ Group9TestKey / ATHLETICS_STATIONS (test ตรวจว่าตรงกัน)
+export const VALID_STATION_KEYS = [
+  "bodyFatPercent",
+  "sitAndReachCm",
+  "backExtensionCm",
+  "gripStrengthRatio",
+  "legStrengthRatio",
+  "sitUps1Min",
+  "pushUps1Min",
+  "sprint40mSec",
+  "wingatePowerWkg",
+  "wingateCapacityWkg",
+  "vo2maxMlKgMin",
+] as const;
+const RATINGS: readonly FitnessRating[] = ["ดีมาก", "ดี", "ปานกลาง", "ต่ำ", "ต่ำมาก"];
 const STATUSES: readonly PlanStatus[] = ["ACTIVE", "COMPLETED", "CANCELLED"];
 const MAX_PLAN_ITEMS = 10;
 

@@ -28,6 +28,7 @@ import {
   type OverviewSummary,
 } from "@/lib/excellence-athletics";
 import { DEMO_BENCHMARKS, getDemoAthletes } from "@/lib/excellence-demo";
+import { rateGroup9Value, type Group9TestKey } from "@/lib/fitness-group9-norms";
 import {
   assertEventForGender,
   ExcellenceValidationError,
@@ -89,6 +90,8 @@ const KNOWN_EVENTS = new Set(ATHLETICS_EVENTS.map(event => event.key));
 function toRecord(app: ApplicationRow): AthleteRecord | null {
   const gender = parseAthleticsGender(app.category);
   if (!gender) return null;
+  // ตัวเลขดิบของสถานีตัดสินด้วยเกณฑ์กลุ่ม 9 ของเพศนั้น (ผลที่เป็นระดับข้อความอ่านตรง ๆ)
+  const rater = (stationKey: string, value: number) => rateGroup9Value(gender, stationKey as Group9TestKey, value);
   const profile = app.user.profile;
   const results: EventResult[] = app.matchEntries.flatMap(entry => {
     const event = entry.match.division ?? "";
@@ -111,7 +114,7 @@ function toRecord(app: ApplicationRow): AthleteRecord | null {
     gender,
     competitionName: app.competition.name,
     fitness: app.fitnessTestResult
-      ? { testedAt: app.fitnessTestResult.testedAt?.toISOString().slice(0, 10) ?? null, ratings: extractStationRatings(app.fitnessTestResult.scores) }
+      ? { testedAt: app.fitnessTestResult.testedAt?.toISOString().slice(0, 10) ?? null, ratings: extractStationRatings(app.fitnessTestResult.scores, rater) }
       : null,
     results,
     storage: readExcellenceStorage(app.fitnessTestResult?.scores),

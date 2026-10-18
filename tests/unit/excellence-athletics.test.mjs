@@ -9,6 +9,8 @@ import {
   eventKind,
   eventsForGender,
   extractStationRatings,
+  FITNESS_RATINGS,
+  normalizeRating,
   filterRows,
   formatMark,
   formatMarkInput,
@@ -28,12 +30,15 @@ import {
   personalBest,
   progressionSeries,
   readExcellenceStorage,
+  stationResults,
   summarizeRows,
   targetStatus,
   weakStations,
+  ATHLETICS_STATIONS,
   writeExcellenceStorage,
 } from "../../lib/excellence-athletics.ts";
 import { DEMO_BENCHMARKS, getDemoAthletes } from "../../lib/excellence-demo.ts";
+import { rateGroup9Value } from "../../lib/fitness-group9-norms.ts";
 
 const result = (id, event, mark, competedAt) => ({ id, event, mark, competedAt, competitionName: "x", stage: null });
 
@@ -177,15 +182,53 @@ test("SWC uses a floor or 0.5% of the baseline, per event kind", () => {
   assert.equal(classifyChange(-0.12, 0.04), "DECLINED");
 });
 
+test("stations are the 11 Group 9 tests and levels are the 5 Group 9 levels", () => {
+  assert.deepEqual(ATHLETICS_STATIONS.map(station => station.key), [
+    "bodyFatPercent", "sitAndReachCm", "backExtensionCm", "gripStrengthRatio", "legStrengthRatio", "sitUps1Min",
+    "pushUps1Min", "sprint40mSec", "wingatePowerWkg", "wingateCapacityWkg", "vo2maxMlKgMin",
+  ]);
+  assert.deepEqual([...FITNESS_RATINGS], ["ดีมาก", "ดี", "ปานกลาง", "ต่ำ", "ต่ำมาก"]);
+  assert.equal(normalizeRating("พอใช้"), "ปานกลาง");
+  assert.equal(normalizeRating(" ดี "), "ดี");
+  assert.equal(normalizeRating("เยี่ยม"), null);
+  assert.equal(normalizeRating(5), null);
+});
+
 test("station ratings are read from flat, items and object forms and mapped to station keys", () => {
-  assert.deepEqual(extractStationRatings({ "40m Sprint": "ดี", sitAndReachCm: { rating: "ต่ำ" }, legStrength: 42 }), { sprint40m: "ดี", flexibility: "ต่ำ" });
-  assert.deepEqual(extractStationRatings({ items: { agility: "ปานกลาง" }, _excellence: { v2: {} } }), { agility: "ปานกลาง" });
+  assert.deepEqual(extractStationRatings({ "40m Sprint": "ดี", sitAndReachCm: { rating: "ต่ำ" }, legStrength: 42 }), { sprint40mSec: "ดี", sitAndReachCm: "ต่ำ" });
+  assert.deepEqual(extractStationRatings({ items: { "ความอดทน (Multistage)": "ปานกลาง", "นอนแอ่นหลัง": "ดีมาก" }, _excellence: { v2: {} } }), { vo2maxMlKgMin: "ปานกลาง", backExtensionCm: "ดีมาก" });
   assert.deepEqual(extractStationRatings(null), {});
 });
 
-test("weak stations are rated พอใช้ or lower, weakest first", () => {
-  const weak = weakStations({ sprint40m: "พอใช้", legPower: "ต่ำ", agility: "ปานกลาง", grip: "ดีมาก" });
-  assert.deepEqual(weak.map(station => station.key), ["legPower", "sprint40m"]);
+test("the old middle level พอใช้ is read as ปานกลาง and is not a weakness", () => {
+  const ratings = extractStationRatings({ items: { แรงเหยียดขา: "พอใช้", ดันพื้น: "ต่ำ" } });
+  assert.deepEqual(ratings, { legStrengthRatio: "ปานกลาง", pushUps1Min: "ต่ำ" });
+  assert.deepEqual(weakStations(ratings).map(station => station.key), ["pushUps1Min"]);
+});
+
+test("raw numbers under a station key are rated by the supplied Group 9 rater, other keys are not guessed", () => {
+  const rater = gender => (key, value) => rateGroup9Value(gender, key, value);
+  const scores = { sprint40mSec: 5.5, sitAndReachCm: 20, bodyFatPercent: 9.2, vo2maxMlKgMin: 36.3, gripStrength: 40 };
+  assert.deepEqual(extractStationRatings(scores, rater("ชาย")), {
+    sprint40mSec: "ดี",
+    sitAndReachCm: "ปานกลาง",
+    bodyFatPercent: "ดีมาก",
+    vo2maxMlKgMin: "ต่ำมาก",
+  });
+  // ค่าเดียวกันให้ผลต่างกันตามเพศ: วิ่ง 40 ม. 6.20 วินาที = ดีมาก (หญิง) แต่ต่ำ (ชาย)
+  assert.equal(extractStationRatings({ sprint40mSec: 6.2 }, rater("หญิง")).sprint40mSec, "ดีมาก");
+  assert.equal(extractStationRatings({ sprint40mSec: 6.2 }, rater("ชาย")).sprint40mSec, "ต่ำ");
+  // ไม่มี rater ไม่เดาจากตัวเลข
+  assert.deepEqual(extractStationRatings(scores), {});
+});
+
+test("weak stations are rated ต่ำ or ต่ำมาก only, weakest first, and ปานกลาง is not weak", () => {
+  const ratings = { sprint40mSec: "ต่ำ", legStrengthRatio: "ต่ำมาก", sitAndReachCm: "ปานกลาง", gripStrengthRatio: "ดีมาก", pushUps1Min: "ดี" };
+  assert.deepEqual(weakStations(ratings).map(station => station.key), ["legStrengthRatio", "sprint40mSec"]);
+  const byKey = Object.fromEntries(stationResults(ratings).map(station => [station.key, station]));
+  assert.equal(byKey.sitAndReachCm.weak, false);
+  assert.equal(byKey.sitAndReachCm.score, 50);
+  assert.deepEqual([byKey.gripStrengthRatio.score, byKey.pushUps1Min.score, byKey.sprint40mSec.score, byKey.legStrengthRatio.score], [100, 75, 25, 0]);
 });
 
 test("v2 storage is written beside legacy _excellence data and other score keys", () => {
@@ -217,9 +260,9 @@ const plan = {
   endDate: "2026-10-20",
   status: "ACTIVE",
   items: [
-    { id: "i1", stationKey: "legPower", activity: "Plyometrics" },
-    { id: "i2", stationKey: "sprint40m", activity: "Block starts" },
-    { id: "i3", stationKey: "agility", activity: "Ladder drills" },
+    { id: "i1", stationKey: "legStrengthRatio", activity: "Squat" },
+    { id: "i2", stationKey: "sprint40mSec", activity: "Block starts" },
+    { id: "i3", stationKey: "sitUps1Min", activity: "Core circuits" },
   ],
   notes: null,
   updatedAt: "2026-08-25T00:00:00.000Z",
@@ -234,8 +277,8 @@ const retestOf = (overrides) => ({ id: "t1", planId: null, testedAt: "2026-10-05
 
 test("retest reports each plan item against its linked station", () => {
   const comparison = compareRetest({
-    retest: retestOf({ planId: "p1", ratings: { legPower: "ปานกลาง", sprint40m: "พอใช้" } }),
-    baselineRatings: { legPower: "ต่ำ", sprint40m: "พอใช้", agility: "ดี" },
+    retest: retestOf({ planId: "p1", ratings: { legStrengthRatio: "ปานกลาง", sprint40mSec: "ต่ำ" } }),
+    baselineRatings: { legStrengthRatio: "ต่ำ", sprint40mSec: "ต่ำ", sitUps1Min: "ดี" },
     plan,
     results,
   });
@@ -369,7 +412,7 @@ test("heatmap lists each athlete once, weakest first, and summarizes only tested
   const athletes = getDemoAthletes();
   const heatmap = buildHeatmap(athletes, {});
   assert.equal(heatmap.rows.length, athletes.length);
-  assert.equal(heatmap.stations.length, 7);
+  assert.equal(heatmap.stations.length, 11);
   const weakCounts = heatmap.rows.map(row => row.weakCount);
   assert.deepEqual(weakCounts, [...weakCounts].sort((a, b) => b - a));
   for (const station of heatmap.stations) {

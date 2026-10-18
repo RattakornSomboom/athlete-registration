@@ -83,7 +83,7 @@ const planBody = (overrides = {}) => ({
     startDate: "2026-08-25",
     endDate: "2026-10-20",
     status: "ACTIVE",
-    items: [{ stationKey: "legPower", activity: "Plyometrics" }],
+    items: [{ stationKey: "legStrengthRatio", activity: "Squat" }],
     ...overrides,
   },
 });
@@ -91,10 +91,10 @@ const planBody = (overrides = {}) => ({
 test("plan input requires items linked to valid stations and an ordered date range", () => {
   const parsed = validatePlanInput(planBody());
   assert.equal(parsed.revision, 2);
-  assert.deepEqual(parsed.plan.items, [{ id: null, stationKey: "legPower", activity: "Plyometrics" }]);
+  assert.deepEqual(parsed.plan.items, [{ id: null, stationKey: "legStrengthRatio", activity: "Squat" }]);
   rejects(() => validatePlanInput(planBody({ items: [] })), "items");
   rejects(() => validatePlanInput(planBody({ items: [{ stationKey: "swim", activity: "x" }] })), "items.0.stationKey");
-  rejects(() => validatePlanInput(planBody({ items: [{ stationKey: "grip", activity: " " }] })), "items.0.activity");
+  rejects(() => validatePlanInput(planBody({ items: [{ stationKey: "gripStrengthRatio", activity: " " }] })), "items.0.activity");
   rejects(() => validatePlanInput(planBody({ endDate: "2026-08-01" })), "endDate");
   rejects(() => validatePlanInput(planBody({ status: "DONE" })), "status");
   rejects(() => validatePlanInput({ ...planBody(), revision: undefined }), "revision");
@@ -103,19 +103,22 @@ test("plan input requires items linked to valid stations and an ordered date ran
 const retestBody = (overrides = {}) => ({
   applicationId: "app-1",
   revision: 0,
-  retest: { testedAt: "2026-10-05", ratings: { legPower: "ปานกลาง", grip: "" }, ...overrides },
+  retest: { testedAt: "2026-10-05", ratings: { legStrengthRatio: "ปานกลาง", gripStrengthRatio: "" }, ...overrides },
 });
 
 test("retest input keeps tested stations and pairs event with mark", () => {
   const parsed = validateRetestInput(retestBody({ event: "100m", mark: "11.30" }));
-  assert.deepEqual(parsed.retest.ratings, { legPower: "ปานกลาง" });
+  assert.deepEqual(parsed.retest.ratings, { legStrengthRatio: "ปานกลาง" });
   assert.equal(parsed.retest.mark, 11.3);
   assert.equal(validateRetestInput(retestBody({ event: "longJump", mark: "7.30" })).retest.mark, 7.3);
   rejects(() => validateRetestInput(retestBody({ event: "100m" })), "mark");
   rejects(() => validateRetestInput(retestBody({ mark: 11 })), "event");
   rejects(() => validateRetestInput(retestBody({ event: "longJump", mark: "11.3" })), "mark");
   rejects(() => validateRetestInput(retestBody({ ratings: {} })), "ratings");
-  rejects(() => validateRetestInput(retestBody({ ratings: { legPower: "เยี่ยม" } })), "ratings.legPower");
+  rejects(() => validateRetestInput(retestBody({ ratings: { legStrengthRatio: "เยี่ยม" } })), "ratings.legStrengthRatio");
+  // กลุ่ม 9 มี 5 ระดับ ไม่รับ "พอใช้" และชื่อสถานีเดิม
+  rejects(() => validateRetestInput(retestBody({ ratings: { legStrengthRatio: "พอใช้" } })), "ratings.legStrengthRatio");
+  rejects(() => validateRetestInput(retestBody({ ratings: { legPower: "ดี" } })), "ratings.legPower");
 });
 
 test("fitness re-import keeps Excellence v2 data", () => {

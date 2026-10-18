@@ -26,7 +26,7 @@ type Detail = AthleteDetail & { isDemo: boolean };
 type OpenForm = { kind: "result"; result?: EditableResult } | { kind: "plan"; plan: DevelopmentPlan | null } | { kind: "retest"; retest?: EditableRetest } | null;
 
 const ratingClass = (score: number) =>
-  score >= 80 ? "bg-emerald-100 text-emerald-800" : score >= 60 ? "bg-slate-100 text-slate-700" : "bg-rose-100 text-rose-800";
+  score >= 75 ? "bg-emerald-100 text-emerald-800" : score >= 50 ? "bg-slate-100 text-slate-700" : "bg-rose-100 text-rose-800";
 
 const TIMELINE_DOT: Record<TimelineEntry["kind"], string> = {
   FITNESS: "bg-slate-500",
@@ -171,7 +171,7 @@ export default function ExcellenceAthletePage() {
 
           <Section
             title="สมรรถภาพและจุดอ่อน"
-            description={detail.athlete.fitness?.testedAt ? `ผลทดสอบสมรรถภาพเมื่อ ${formatThaiDate(detail.athlete.fitness.testedAt)} · จุดอ่อนคือสถานีระดับพอใช้ลงไป` : undefined}
+            description={detail.athlete.fitness?.testedAt ? `ผลทดสอบสมรรถภาพเมื่อ ${formatThaiDate(detail.athlete.fitness.testedAt)} · จุดอ่อนคือสถานีระดับต่ำและต่ำมาก (เกณฑ์กลุ่ม 9)` : undefined}
           >
             {!hasFitness ? (
               <EmptyText>ยังไม่มีผลทดสอบสมรรถภาพ กรุณาบันทึกผลในแดชบอร์ดสมรรถภาพทางกายก่อน จึงจะสร้างแผนพัฒนาได้</EmptyText>

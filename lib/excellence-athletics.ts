@@ -1,4 +1,5 @@
 // โมดูลสู่ความเป็นเลิศ (Excellence) — กรีฑา ประเภทลู่ (วัดเวลา ยิ่งน้อยยิ่งดี) และประเภทลาน (วัดระยะ ยิ่งมากยิ่งดี)
+// สถานีและระดับสมรรถภาพตามเกณฑ์กลุ่ม 9 (กกมท.): 11 รายการทดสอบ 5 ระดับ ดีมาก/ดี/ปานกลาง/ต่ำ/ต่ำมาก
 // ฟังก์ชันทั้งหมดเป็น pure และไม่ import ค่า runtime จากโมดูลอื่น เพื่อให้ unit test รันด้วย node ได้โดยตรง
 // และใช้ร่วมกันทั้งฝั่ง server (lib/excellence-service.ts) และหน้า UI
 // "ผล" (mark) ของลู่เป็นวินาที ของลานเป็นเมตร ทิศทางของค่าที่ดีกว่าดูจาก kind ของรายการ
@@ -129,25 +130,33 @@ export function formatSignedMark(event: string, value: number | null): string {
   return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}${unit}`;
 }
 
-// ---------- สมรรถภาพ ----------
+// ---------- สมรรถภาพ (เกณฑ์สมรรถภาพทางกาย กลุ่ม 9 กกมท.) ----------
 
-export const FITNESS_RATINGS = ["ดีมาก", "ดี", "ปานกลาง", "พอใช้", "ต่ำ", "ต่ำมาก"] as const;
+// 5 ระดับตามเกณฑ์กลุ่ม 9 ("ปานกลาง" คือระดับกลาง; ระดับ "พอใช้" ของเกณฑ์ทั่วไปรุ่นเดิมอ่านเป็น "ปานกลาง")
+export const FITNESS_RATINGS = ["ดีมาก", "ดี", "ปานกลาง", "ต่ำ", "ต่ำมาก"] as const;
 export type FitnessRating = typeof FITNESS_RATINGS[number];
 
 export const FITNESS_RATING_SCORES: Record<FitnessRating, number> = {
   "ดีมาก": 100,
-  "ดี": 80,
-  "ปานกลาง": 60,
-  "พอใช้": 40,
-  "ต่ำ": 20,
+  "ดี": 75,
+  "ปานกลาง": 50,
+  "ต่ำ": 25,
   "ต่ำมาก": 0,
 };
 
-// คะแนนต่ำกว่าหรือเท่านี้ถือเป็นจุดอ่อน (พอใช้ ต่ำ ต่ำมาก)
-export const WEAK_STATION_MAX_SCORE = 40;
+// คะแนนไม่เกินนี้ถือเป็นจุดอ่อน (ต่ำ, ต่ำมาก) ระดับ "ปานกลาง" ไม่นับเป็นจุดอ่อน
+export const WEAK_STATION_MAX_SCORE = 25;
 
 export function isFitnessRating(value: unknown): value is FitnessRating {
   return typeof value === "string" && (FITNESS_RATINGS as readonly string[]).includes(value);
+}
+
+// อ่านชื่อระดับจากข้อความ (รองรับ "พอใช้" ของเกณฑ์ทั่วไปรุ่นเดิม = ระดับกลาง = "ปานกลาง")
+export function normalizeRating(value: unknown): FitnessRating | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (text === "พอใช้") return "ปานกลาง";
+  return isFitnessRating(text) ? text : null;
 }
 
 export function ratingScore(rating: FitnessRating | null | undefined): number | null {
@@ -156,14 +165,19 @@ export function ratingScore(rating: FitnessRating | null | undefined): number | 
 
 export type FitnessStation = { key: string; name: string; aliases: readonly string[] };
 
+// สถานี = รายการทดสอบของกลุ่ม 9 ครบ 11 รายการ (key ตรงกับ Group9TestKey ใน fitness-group9-norms.ts)
 export const ATHLETICS_STATIONS: readonly FitnessStation[] = [
-  { key: "sprint40m", name: "ความเร็วและอัตราเร่ง (วิ่ง 40 เมตร)", aliases: ["sprint40mSec", "40m Sprint", "วิ่ง 40 เมตร", "ความเร็ว", "speed"] },
-  { key: "legPower", name: "แรงระเบิดกล้ามเนื้อขา (Leg Power)", aliases: ["Leg Power", "legStrength", "explosive", "แรงระเบิด", "พลังกล้ามเนื้อ"] },
-  { key: "agility", name: "ความคล่องแคล่วว่องไว (Agility)", aliases: ["agility", "semo", "ความคล่องแคล่ว"] },
-  { key: "flexibility", name: "ความอ่อนตัว (Sit & Reach)", aliases: ["sitAndReachCm", "Sit and Reach", "sit-and-reach", "นั่งงอตัว", "ความอ่อนตัว", "flexibility"] },
-  { key: "grip", name: "แรงบีบมือ (Grip Strength)", aliases: ["Grip Strength", "gripStrength", "grip", "แรงบีบมือ", "strength"] },
-  { key: "aerobic", name: "ความอดทนระบบหายใจ (Aerobic)", aliases: ["vo2max", "endurance", "aerobic", "beep test", "ความอดทน"] },
-  { key: "body", name: "องค์ประกอบร่างกาย (Body Composition)", aliases: ["bodyFat", "Body Composition", "องค์ประกอบร่างกาย", "องค์ประกอบทางร่างกาย"] },
+  { key: "bodyFatPercent", name: "องค์ประกอบร่างกาย (ปริมาณไขมัน)", aliases: ["bodyFat", "Body Composition", "องค์ประกอบร่างกาย", "องค์ประกอบทางร่างกาย", "ปริมาณไขมัน", "ไขมัน"] },
+  { key: "sitAndReachCm", name: "ความอ่อนตัว (นั่งงอตัว)", aliases: ["sitAndReach", "Sit and Reach", "sit-and-reach", "นั่งงอตัว"] },
+  { key: "backExtensionCm", name: "ความอ่อนตัว (นอนแอ่นหลัง)", aliases: ["backExtension", "Back Extension", "นอนแอ่นหลัง"] },
+  { key: "gripStrengthRatio", name: "ความแข็งแรง (แรงบีบมือ)", aliases: ["gripStrength", "Grip Strength", "grip", "แรงบีบมือ"] },
+  { key: "legStrengthRatio", name: "ความแข็งแรง (แรงเหยียดขา)", aliases: ["legStrength", "Leg Strength", "แรงเหยียดขา"] },
+  { key: "sitUps1Min", name: "ความแข็งแรง (ลุก-นั่ง 1 นาที)", aliases: ["sitUps", "Sit-ups", "ลุก-นั่ง", "ลุกนั่ง"] },
+  { key: "pushUps1Min", name: "ความแข็งแรง (ดันพื้น 1 นาที)", aliases: ["pushUps", "Push-ups", "ดันพื้น"] },
+  { key: "sprint40mSec", name: "ความเร็ว (วิ่งเร็ว 40 เมตร)", aliases: ["sprint40m", "40m Sprint", "วิ่งเร็ว 40", "วิ่ง 40", "40 เมตร"] },
+  { key: "wingatePowerWkg", name: "พลังงานแบบไม่ใช้ออกซิเจน (Wingate power)", aliases: ["wingatePower", "Wingate Anaerobic Power", "anaerobic power"] },
+  { key: "wingateCapacityWkg", name: "พลังงานแบบไม่ใช้ออกซิเจน (Wingate capacity)", aliases: ["wingateCapacity", "Wingate Anaerobic Capacity", "anaerobic capacity"] },
+  { key: "vo2maxMlKgMin", name: "พลังงานแบบใช้ออกซิเจน (Multistage)", aliases: ["vo2max", "Multistage", "Beep test", "aerobic", "endurance", "ความอดทน"] },
 ];
 
 export function findStation(key: string): FitnessStation | null {
@@ -175,8 +189,8 @@ function normalizeKey(value: string): string {
 }
 
 function ratingFromValue(value: unknown): FitnessRating | null {
-  if (isFitnessRating(value)) return value;
-  if (typeof value === "string" && isFitnessRating(value.trim())) return value.trim() as FitnessRating;
+  const direct = normalizeRating(value);
+  if (direct) return direct;
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const record = value as Record<string, unknown>;
     return ratingFromValue(record.rating) ?? ratingFromValue(record.level);
@@ -184,9 +198,13 @@ function ratingFromValue(value: unknown): FitnessRating | null {
   return null;
 }
 
-// อ่านระดับผลรายสถานีจาก FitnessTestResult.scores (รองรับทั้งแบบแบนและแบบมี items)
-// คืนค่าเป็น key ของสถานีกรีฑา ค่าที่ไม่ใช่ระดับ (ตัวเลขดิบ) จะไม่ถูกเดาเป็นระดับ
-export function extractStationRatings(scores: unknown): Record<string, FitnessRating> {
+// ตัดสินระดับจากตัวเลขดิบของสถานี (ตามเกณฑ์กลุ่ม 9 ของเพศนั้น) คืน null เมื่อไม่ตัดสิน
+export type StationRater = (stationKey: string, value: number) => string | null;
+
+// อ่านระดับผลรายสถานีจาก FitnessTestResult.scores (รองรับทั้งแบบแบนและแบบมี items) คืนค่าเป็น key ของสถานีกลุ่ม 9
+// 1) ระดับที่เป็นข้อความ (จับคู่ชื่อสถานีได้หลายแบบ) 2) ตัวเลขดิบใต้ key ของสถานีตรง ๆ จะตัดสินด้วย rater (เกณฑ์กลุ่ม 9)
+// ตัวเลขใต้ชื่ออื่น (หน่วยไม่แน่ชัด เช่น แรงบีบมือเป็น กก.) ไม่ถูกเดา
+export function extractStationRatings(scores: unknown, rate?: StationRater): Record<string, FitnessRating> {
   if (!scores || typeof scores !== "object" || Array.isArray(scores)) return {};
   const root = scores as Record<string, unknown>;
   const items = root.items && typeof root.items === "object" && !Array.isArray(root.items)
@@ -195,15 +213,17 @@ export function extractStationRatings(scores: unknown): Record<string, FitnessRa
   const result: Record<string, FitnessRating> = {};
   for (const [rawKey, value] of Object.entries(items)) {
     if (rawKey.startsWith("_")) continue;
-    const rating = ratingFromValue(value);
-    if (!rating) continue;
     const key = normalizeKey(rawKey);
-    const station = ATHLETICS_STATIONS.find(candidate =>
-      normalizeKey(candidate.key) === key || candidate.aliases.some(alias => {
-        const normalized = normalizeKey(alias);
-        return key === normalized || key.includes(normalized);
-      }),
-    );
+    const exact = ATHLETICS_STATIONS.find(candidate => normalizeKey(candidate.key) === key);
+    let rating = ratingFromValue(value);
+    if (!rating && exact && rate && typeof value === "number" && Number.isFinite(value)) {
+      rating = normalizeRating(rate(exact.key, value));
+    }
+    if (!rating) continue;
+    const station = exact ?? ATHLETICS_STATIONS.find(candidate => candidate.aliases.some(alias => {
+      const normalized = normalizeKey(alias);
+      return key === normalized || key.includes(normalized);
+    }));
     if (station && !result[station.key]) result[station.key] = rating;
   }
   return result;
@@ -441,7 +461,14 @@ function normalizeRetest(raw: Record<string, unknown>): Retest {
   const legacy = typeof raw.timeSeconds === "number" ? raw.timeSeconds : null;
   const { timeSeconds: _legacy, ...rest } = raw;
   void _legacy;
-  return { ...rest, mark: typeof raw.mark === "number" ? raw.mark : legacy } as Retest;
+  const ratings: Record<string, FitnessRating> = {};
+  if (isRecord(raw.ratings)) {
+    for (const [key, value] of Object.entries(raw.ratings)) {
+      const rating = normalizeRating(value);
+      if (rating) ratings[key] = rating;
+    }
+  }
+  return { ...rest, ratings, mark: typeof raw.mark === "number" ? raw.mark : legacy } as Retest;
 }
 
 // เขียนเฉพาะ _excellence.v2 คงคีย์อื่นของ scores และข้อมูล _excellence รุ่นเดิมไว้ทั้งหมด

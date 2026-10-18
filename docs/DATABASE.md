@@ -20,6 +20,6 @@ Role (ATHLETE, CLUB, STAFF, ADMIN, TEAM_OFFICIAL) · ApplicationStatus (SUBMITTE
 
 ## จุดที่ต้องระวัง
 - `StatusHistory.status` เป็น String; ค่า `ATHLETE_CONFIRMED` / `ATHLETE_DECLINED` ไม่อยู่ใน enum `ApplicationStatus` (ดู `lib/athlete-decision-service.ts`)
-- ข้อมูล Excellence อยู่ใน JSON `FitnessTestResult.scores._excellence.v2` (`revision`, `plans`, `retests` โดย retest เก็บผลที่ `mark`; รุ่นแรกใช้ `timeSeconds` อ่านต่อได้) ไม่มี schema บังคับ คีย์อื่นใน `_excellence` เป็นข้อมูลรุ่นเดิม ห้ามลบ
+- ข้อมูล Excellence อยู่ใน JSON `FitnessTestResult.scores._excellence.v2` (`revision`, `plans`, `retests` โดย retest เก็บผลที่ `mark`; รุ่นแรกใช้ `timeSeconds` อ่านต่อได้) ไม่มี schema บังคับ คีย์อื่นใน `_excellence` เป็นข้อมูลรุ่นเดิม ห้ามลบ · แผน/ผลทดสอบซ้ำอ้างสถานีด้วย key ของกลุ่ม 9 (`sprint40mSec`, `legStrengthRatio` ฯลฯ) และระดับ 5 ระดับ ข้อมูลรุ่นแรกที่ใช้ key เดิม (`legPower`, `sprint40m`, `agility`, ...) ไม่ได้ถูกแปลง (ตอนเปลี่ยนยังไม่มีข้อมูลจริง)
 - ไม่พบ model audit log เฉพาะ; `lib/audit-service.ts` เป็นผู้บันทึก (ยังไม่ได้ยืนยันปลายทางการเก็บ)
 - ความสัมพันธ์ `Club` ↔ `Application` ไม่มี cascade (`ClubRoster`, `OfficialApplication` ไม่ระบุ onDelete)
