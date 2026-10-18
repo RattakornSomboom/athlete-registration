@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Page } from "@/components/shared/Phase4UI";
-import { ChangeLabel, DemoBanner, EmptyText, ExcellenceNav, Section, SportSwitcher, demoQuery, formatThaiDate, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { ChangeLabel, DemoBanner, EmptyText, ExcellenceNav, PrintSetup, Section, SportSwitcher, demoQuery, formatThaiDate, useDemoMode, usePageTitle } from "@/components/shared/ExcellenceUI";
 import { Kpi } from "@/components/shared/ExcellenceReport";
 import { ProgressionChart } from "@/components/shared/ExcellenceChart";
 import { PlanForm, ResultForm, RetestForm, type EditableResult, type EditableRetest } from "@/components/shared/ExcellenceForms";
@@ -41,7 +41,7 @@ const TIMELINE_DOT: Record<TimelineEntry["kind"], string> = {
 function AddButton({ label, onClick, hidden }: { label: string; onClick: () => void; hidden: boolean }) {
   if (hidden) return null;
   return (
-    <button type="button" onClick={onClick} className="rounded-lg border border-blue-900 px-3 py-1.5 text-sm font-medium text-blue-900 hover:bg-blue-50">
+    <button type="button" onClick={onClick} className="rounded-lg border border-blue-900 px-3 py-1.5 text-sm font-medium text-blue-900 hover:bg-blue-50 print:hidden">
       {label}
     </button>
   );
@@ -94,22 +94,26 @@ export default function ExcellenceAthletePage() {
   const progression = detail ? progressionSeries(detail.results) : [];
   const stationsByNeed = detail ? [...detail.stations].sort((a, b) => a.score - b.score) : [];
   const latestRetest = detail?.retests[0] ?? null;
+  usePageTitle(detail ? `${detail.athlete.name} · สู่ความเป็นเลิศ` : "รายละเอียดนักกีฬา · สู่ความเป็นเลิศ");
 
   return (
     <Page title={detail ? detail.athlete.name : "รายละเอียดนักกีฬา"}>
+      <PrintSetup />
       <ExcellenceNav demo={demo} />
       <DemoBanner show={demo} />
-      <nav aria-label="เส้นทาง" className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-        <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
-        <span aria-hidden>/</span>
-        <Link href={`/staff/excellence${demoQuery(demo)}`} className="text-blue-900 hover:underline">ภาพรวม</Link>
-        <span aria-hidden>/</span>
-        <span className="font-medium text-slate-900" aria-current="page">{detail?.athlete.name ?? "…"}</span>
+      <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
+      <nav aria-label="เส้นทาง" className="text-sm text-slate-600 print:hidden">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li><Link href={`/staff/excellence${demoQuery(demo)}`} className="rounded py-1 text-blue-900 hover:underline">ภาพรวม</Link></li>
+          <li aria-hidden>/</li>
+          <li className="font-medium text-slate-900" aria-current="page">{detail?.athlete.name ?? "กำลังโหลด…"}</li>
+        </ol>
       </nav>
 
       {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       {!detail && !error && (
-        <div className="animate-pulse space-y-4" aria-busy="true" aria-label="กำลังโหลดข้อมูล">
+        <div role="status" aria-busy="true" className="animate-pulse space-y-4 motion-reduce:animate-none">
+          <span className="sr-only">กำลังโหลดข้อมูลนักกีฬา</span>
           <div className="h-24 rounded-xl bg-slate-200" />
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-28 rounded-xl bg-slate-200" />)}</div>
           <div className="h-80 rounded-xl bg-slate-200" />
@@ -127,7 +131,7 @@ export default function ExcellenceAthletePage() {
                 <p className="mt-1 text-sm text-slate-500">{detail.athlete.competitionName}</p>
               </div>
               {!readOnly && (
-                <Link href="/staff/excellence/results" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <Link href="/staff/excellence/results" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 print:hidden">
                   บันทึกผลแข่งทีละหลายคน
                 </Link>
               )}
@@ -144,7 +148,7 @@ export default function ExcellenceAthletePage() {
             </div>
           </section>
 
-          <section aria-label="ตัวชี้วัดของนักกีฬา" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <section aria-label="ตัวชี้วัดของนักกีฬา" className="grid grid-cols-2 gap-3 xl:grid-cols-4 print:grid-cols-4">
             <Kpi
               label="รายการที่แข่ง"
               value={String(detail.summary.events)}
@@ -180,7 +184,8 @@ export default function ExcellenceAthletePage() {
                 {form?.kind === "result" && <ResultForm key={form.result?.id ?? "new"} applicationId={applicationId} events={detail.events} result={form.result} onSaved={saved} onCancel={() => setForm(null)} />}
                 {detail.results.length ? (
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] text-left text-sm">
+                    <table className="w-full min-w-[560px] text-left text-sm print:min-w-0">
+                      <caption className="sr-only">ผลการแข่งขันของ {detail.athlete.name} เรียงจากล่าสุด</caption>
                       <thead className="text-slate-600">
                         <tr className="border-b border-slate-200">
                           <th scope="col" className="py-2 pr-4 font-medium">วันที่ / การแข่งขัน</th>
@@ -189,7 +194,7 @@ export default function ExcellenceAthletePage() {
                           <th scope="col" className="py-2 pr-4 text-right font-medium">เป้า</th>
                           <th scope="col" className="py-2 pr-4 text-right font-medium">Gap</th>
                           <th scope="col" className="py-2 text-right font-medium">% ของเป้า</th>
-                          {!readOnly && <th scope="col" className="py-2 pl-4 font-medium"><span className="sr-only">จัดการ</span></th>}
+                          {!readOnly && <th scope="col" className="py-2 pl-4 font-medium print:hidden"><span className="sr-only">จัดการ</span></th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
@@ -207,15 +212,15 @@ export default function ExcellenceAthletePage() {
                                 {result.isSB && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs font-bold text-sky-800">SB</span>}
                               </span>
                             </td>
-                            <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.target === null ? <span className="font-sans text-slate-400">ยังไม่ตั้งเป้า</span> : formatMark(result.event, result.target)}</td>
-                            <td className={`py-2 pr-4 text-right font-mono tabular-nums ${result.gap === null ? "text-slate-400" : result.gap > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                            <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.target === null ? <span className="font-sans text-slate-500">ยังไม่ตั้งเป้า</span> : formatMark(result.event, result.target)}</td>
+                            <td className={`py-2 pr-4 text-right font-mono tabular-nums ${result.gap === null ? "text-slate-500" : result.gap > 0 ? "text-rose-700" : "text-emerald-700"}`}>
                               {formatSignedMark(result.event, result.gap)}
                             </td>
                             <td className="py-2 text-right font-mono tabular-nums text-slate-600">{result.percentOfTarget === null ? "—" : `${result.percentOfTarget.toFixed(1)}%`}</td>
                             {!readOnly && (
-                              <td className="whitespace-nowrap py-2 pl-4 text-sm">
-                                <button type="button" onClick={() => setForm({ kind: "result", result })} className="text-blue-900 hover:underline">แก้ไข</button>
-                                <button type="button" onClick={() => void removeResult(result)} className="ml-3 text-rose-700 hover:underline">ลบ</button>
+                              <td className="whitespace-nowrap py-2 pl-4 text-sm print:hidden">
+                                <button type="button" onClick={() => setForm({ kind: "result", result })} className="rounded px-1.5 py-1 text-blue-900 hover:underline">แก้ไข</button>
+                                <button type="button" onClick={() => void removeResult(result)} className="ml-2 rounded px-1.5 py-1 text-rose-700 hover:underline">ลบ</button>
                               </td>
                             )}
                           </tr>
@@ -245,14 +250,14 @@ export default function ExcellenceAthletePage() {
                 {detail.plans.length ? (
                   <ul className="space-y-3">
                     {detail.plans.map(plan => (
-                      <li key={plan.id} className="rounded-lg border border-slate-200 p-4">
+                      <li key={plan.id} className="break-inside-avoid rounded-lg border border-slate-200 p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm text-slate-600">
                             {formatThaiDate(plan.startDate)} – {formatThaiDate(plan.endDate)} · {plan.coachName}
                           </p>
                           <div className="flex items-center gap-3">
                             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-900">{PLAN_STATUS_LABEL[plan.status]}</span>
-                            {!readOnly && <button type="button" onClick={() => setForm({ kind: "plan", plan })} className="text-sm text-blue-900 hover:underline">แก้ไข</button>}
+                            {!readOnly && <button type="button" onClick={() => setForm({ kind: "plan", plan })} className="rounded px-1.5 py-1 text-sm text-blue-900 hover:underline print:hidden">แก้ไข</button>}
                           </div>
                         </div>
                         <ul className="mt-3 space-y-1.5 text-sm">
@@ -296,20 +301,21 @@ export default function ExcellenceAthletePage() {
                         ? comparison.planItems.map(item => ({ ...item, key: item.itemId }))
                         : comparison.stations.map(station => ({ ...station, key: station.stationKey, activity: null }));
                       return (
-                        <li key={retest.id} className="rounded-lg border border-slate-200 p-4">
+                        <li key={retest.id} className="break-inside-avoid rounded-lg border border-slate-200 p-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-sm font-semibold text-slate-900">ทดสอบซ้ำ {formatThaiDate(retest.testedAt)}</p>
                             {!readOnly && (
-                              <span className="text-sm">
-                                <button type="button" onClick={() => setForm({ kind: "retest", retest })} className="text-blue-900 hover:underline">แก้ไข</button>
-                                <button type="button" onClick={() => void removeRetest(retest)} className="ml-3 text-rose-700 hover:underline">ยกเลิกผล</button>
+                              <span className="text-sm print:hidden">
+                                <button type="button" onClick={() => setForm({ kind: "retest", retest })} className="rounded px-1.5 py-1 text-blue-900 hover:underline">แก้ไข</button>
+                                <button type="button" onClick={() => void removeRetest(retest)} className="ml-2 rounded px-1.5 py-1 text-rose-700 hover:underline">ยกเลิกผล</button>
                               </span>
                             )}
                           </div>
                           <p className="mt-1 text-sm text-slate-700">{comparison.summary}</p>
                           {rows.length > 0 && (
                             <div className="mt-3 overflow-x-auto">
-                              <table className="w-full min-w-[480px] text-left text-sm">
+                              <table className="w-full min-w-[480px] text-left text-sm print:min-w-0">
+                                <caption className="sr-only">ผลทดสอบซ้ำวันที่ {formatThaiDate(retest.testedAt)} เทียบกับครั้งก่อน</caption>
                                 <thead className="text-slate-600">
                                   <tr className="border-b border-slate-200">
                                     <th scope="col" className="py-1.5 pr-4 font-medium">{comparison.planItems.length ? "ข้อของแผน / สถานี" : "สถานี"}</th>

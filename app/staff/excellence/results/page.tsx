@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Page, fieldClass } from "@/components/shared/Phase4UI";
-import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, PrintSetup, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   ATHLETICS_EVENTS,
@@ -132,6 +132,7 @@ export default function ExcellenceBatchResultsPage() {
 
   return (
     <Page title="บันทึกผลแข่ง">
+      <PrintSetup />
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
       <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
@@ -182,7 +183,8 @@ export default function ExcellenceBatchResultsPage() {
 
         {all.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[920px] text-left text-sm print:min-w-0">
+              <caption className="sr-only">ใบกรอกผล {eventLabel(event)}: นักกีฬาแต่ละคนพร้อมผลดีที่สุดเดิม เป้า ช่องกรอกผล และการเทียบเป้า</caption>
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-medium">นักกีฬา</th>
@@ -209,7 +211,7 @@ export default function ExcellenceBatchResultsPage() {
                         <p className="text-xs text-slate-500">{row.studentId} · {row.gender} · {row.faculty}</p>
                       </td>
                       <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{row.bestMark === null ? "—" : formatMark(event, row.bestMark)}</td>
-                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{row.targetMark === null ? <span className="font-sans text-slate-400">ยังไม่ตั้งเป้า</span> : formatMark(event, row.targetMark)}</td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{row.targetMark === null ? <span className="font-sans text-slate-500">ยังไม่ตั้งเป้า</span> : formatMark(event, row.targetMark)}</td>
                       <td className="px-4 py-3 align-top">
                         <input
                           data-mark-input
@@ -227,7 +229,7 @@ export default function ExcellenceBatchResultsPage() {
                         {message && <p id={errorId} role="alert" className="mt-1 text-xs text-rose-700">{message}</p>}
                       </td>
                       <td className="px-4 py-3 align-top text-sm">
-                        {parsed === null ? <span className="text-slate-300">—</span> : (
+                        {parsed === null ? <span className="text-slate-500">—</span> : (
                           <span className="flex flex-wrap items-center gap-2">
                             {gap !== null && <span className={`font-mono tabular-nums ${gap > 0 ? "text-rose-700" : "text-emerald-700"}`}>{formatSignedMark(event, gap)}{percent !== null ? ` · ${percent.toFixed(1)}%` : ""}</span>}
                             {gap === null && <span className="text-slate-500">ยังไม่ตั้งเป้า</span>}
@@ -253,7 +255,7 @@ export default function ExcellenceBatchResultsPage() {
         </div>
       )}
 
-      <div className="sticky bottom-0 z-10 -mx-1 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
+      <div className="sticky bottom-0 z-10 -mx-1 rounded-xl print:hidden border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm" aria-live="polite">
             <span className="font-semibold text-slate-900">กรอกแล้ว {filled.length} คน</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TARGET_STATUS_LABEL, type AthleticsEvent, type MetricChange, type StationChange, type TargetStatus } from "@/lib/excellence-athletics";
@@ -27,6 +28,38 @@ export function useDemoMode(): { demo: boolean; ready: boolean; setDemo: (value:
     window.history.replaceState({}, "", url.toString());
   }, []);
   return { demo, ready, setDemo };
+}
+
+// ชื่อหน้าต่อหน้า (WCAG 2.4.2) ให้ผู้ใช้โปรแกรมอ่านหน้าจอและแท็บเบราว์เซอร์แยกหน้าได้
+export function usePageTitle(title: string) {
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${title} · SMED`;
+    return () => { document.title = previous; };
+  }, [title]);
+}
+
+// true เฉพาะช่วงที่กำลังพิมพ์ ใช้แสดงข้อมูลครบ (เช่น ตารางทุกแถว ไม่แบ่งหน้า) ในเอกสารที่พิมพ์
+export function usePrinting(): boolean {
+  const [printing, setPrinting] = useState(false);
+  useEffect(() => {
+    const before = () => flushSync(() => setPrinting(true));
+    const after = () => setPrinting(false);
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, []);
+  return printing;
+}
+
+// ตั้งค่าหน้ากระดาษเฉพาะหน้า Excellence: A4 แนวนอน (ตารางกว้าง) และให้พิมพ์สีพื้นหลัง (แถบกราฟ/ป้ายสถานะ)
+export function PrintSetup() {
+  return (
+    <style media="print">{`@page { size: A4 landscape; margin: 12mm; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }`}</style>
+  );
 }
 
 export function demoQuery(demo: boolean): string {
@@ -56,7 +89,7 @@ export function ExcellenceNav({ demo, onDemoChange }: { demo: boolean; onDemoCha
   const path = usePathname();
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <nav aria-label="เมนูสู่ความเป็นเลิศ" className="flex flex-wrap gap-2">
+      <nav aria-label="เมนูสู่ความเป็นเลิศ" className="flex flex-wrap gap-2 print:hidden">
         {NAV.map(([href, label]) => {
           const active = path === href;
           return (
@@ -72,7 +105,7 @@ export function ExcellenceNav({ demo, onDemoChange }: { demo: boolean; onDemoCha
         })}
       </nav>
       {onDemoChange && (
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 print:hidden">
           <input type="checkbox" checked={demo} onChange={event => onDemoChange(event.target.checked)} className="h-4 w-4 accent-amber-600" />
           แสดงข้อมูลสาธิต
         </label>
@@ -131,18 +164,18 @@ const CHANGE_STYLES: Record<StationChange["change"] | MetricChange, { label: str
   NO_CHANGE: { label: "เท่าเดิม", className: "text-slate-600" },
   WITHIN_SWC: { label: "ไม่เปลี่ยนชัดเจน", className: "text-slate-600" },
   DECLINED: { label: "ลดลง", className: "text-rose-700" },
-  NOT_TESTED: { label: "ไม่มีผลให้เทียบ", className: "text-slate-400" },
+  NOT_TESTED: { label: "ไม่มีผลให้เทียบ", className: "text-slate-500" },
 };
 
 export function ChangeLabel({ change }: { change: StationChange["change"] | MetricChange | null }) {
-  if (!change) return <span className="text-slate-400">—</span>;
+  if (!change) return <span className="text-slate-500">—</span>;
   const style = CHANGE_STYLES[change];
   return <span className={`font-semibold ${style.className}`}>{style.label}</span>;
 }
 
 export function Section({ title, description, action, children }: { title: string; description?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">{title}</h2>

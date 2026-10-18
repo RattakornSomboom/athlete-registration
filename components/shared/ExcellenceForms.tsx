@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buttonClass, fieldClass } from "@/components/shared/Phase4UI";
 import { EventOptions } from "@/components/shared/ExcellenceUI";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
@@ -27,10 +27,17 @@ function FormShell({ title, onCancel, onSubmit, saving, error, children }: {
   error: string;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLFormElement>(null);
+  // เปิดฟอร์มแล้วย้ายโฟกัสไปช่องแรก (ผู้ใช้แป้นพิมพ์/โปรแกรมอ่านหน้าจอไม่ต้องไล่หา)
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled])")?.focus();
+  }, []);
   return (
     <form
+      ref={ref}
+      aria-label={title}
       onSubmit={event => { event.preventDefault(); onSubmit(); }}
-      className="mt-4 space-y-4 rounded-lg border border-blue-200 bg-blue-50/40 p-4"
+      className="mt-4 space-y-4 rounded-lg border border-blue-200 bg-blue-50/40 p-4 print:hidden"
     >
       <h3 className="font-semibold text-slate-900">{title}</h3>
       {children}

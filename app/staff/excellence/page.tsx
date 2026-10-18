@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Page, fieldClass } from "@/components/shared/Phase4UI";
-import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, SportSwitcher, TargetBadge, demoQuery, formatThaiDate, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, PrintSetup, SportSwitcher, TargetBadge, demoQuery, formatThaiDate, useDemoMode, usePrinting } from "@/components/shared/ExcellenceUI";
 import { AttentionPanel, EventAttainmentChart, KpiStrip, ReportSkeleton, WeakStationsChart } from "@/components/shared/ExcellenceReport";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
@@ -56,9 +56,9 @@ function SortHeader({ label, sortKey, sort, onSort, align = "left" }: { label: s
   const active = sort.key === sortKey;
   return (
     <th scope="col" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"} className={`px-4 py-3 font-medium ${align === "right" ? "text-right" : ""}`}>
-      <button type="button" onClick={() => onSort(sortKey)} className={`inline-flex items-center gap-1 rounded hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-blue-800 ${active ? "text-slate-950" : ""}`}>
+      <button type="button" onClick={() => onSort(sortKey)} className={`inline-flex items-center gap-1 rounded py-1 hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-blue-800 ${active ? "text-slate-950" : ""}`}>
         {label}
-        <span aria-hidden className="text-xs">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
+        <span aria-hidden className="text-xs print:hidden">{active ? (sort.dir === "asc" ? "▲" : "▼") : "↕"}</span>
       </button>
     </th>
   );
@@ -66,6 +66,7 @@ function SortHeader({ label, sortKey, sort, onSort, align = "left" }: { label: s
 
 export default function ExcellenceOverviewPage() {
   const { demo, ready, setDemo } = useDemoMode();
+  const printing = usePrinting();
   const [sport, setSport] = useState(DEFAULT_EXCELLENCE_SPORT);
   const [event, setEvent] = useState("");
   const [gender, setGender] = useState("");
@@ -122,7 +123,8 @@ export default function ExcellenceOverviewPage() {
 
   return (
     <Page title="สู่ความเป็นเลิศ">
-      <div className="print:hidden"><ExcellenceNav demo={demo} onDemoChange={setDemo} /></div>
+      <PrintSetup />
+      <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
 
       <section aria-label="ตัวกรองรายงาน" className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm print:hidden">
@@ -174,11 +176,11 @@ export default function ExcellenceOverviewPage() {
         <>
           <KpiStrip report={data.report} />
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3 print:grid-cols-1">
             <div className="lg:col-span-1 print:hidden">
               <AttentionPanel report={data.report} active={flag} onSelect={next => { setFlag(next); setPage(1); }} />
             </div>
-            <div className="grid gap-4 lg:col-span-2 xl:grid-cols-2">
+            <div className="grid gap-4 lg:col-span-2 xl:grid-cols-2 print:col-span-1 print:grid-cols-2">
               <EventAttainmentChart byEvent={data.report.byEvent} />
               <WeakStationsChart stations={data.report.weakStations} />
             </div>
@@ -224,8 +226,9 @@ export default function ExcellenceOverviewPage() {
                 )}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px] text-left text-sm">
+              <div className="overflow-x-auto print:overflow-visible">
+                <table className="w-full min-w-[1000px] text-left text-sm print:min-w-0 print:text-xs">
+                  <caption className="sr-only">รายชื่อนักกีฬาพร้อมผลดีที่สุด เป้า ส่วนต่าง สถานะ จุดอ่อน และแผนพัฒนา ใช้ปุ่มหัวคอลัมน์เพื่อเรียงลำดับ</caption>
                   <thead className="bg-slate-50 text-slate-600">
                     <tr>
                       <SortHeader label="นักกีฬา" sortKey="name" sort={sort} onSort={changeSort} />
@@ -240,7 +243,7 @@ export default function ExcellenceOverviewPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {shown.map(row => {
+                    {(printing ? visible : shown).map(row => {
                       const flags = row.flags.filter(item => item !== "NO_RESULT" && item !== "NO_TARGET");
                       return (
                         <tr key={row.rowId} className="hover:bg-slate-50">
@@ -251,16 +254,16 @@ export default function ExcellenceOverviewPage() {
                           <td className="px-4 py-3 text-slate-700">{row.event ? eventLabel(row.event) : "—"}</td>
                           <td className="px-4 py-3 text-right font-mono tabular-nums">{row.event ? formatMark(row.event, row.bestMark) : "—"}</td>
                           <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{row.event ? formatMark(row.event, row.targetMark) : "—"}</td>
-                          <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.gapMark === null ? "text-slate-400" : row.gapMark > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                          <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.gapMark === null ? "text-slate-500" : row.gapMark > 0 ? "text-rose-700" : "text-emerald-700"}`}>
                             {row.event ? formatSignedMark(row.event, row.gapMark) : "—"}
                           </td>
-                          <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.percentOfTarget === null ? "text-slate-400" : row.percentOfTarget >= 100 ? "text-emerald-700" : "text-slate-700"}`}>
+                          <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.percentOfTarget === null ? "text-slate-500" : row.percentOfTarget >= 100 ? "text-emerald-700" : "text-slate-700"}`}>
                             {row.percentOfTarget === null ? "—" : `${row.percentOfTarget.toFixed(1)}%`}
                           </td>
                           <td className="px-4 py-3"><TargetBadge status={row.status} /></td>
-                          <td className="px-4 py-3 text-slate-700">{row.weakestStation ?? <span className="text-slate-400">ไม่พบจุดอ่อน</span>}</td>
+                          <td className="px-4 py-3 text-slate-700">{row.weakestStation ?? <span className="text-slate-500">ไม่พบจุดอ่อน</span>}</td>
                           <td className="px-4 py-3">
-                            <span className="text-slate-700">{row.planStatus ? PLAN_STATUS_LABEL[row.planStatus] : <span className="text-slate-400">ยังไม่มีแผน</span>}</span>
+                            <span className="text-slate-700">{row.planStatus ? PLAN_STATUS_LABEL[row.planStatus] : <span className="text-slate-500">ยังไม่มีแผน</span>}</span>
                             {row.retestCount > 0 && <span className="ml-2 text-xs text-slate-500">ทดสอบซ้ำ {row.retestCount} ครั้ง</span>}
                             {flags.length > 0 && (
                               <span className="mt-1 flex flex-wrap gap-1">

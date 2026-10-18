@@ -6,7 +6,7 @@ const pct = (part: number, whole: number): number | null => (whole > 0 ? Math.ro
 
 export function Kpi({ label, value, unit, caption }: { label: string; value: string; unit?: string; caption: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-sm font-medium text-slate-600">{label}</p>
       <p className="mt-1 text-3xl font-bold tabular-nums text-slate-950">
         {value}
@@ -24,7 +24,7 @@ export function KpiStrip({ report }: { report: ExecutiveReport }) {
   const planned = pct(kpi.withPlan, kpi.athletes);
   const improved = pct(kpi.improved, kpi.retested);
   return (
-    <section aria-label="ตัวชี้วัดหลัก" className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+    <section aria-label="ตัวชี้วัดหลัก" className="grid grid-cols-2 gap-3 xl:grid-cols-5 print:grid-cols-5">
       <Kpi label="นักกีฬาในรายงาน" value={String(kpi.athletes)} unit="คน" caption={`มีผลแข่งแล้ว ${kpi.withResult} คน`} />
       <Kpi
         label="ถึงเป้าหมาย"
@@ -91,7 +91,7 @@ export function AttentionPanel({ report, active, onSelect }: { report: Executive
 // ถึงเป้าแยกตามรายการ: แท่งซ้อนมีตัวเลขกำกับ ไม่ใช้สีอย่างเดียว
 export function EventAttainmentChart({ byEvent }: { byEvent: ExecutiveReport["byEvent"] }) {
   return (
-    <section aria-labelledby="event-chart-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section aria-labelledby="event-chart-title" className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 id="event-chart-title" className="text-lg font-semibold text-slate-950">ถึงเป้าหมายแยกตามรายการ</h2>
       <p className="mt-1 text-sm text-slate-600">จำนวนนักกีฬา × รายการ ที่ถึงเป้า / ยังไม่ถึงเป้า / ยังไม่ตั้งเป้า</p>
       {byEvent.length === 0 ? (
@@ -127,7 +127,7 @@ export function EventAttainmentChart({ byEvent }: { byEvent: ExecutiveReport["by
 // จุดอ่อนที่พบบ่อยของทีม: ห้าสถานีที่มีคนอ่อนมากที่สุด (นับเฉพาะคนที่ทดสอบสถานีนั้น)
 export function WeakStationsChart({ stations }: { stations: ExecutiveReport["weakStations"] }) {
   return (
-    <section aria-labelledby="weak-chart-title" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section aria-labelledby="weak-chart-title" className="break-inside-avoid rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 id="weak-chart-title" className="text-lg font-semibold text-slate-950">จุดอ่อนที่พบบ่อยของทีม</h2>
       <p className="mt-1 text-sm text-slate-600">สถานีที่มีนักกีฬาระดับต่ำหรือต่ำมากมากที่สุด (นับจากคนที่ทดสอบสถานีนั้น)</p>
       {stations.length === 0 ? (
@@ -153,7 +153,8 @@ export function WeakStationsChart({ stations }: { stations: ExecutiveReport["wea
 
 export function ReportSkeleton() {
   return (
-    <div className="animate-pulse space-y-4" aria-busy="true" aria-label="กำลังโหลดรายงาน">
+    <div role="status" aria-busy="true" className="animate-pulse space-y-4 motion-reduce:animate-none">
+      <span className="sr-only">กำลังโหลดรายงาน</span>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
         {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-28 rounded-xl bg-slate-200" />)}
       </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Page, fieldClass } from "@/components/shared/Phase4UI";
-import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, PrintSetup, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
 import { DEFAULT_EXCELLENCE_SPORT } from "@/lib/excellence-sports";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import { ATHLETICS_EVENTS, ATHLETICS_GENDERS, eventLabel, type Heatmap, type HeatmapCell } from "@/lib/excellence-athletics";
@@ -12,7 +12,7 @@ type HeatmapData = Heatmap & { isDemo: boolean };
 
 // สีตามระดับ + ตัวอักษรระดับในช่องเสมอ (ไม่พึ่งสีอย่างเดียว) ระดับ ต่ำ และ ต่ำมาก คือจุดอ่อน (ปานกลางไม่ใช่จุดอ่อน)
 function cellClass(cell: HeatmapCell | null): string {
-  if (!cell) return "bg-white text-slate-300";
+  if (!cell) return "bg-white text-slate-500";
   if (cell.score >= 75) return "bg-emerald-100 text-emerald-900";
   if (cell.score >= 50) return "bg-slate-100 text-slate-800";
   if (cell.score >= 25) return "bg-amber-100 text-amber-900";
@@ -42,11 +42,12 @@ export default function ExcellenceHeatmapPage() {
 
   return (
     <Page title="แผนที่จุดอ่อนทีม">
+      <PrintSetup />
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
       <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
 
-      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3">
+      <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3 print:hidden">
         <label className="text-sm font-medium text-slate-700">
           รายการแข่งขัน (นักกีฬาที่มีผลในรายการนี้)
           <select value={event} onChange={e => setEvent(e.target.value)} className={`${fieldClass} mt-1`}>
@@ -73,8 +74,8 @@ export default function ExcellenceHeatmapPage() {
       {data && (data.rows.length === 0 ? (
         <EmptyText>ไม่พบนักกีฬาตามตัวกรองที่เลือก หรือยังไม่มีนักกีฬากรีฑาที่ผ่านการคัดเลือก</EmptyText>
       ) : (
-        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm print:overflow-visible">
+          <table className="w-full min-w-[1200px] border-collapse print:min-w-0 print:text-xs text-left text-sm">
             <caption className="sr-only">ระดับผลทดสอบสมรรถภาพรายสถานีของนักกีฬาแต่ละคน</caption>
             <thead className="bg-slate-50 text-slate-600">
               <tr>
@@ -101,7 +102,7 @@ export default function ExcellenceHeatmapPage() {
                     );
                   })}
                   <td className="px-3 py-2 text-center font-mono tabular-nums">
-                    {row.testedCount === 0 ? <span className="text-slate-400">—</span> : `${row.weakCount}/${row.testedCount}`}
+                    {row.testedCount === 0 ? <span className="text-slate-500">—</span> : `${row.weakCount}/${row.testedCount}`}
                   </td>
                 </tr>
               ))}

@@ -67,7 +67,7 @@ export default function AppNav() {
     }`;
 
   return (
-    <nav aria-label="เมนูหลัก" className="sticky top-0 z-40 border-b border-white/10 bg-gradient-to-r from-slate-950 to-slate-900 text-white shadow-lg">
+    <nav aria-label="เมนูหลัก" className="sticky top-0 z-40 print:hidden border-b border-white/10 bg-gradient-to-r from-slate-950 to-slate-900 text-white shadow-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
         <Link href="/" className="shrink-0 text-lg font-bold tracking-wide">
           UP <span className="text-blue-400">SMED</span>

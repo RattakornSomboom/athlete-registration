@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Page } from "@/components/shared/Phase4UI";
-import { DemoBanner, ExcellenceNav, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, ExcellenceNav, PrintSetup, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
 import { DEFAULT_EXCELLENCE_SPORT } from "@/lib/excellence-sports";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
@@ -36,7 +36,7 @@ function BenchmarkCell({ event, gender, current, readOnly, onSaved }: {
   const label = `เป้า ${event.label} ${gender}`;
   const unchanged = value.trim() === (current === null ? "" : formatMarkInput(event.key, current));
 
-  if (!event.genders.includes(gender)) return <td className="px-4 py-3 text-sm text-slate-400">ไม่มีรายการนี้</td>;
+  if (!event.genders.includes(gender)) return <td className="px-4 py-3 text-sm text-slate-500">ไม่มีรายการนี้</td>;
   if (readOnly) {
     return (
       <td className="px-4 py-3 font-mono text-sm tabular-nums">
@@ -73,7 +73,7 @@ function BenchmarkCell({ event, gender, current, readOnly, onSaved }: {
           inputMode="decimal"
           className="w-28 rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-sm tabular-nums outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-100"
         />
-        <button type="submit" disabled={state.saving || unchanged} className="rounded-lg bg-blue-900 px-3 py-1.5 text-sm text-white hover:bg-blue-800 disabled:opacity-40">
+        <button type="submit" disabled={state.saving || unchanged} className="rounded-lg bg-blue-900 px-3 py-1.5 text-sm text-white hover:bg-blue-800 disabled:opacity-40 print:hidden">
           {state.saving ? "…" : "บันทึก"}
         </button>
       </form>
@@ -98,6 +98,7 @@ export default function ExcellenceBenchmarksPage() {
 
   return (
     <Page title="เป้าหมาย (Benchmark)">
+      <PrintSetup />
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
       <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
@@ -108,19 +109,19 @@ export default function ExcellenceBenchmarksPage() {
       {error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       {!benchmarks && !error && <p className="text-sm text-slate-600">กำลังโหลดข้อมูล…</p>}
       {benchmarks && (
-        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[560px] text-left">
+        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm print:overflow-visible">
+          <table className="w-full min-w-[560px] text-left print:min-w-0">
+            <caption className="sr-only">เป้าหมายแยกตามรายการและเพศ ช่องที่ว่างคือยังไม่ตั้งเป้า</caption>
             <thead className="bg-slate-50 text-sm text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-medium">รายการ</th>
                 {ATHLETICS_GENDERS.map(gender => <th key={gender} className="px-4 py-3 font-medium">{gender}</th>)}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {GROUPS.map(group => (
-                <Fragment key={group.kind}>
+            {GROUPS.map(group => (
+                <tbody key={group.kind} className="divide-y divide-slate-100 border-t border-slate-100">
                   <tr className="bg-slate-50/70">
-                    <th colSpan={3} className="px-4 py-2 text-left text-sm font-semibold text-slate-800">
+                    <th scope="rowgroup" colSpan={3} className="px-4 py-2 text-left text-sm font-semibold text-slate-800">
                       {group.title}
                       <span className="ml-3 text-xs font-normal text-slate-500">{group.hint}</span>
                     </th>
@@ -140,9 +141,8 @@ export default function ExcellenceBenchmarksPage() {
                       ))}
                     </tr>
                   ))}
-                </Fragment>
-              ))}
-            </tbody>
+                </tbody>
+            ))}
           </table>
         </section>
       )}
