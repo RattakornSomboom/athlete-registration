@@ -106,7 +106,7 @@ function statusView(status: string) {
 const canDecide = (app: ApplicationDto) => (app.noClubFileUrl ? app.status === "SUBMITTED" : app.status === "CLUB_APPROVED");
 // กีฬาประเภททีมใช้ตัวจริง/ตัวสำรอง ส่วนประเภทบุคคลใช้ "selected" อย่างเดียว (lib/roster-service.ts)
 const squadLabel = (squad: string | null) =>
-  squad === "main" ? "ตัวจริง" : squad === "reserve" ? "ตัวสำรอง" : squad === "selected" ? "ผ่านการคัดเลือก" : "ยังไม่ได้ระบุ";
+  squad === "main" ? "ตัวจริง" : squad === "reserve" ? "ตัวสำรอง" : squad === "selected" ? "ชมรมเสนอชื่อ" : "ยังไม่ได้ระบุ";
 
 export default function StaffCompetitionApplicantsPage() {
   const params = useParams();
