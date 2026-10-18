@@ -35,6 +35,7 @@ export function demoQuery(demo: boolean): string {
 
 const NAV: [href: string, label: string][] = [
   ["/staff/excellence", "ภาพรวมนักกีฬา"],
+  ["/staff/excellence/results", "บันทึกผลแข่ง"],
   ["/staff/excellence/heatmap", "แผนที่จุดอ่อนทีม"],
   ["/staff/excellence/benchmarks", "เป้าหมาย (Benchmark)"],
 ];

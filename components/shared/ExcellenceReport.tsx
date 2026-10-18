@@ -4,7 +4,7 @@ import { ATTENTION_LABEL, type AttentionFlag, type ExecutiveReport } from "@/lib
 
 const pct = (part: number, whole: number): number | null => (whole > 0 ? Math.round((part / whole) * 100) : null);
 
-function Kpi({ label, value, unit, caption }: { label: string; value: string; unit?: string; caption: string }) {
+export function Kpi({ label, value, unit, caption }: { label: string; value: string; unit?: string; caption: string }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-sm font-medium text-slate-600">{label}</p>

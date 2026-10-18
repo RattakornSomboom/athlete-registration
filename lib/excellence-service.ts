@@ -9,6 +9,7 @@ import {
   buildAthleteDetail,
   buildExecutiveReport,
   buildHeatmap,
+  entrySheetRows,
   eventKind,
   extractStationRatings,
   filterRows,
@@ -22,6 +23,7 @@ import {
   type AthleteRecord,
   type Benchmarks,
   type DevelopmentPlan,
+  type EntrySheetRow,
   type EventResult,
   type ExecutiveReport,
   type Heatmap,
@@ -35,6 +37,7 @@ import { rateGroup9Value, type Group9TestKey } from "@/lib/fitness-group9-norms"
 import {
   assertEventForGender,
   ExcellenceValidationError,
+  type BatchResultInput,
   type BenchmarkInput,
   type PlanInput,
   type ResultFields,
@@ -75,10 +78,10 @@ const applicationInclude = {
 
 type ApplicationRow = Awaited<ReturnType<typeof loadApplications>>[number];
 
-function loadApplications(db: Tx | typeof prisma, applicationId?: string) {
+function loadApplications(db: Tx | typeof prisma, applicationId?: string | string[]) {
   return db.application.findMany({
     where: {
-      ...(applicationId ? { id: applicationId } : {}),
+      ...(applicationId ? { id: Array.isArray(applicationId) ? { in: applicationId } : applicationId } : {}),
       sport: EXCELLENCE_SPORT,
       category: { in: ATHLETICS_CATEGORY_NAMES },
       status: { in: [...ELIGIBLE_STATUSES] },
@@ -168,15 +171,16 @@ export async function getOverview(filter: OverviewFilter, demo: boolean, sport: 
 }
 
 export async function getAthleteDetail(applicationId: string, demo: boolean): Promise<AthleteDetail & { isDemo: boolean }> {
+  const today = new Date().toISOString().slice(0, 10);
   if (demo) {
     const record = getDemoAthletes().find(candidate => candidate.applicationId === applicationId);
     ensure(record, "ไม่พบนักกีฬาในชุดข้อมูลสาธิต", 404);
-    return { ...buildAthleteDetail(record, DEMO_BENCHMARKS), isDemo: true };
+    return { ...buildAthleteDetail(record, DEMO_BENCHMARKS, today), isDemo: true };
   }
   const [apps, benchmarks] = await Promise.all([loadApplications(prisma, applicationId), loadBenchmarks(prisma)]);
   const record = apps[0] ? toRecord(apps[0]) : null;
   ensure(record, "ไม่พบนักกีฬากรีฑาที่ผ่านการคัดเลือก", 404);
-  return { ...buildAthleteDetail(record, benchmarks), isDemo: false };
+  return { ...buildAthleteDetail(record, benchmarks, today), isDemo: false };
 }
 
 export type HeatmapResponse = Heatmap & { isDemo: boolean };
@@ -261,6 +265,61 @@ export async function recordResult(input: ResultInput) {
     });
     return { success: true, resultId: entry.id };
   });
+}
+
+export type BatchResultResponse = { success: true; saved: number; skipped: string[] };
+
+// บันทึกทั้งชุดใน transaction เดียว: ผิดแถวใดแถวหนึ่ง = ไม่บันทึกเลย (ตอบ 400 พร้อมแถวที่ผิด)
+// แถวที่ซ้ำกับผลเดิม (นักกีฬา+รายการ+วัน+ผล) ถูกข้ามและรายงานใน skipped ไม่ถือเป็นความผิดพลาด
+export async function recordResultsBatch(input: BatchResultInput): Promise<BatchResultResponse> {
+  return atomic(async tx => {
+    const ids = input.entries.map(entry => entry.applicationId);
+    const apps = await loadApplications(tx, ids);
+    const records = new Map(apps.flatMap(app => { const record = toRecord(app); return record ? [[app.id, { app, record }] as const] : []; }));
+    const errors: Record<string, string> = {};
+    for (const entry of input.entries) {
+      const found = records.get(entry.applicationId);
+      if (!found) { errors[`entries.${entry.applicationId}`] = "ไม่พบนักกีฬาที่ผ่านการคัดเลือก"; continue; }
+      try {
+        assertEventForGender(input.event, found.record.gender);
+      } catch (error) {
+        if (!(error instanceof ExcellenceValidationError)) throw error;
+        errors[`entries.${entry.applicationId}`] = error.message;
+      }
+    }
+    if (Object.keys(errors).length) throw new ApiError(400, `บันทึกไม่ได้ ${Object.keys(errors).length} แถว ไม่มีรายการใดถูกบันทึก`, errors);
+
+    const skipped: string[] = [];
+    let saved = 0;
+    for (const entry of input.entries) {
+      const { app, record } = records.get(entry.applicationId) as { app: ApplicationRow; record: AthleteRecord };
+      const fields = { event: input.event, mark: entry.mark, competedAt: input.competedAt, stage: input.stage };
+      try {
+        await assertNotDuplicate(tx, app.id, fields);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) { skipped.push(app.id); continue; }
+        throw error;
+      }
+      const match = await findOrCreateMatch(tx, app, fields);
+      await tx.competitionMatchEntry.create({
+        data: { matchId: match.id, applicationId: app.id, participantName: record.name, ...markData(input.event, entry.mark) },
+      });
+      saved += 1;
+    }
+    return { success: true as const, saved, skipped };
+  });
+}
+
+export type EntrySheetResponse = { isDemo: boolean; event: string; athletes: EntrySheetRow[] };
+
+export async function getEntrySheet(event: string, demo: boolean): Promise<EntrySheetResponse> {
+  const [records, benchmarks] = demo
+    ? [getDemoAthletes(), DEMO_BENCHMARKS]
+    : await Promise.all([
+        loadApplications(prisma).then(apps => apps.map(toRecord).filter((record): record is AthleteRecord => record !== null)),
+        loadBenchmarks(prisma),
+      ]);
+  return { isDemo: demo, event, athletes: entrySheetRows(records, event, benchmarks) };
 }
 
 // โหลดผลแข่งของโมดูลนี้เท่านั้น (กรีฑา: ลู่ = TIMED, ลาน = RANKING) และตรวจว่านักกีฬายังผ่านการคัดเลือก

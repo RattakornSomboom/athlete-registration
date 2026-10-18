@@ -33,7 +33,7 @@
 | staff/requests, staff/requests/[id] | STAFF_REQUEST_REVIEW_ROLES |
 | staff/rosters, officials, profile, snapshots*, analytics | STAFF |
 | staff/fitness-tests, [applicationId], evaluate, import | STAFF |
-| staff/excellence (GET ภาพรวม + `report` รายงานผู้บริหาร; param `sport` ต้องอยู่ในทะเบียน `lib/excellence-sports.ts` ไม่เช่นนั้น 400), [applicationId] (GET), heatmap (GET แผนที่จุดอ่อนทีม), results (POST; body `mark` = วินาทีสำหรับลู่ / เมตรสำหรับลาน), results/[resultId] (PUT/DELETE แก้/ลบผลเวลา), benchmarks (GET/PUT), plans (POST), retests (POST), retests/[retestId] (PUT/DELETE แก้/ยกเลิกผลทดสอบซ้ำ) — `?demo=true` อ่านชุดสาธิต, เขียนชุดสาธิตได้ 400 | STAFF |
+| staff/excellence (GET ภาพรวม + `report` รายงานผู้บริหาร; param `sport` ต้องอยู่ในทะเบียน `lib/excellence-sports.ts` ไม่เช่นนั้น 400), [applicationId] (GET), heatmap (GET แผนที่จุดอ่อนทีม), results/batch (POST บันทึกหลายคนพร้อมกัน: event+วันที่+รอบ+entries[]; ทั้งชุดหรือไม่บันทึกเลย, ซ้ำของเดิมถูกข้ามและรายงาน), entry-sheet (GET รายชื่อที่รายการเปิดให้ + ผลดีที่สุดเดิม + เป้า), results (POST; body `mark` = วินาทีสำหรับลู่ / เมตรสำหรับลาน), results/[resultId] (PUT/DELETE แก้/ลบผลเวลา), benchmarks (GET/PUT), plans (POST), retests (POST), retests/[retestId] (PUT/DELETE แก้/ยกเลิกผลทดสอบซ้ำ) — `?demo=true` อ่านชุดสาธิต, เขียนชุดสาธิตได้ 400 | STAFF |
 | team-official/applications | TEAM_OFFICIAL |
 
 ## รูปแบบมาตรฐาน

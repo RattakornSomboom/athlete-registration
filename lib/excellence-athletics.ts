@@ -721,6 +721,10 @@ export function buildTimeline(record: AthleteRecord): TimelineEntry[] {
 export type AthleteDetail = {
   athlete: Omit<AthleteRecord, "results" | "storage">;
   revision: number;
+  // สิ่งที่ต้องติดตามของนักกีฬาคนนี้ (ชุดเดียวกับหน้ารายงาน)
+  flags: AttentionFlag[];
+  // สรุปย่อของคนนี้สำหรับแถบตัวชี้วัดในหน้ารายคน
+  summary: { events: number; atTarget: number; belowTarget: number; noTarget: number; plans: number; retests: number; latestPlanStatus: PlanStatus | null };
   results: (MarkedResult & { target: number | null; gap: number | null; percentOfTarget: number | null })[];
   stations: StationResult[];
   plans: DevelopmentPlan[];
@@ -729,7 +733,7 @@ export type AthleteDetail = {
   events: AthleticsEvent[];
 };
 
-export function buildAthleteDetail(record: AthleteRecord, benchmarks: Benchmarks): AthleteDetail {
+export function buildAthleteDetail(record: AthleteRecord, benchmarks: Benchmarks, today = ""): AthleteDetail {
   const baseline = record.fitness?.ratings ?? {};
   const plansById = new Map(record.storage.plans.map(plan => [plan.id, plan]));
   const retests = [...record.storage.retests].sort((a, b) => a.testedAt.localeCompare(b.testedAt) || a.recordedAt.localeCompare(b.recordedAt));
@@ -740,9 +744,22 @@ export function buildAthleteDetail(record: AthleteRecord, benchmarks: Benchmarks
     return { ...retest, comparison };
   });
   const { results, storage, ...athlete } = record;
+  const rows = overviewRows(record, benchmarks, today);
+  const flags = [...new Set(rows.flatMap(row => row.flags))];
+  const eventRows = rows.filter(row => row.event !== null);
   return {
     athlete,
     revision: storage.revision,
+    flags,
+    summary: {
+      events: eventRows.length,
+      atTarget: eventRows.filter(row => row.status === "AT_TARGET").length,
+      belowTarget: eventRows.filter(row => row.status === "BELOW_TARGET").length,
+      noTarget: eventRows.filter(row => row.status === "NO_TARGET").length,
+      plans: storage.plans.length,
+      retests: storage.retests.length,
+      latestPlanStatus: latestPlan(storage.plans)?.status ?? null,
+    },
     results: markBests(results).map(result => {
       const target = targetFor(benchmarks, result.event, record.gender);
       return { ...result, target, gap: gapToTarget(result.event, result.mark, target), percentOfTarget: percentOfTarget(result.event, result.mark, target) };
@@ -884,6 +901,51 @@ export function buildExecutiveReport(records: AthleteRecord[], benchmarks: Bench
       PLAN_OVERDUE: people(row => row.flags.includes("PLAN_OVERDUE")),
     },
   };
+}
+
+// ---------- ใบกรอกผลเป็นชุด (รายการเดียว วันเดียว) ----------
+
+export type EntrySheetRow = {
+  applicationId: string;
+  studentId: string;
+  name: string;
+  faculty: string;
+  gender: AthleticsGender;
+  competitionName: string;
+  // ผลดีที่สุดเดิมของรายการนี้และเป้า ใช้เทียบทันทีตอนกรอก
+  bestMark: number | null;
+  targetMark: number | null;
+};
+
+// นักกีฬาที่รายการนี้เปิดสำหรับเพศของเขา เรียงตามชื่อ
+export function entrySheetRows(records: AthleteRecord[], event: string, benchmarks: Benchmarks): EntrySheetRow[] {
+  const known = findEvent(event);
+  if (!known) return [];
+  return records
+    .filter(record => known.genders.includes(record.gender))
+    .map(record => ({
+      applicationId: record.applicationId,
+      studentId: record.studentId,
+      name: record.name,
+      faculty: record.faculty,
+      gender: record.gender,
+      competitionName: record.competitionName,
+      bestMark: personalBest(record.results, event),
+      targetMark: targetFor(benchmarks, event, record.gender),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "th"));
+}
+
+// ตรวจผลที่กรอกก่อนส่ง (ฝั่งหน้าจอ) คืนข้อความผิดพลาด หรือ null เมื่อใช้ได้
+export function checkMarkText(event: string, text: string): string | null {
+  const known = findEvent(event);
+  if (!known) return "รายการไม่ถูกต้อง";
+  const value = parseMark(event, text);
+  if (value === null) return known.kind === "TRACK" ? "ใส่เวลา เช่น 10.85 หรือ 1:58.32" : "ใส่ระยะเป็นเมตร เช่น 7.85";
+  if (value < known.min || value > known.max) {
+    return known.kind === "TRACK" ? `ต้องอยู่ระหว่าง ${known.min}–${known.max} วินาที` : `ต้องอยู่ระหว่าง ${known.min}–${known.max} เมตร`;
+  }
+  return null;
 }
 
 // ---------- ส่งออก CSV ----------

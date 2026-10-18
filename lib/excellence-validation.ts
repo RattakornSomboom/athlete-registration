@@ -166,6 +166,48 @@ export function resultId(value: unknown): string {
   return demoGuard(requiredText(value, "resultId", "รหัสผลแข่ง", 100));
 }
 
+export type BatchResultInput = {
+  event: string;
+  competedAt: string;
+  stage: string | null;
+  entries: { applicationId: string; mark: number }[];
+};
+
+export const MAX_BATCH_ENTRIES = 200;
+
+// บันทึกผลเป็นชุด (รายการเดียว วันเดียว รอบเดียว) ตรวจทุกแถวแล้วรายงานข้อผิดพลาดพร้อมกัน
+// fieldErrors ใช้คีย์ entries.<applicationId> เพื่อให้หน้าจอชี้แถวที่ผิดได้
+export function validateBatchResultInput(raw: unknown): BatchResultInput {
+  const data = record(raw);
+  const event = eventKey(data.event);
+  const competedAt = date(data.competedAt, "competedAt", "วันที่แข่ง");
+  const stage = optionalText(data.stage, "stage", "รอบการแข่งขัน", 100);
+  if (!Array.isArray(data.entries) || data.entries.length === 0) fail("entries", "กรุณากรอกผลอย่างน้อย 1 คน");
+  if (data.entries.length > MAX_BATCH_ENTRIES) fail("entries", `บันทึกได้ครั้งละไม่เกิน ${MAX_BATCH_ENTRIES} คน`);
+  const errors: Record<string, string> = {};
+  const seen = new Set<string>();
+  const entries: { applicationId: string; mark: number }[] = [];
+  data.entries.forEach((rawEntry, index) => {
+    const entry = record(rawEntry);
+    const id = typeof entry.applicationId === "string" ? entry.applicationId.trim() : "";
+    const key = `entries.${id || index}`;
+    if (!id) { errors[key] = "ไม่ระบุนักกีฬา"; return; }
+    if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
+    if (seen.has(id)) { errors[key] = "นักกีฬาซ้ำในชุดเดียวกัน"; return; }
+    seen.add(id);
+    try {
+      entries.push({ applicationId: id, mark: markValue(entry.mark, event) });
+    } catch (error) {
+      if (!(error instanceof ExcellenceValidationError)) throw error;
+      errors[key] = error.message;
+    }
+  });
+  if (Object.keys(errors).length) {
+    throw new ExcellenceValidationError(400, `ผลที่กรอกไม่ถูกต้อง ${Object.keys(errors).length} แถว`, errors);
+  }
+  return { event, competedAt, stage, entries };
+}
+
 export type BenchmarkInput = { event: string; gender: AthleticsGender; target: number | null };
 
 // target = null คือยกเลิกเป้าของรายการนั้น

@@ -19,6 +19,8 @@ const ENDPOINTS: Endpoint[] = [
   { method: "GET", path: "/api/staff/excellence/demo-1?demo=true", allowedStatus: 200 },
   { method: "GET", path: "/api/staff/excellence/benchmarks?demo=true", allowedStatus: 200 },
   { method: "GET", path: "/api/staff/excellence/heatmap?demo=true", allowedStatus: 200 },
+  { method: "GET", path: "/api/staff/excellence/entry-sheet?event=100m&demo=true", allowedStatus: 200 },
+  { method: "POST", path: "/api/staff/excellence/results/batch", data: {}, allowedStatus: 400 },
   { method: "PUT", path: "/api/staff/excellence/retests/demo-2-t1", data: {}, allowedStatus: 400 },
   { method: "DELETE", path: "/api/staff/excellence/retests/demo-2-t1", data: {}, allowedStatus: 400 },
   // เขียน: ส่ง body ว่าง/รหัสสาธิต เพื่อให้ผ่านสิทธิ์แล้วได้ 400 (validation) และไม่มีการเขียนจริง
@@ -30,7 +32,7 @@ const ENDPOINTS: Endpoint[] = [
   { method: "POST", path: "/api/staff/excellence/retests", data: {}, allowedStatus: 400 },
 ];
 
-const PAGES = ["/staff/excellence", "/staff/excellence?demo=true", "/staff/excellence/demo-1?demo=true", "/staff/excellence/benchmarks", "/staff/excellence/heatmap?demo=true"];
+const PAGES = ["/staff/excellence", "/staff/excellence?demo=true", "/staff/excellence/demo-1?demo=true", "/staff/excellence/benchmarks", "/staff/excellence/heatmap?demo=true", "/staff/excellence/results?demo=true"];
 
 function credentials(role: Role): { username: string; password: string } | null {
   const username = process.env[`E2E_${role}_USERNAME`];

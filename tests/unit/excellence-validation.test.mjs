@@ -6,9 +6,11 @@ import {
   ExcellenceValidationError,
   VALID_STATION_KEYS,
   assertEventForGender,
+  MAX_BATCH_ENTRIES,
   markValue,
   resultId,
   retestId,
+  validateBatchResultInput,
   validateBenchmarkInput,
   validatePlanInput,
   validateResultInput,
@@ -144,3 +146,50 @@ test("retest delete needs an application id and revision and refuses demo ids", 
   assert.equal(retestId("abc-123"), "abc-123");
   assert.throws(() => retestId("demo-2-t1"), error => error instanceof ExcellenceValidationError && error.message.includes("สาธิต"));
 });
+
+const batch = (overrides = {}) => ({
+  event: "100m",
+  competedAt: "2026-10-18",
+  stage: "รอบชิง",
+  entries: [{ applicationId: "app-1", mark: "10.85" }, { applicationId: "app-2", mark: 11.2 }],
+  ...overrides,
+});
+
+test("batch input accepts one event, date and stage with many marks", () => {
+  const parsed = validateBatchResultInput(batch());
+  assert.equal(parsed.event, "100m");
+  assert.equal(parsed.stage, "รอบชิง");
+  assert.deepEqual(parsed.entries, [{ applicationId: "app-1", mark: 10.85 }, { applicationId: "app-2", mark: 11.2 }]);
+  assert.equal(validateBatchResultInput(batch({ stage: "" })).stage, null);
+  assert.equal(validateBatchResultInput(batch({ event: "javelin", entries: [{ applicationId: "app-1", mark: "61.40" }] })).entries[0].mark, 61.4);
+});
+
+test("batch input reports every bad row at once, keyed by athlete", () => {
+  try {
+    validateBatchResultInput(batch({ entries: [
+      { applicationId: "app-1", mark: "abc" },
+      { applicationId: "app-2", mark: "5" },
+      { applicationId: "app-3", mark: "10.9" },
+      { applicationId: "app-3", mark: "11.0" },
+      { mark: "10.5" },
+    ] }));
+    assert.fail("should reject");
+  } catch (error) {
+    assert.ok(error instanceof ExcellenceValidationError);
+    assert.equal(error.status, 400);
+    assert.deepEqual(Object.keys(error.fieldErrors).sort(), ["entries.4", "entries.app-1", "entries.app-2", "entries.app-3"].sort());
+    assert.ok(error.fieldErrors["entries.app-3"].includes("ซ้ำ"));
+    assert.ok(error.message.includes("4 แถว"));
+  }
+});
+
+test("batch input rejects empty, oversized, demo and wrongly shaped requests", () => {
+  rejects(() => validateBatchResultInput(batch({ entries: [] })), "entries");
+  rejects(() => validateBatchResultInput(batch({ entries: Array.from({ length: MAX_BATCH_ENTRIES + 1 }, (_, i) => ({ applicationId: `a${i}`, mark: 11 })) })), "entries");
+  rejects(() => validateBatchResultInput(batch({ event: "60m" })), "event");
+  rejects(() => validateBatchResultInput(batch({ competedAt: "2026-02-30" })), "competedAt");
+  assert.throws(() => validateBatchResultInput(batch({ entries: [{ applicationId: "demo-1", mark: 11 }] })), error => error instanceof ExcellenceValidationError && error.message.includes("สาธิต"));
+  rejects(() => validateBatchResultInput({ ...batch(), entries: "x" }), "entries");
+  assert.doesNotThrow(() => validateBatchResultInput(batch({ entries: Array.from({ length: MAX_BATCH_ENTRIES }, (_, i) => ({ applicationId: `a${i}`, mark: 11 })) })));
+});
+
