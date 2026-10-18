@@ -11,6 +11,7 @@ import { detectGenderFromName } from "@/lib/fitness-excel-parser";
 import EvidenceChecklist from "@/components/shared/EvidenceChecklist";
 import { isEvidenceHistory } from "@/lib/evidence-verification";
 import { checkAthleteEligibility, countParticipationForLevel } from "@/lib/rule-checker";
+import { isTeamSport } from "@/lib/sport-type";
 
 type ProfileDto = {
   firstName: string;
@@ -50,7 +51,7 @@ type ApplicationDto = {
   } | null;
 } & Record<string, unknown>;
 
-type ClubDto = { id: string; name: string };
+type ClubDto = { id: string; name: string; sport: string };
 
 async function loadApplicants(clubId: string, competitionId: string) {
   const query = new URLSearchParams({ clubId, competitionId });
@@ -103,7 +104,9 @@ function statusView(status: string) {
 }
 
 const canDecide = (app: ApplicationDto) => (app.noClubFileUrl ? app.status === "SUBMITTED" : app.status === "CLUB_APPROVED");
-const squadLabel = (squad: string | null) => (squad === "main" ? "ตัวจริง" : squad === "reserve" ? "ตัวสำรอง" : "ยังไม่ได้ระบุ");
+// กีฬาประเภททีมใช้ตัวจริง/ตัวสำรอง ส่วนประเภทบุคคลใช้ "selected" อย่างเดียว (lib/roster-service.ts)
+const squadLabel = (squad: string | null) =>
+  squad === "main" ? "ตัวจริง" : squad === "reserve" ? "ตัวสำรอง" : squad === "selected" ? "ผ่านการคัดเลือก" : "ยังไม่ได้ระบุ";
 
 export default function StaffCompetitionApplicantsPage() {
   const params = useParams();
@@ -121,6 +124,7 @@ export default function StaffCompetitionApplicantsPage() {
   const applications = resource.data?.applications ?? [];
   const eventName = resource.data?.competitionName ?? "รายการแข่งขัน";
   const clubName = resource.data?.club.name ?? "";
+  const clubSport = resource.data?.club.sport ?? "";
   const detail = applications.find((a) => a.id === detailId);
 
   async function decide(id: string, status: "STAFF_APPROVED" | "STAFF_REJECTED", label: string) {
@@ -159,7 +163,13 @@ export default function StaffCompetitionApplicantsPage() {
 
   const mainCount = applications.filter((a) => a.squadType === "main").length;
   const reserveCount = applications.filter((a) => a.squadType === "reserve").length;
+  const selectedCount = applications.filter((a) => a.squadType === "selected").length;
   const pendingCount = applications.filter((a) => canDecide(a)).length;
+  // อ่านชนิดกีฬาจากชมรม ไม่ใช่จากใบสมัคร เพื่อให้ชมรมที่ยังไม่มีใบสมัครขึ้นคำที่ถูกต้อง
+  const isTeam = isTeamSport(clubSport);
+  const squadSummary = isTeam
+    ? `ตัวจริง ${mainCount} คน · ตัวสำรอง ${reserveCount} คน`
+    : `ผ่านการคัดเลือก ${selectedCount} คน`;
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 text-slate-800 font-sans">
@@ -175,7 +185,7 @@ export default function StaffCompetitionApplicantsPage() {
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">{eventName}</h1>
             <p className="text-xs text-slate-500">
-              ตัวจริง {mainCount} คน · ตัวสำรอง {reserveCount} คน · รอการพิจารณา {pendingCount} คน
+              {squadSummary} · รอการพิจารณา {pendingCount} คน
             </p>
           </div>
           <button
