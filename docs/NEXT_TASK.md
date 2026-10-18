@@ -1,3 +1,54 @@
+## Excellence ใหม่: กรีฑาประเภทลู่ ที่ /staff/excellence — 2026-10-18
+- เลิกใช้แท็บ `staff/analytics?tab=excellence` และลบโค้ดเดิมทั้งหมด (สำรองไว้ใน commit `0e2d3f9`)
+- หน้าใหม่ 3 หน้า: ภาพรวม (กรองรายการ/เพศ), รายคน (ผลแข่ง PB/SB, จุดอ่อน, แผนผูกสถานี, ทดสอบซ้ำ, ไทม์ไลน์), เป้าเวลาแยกรายการ+เพศ
+- งานถัดไปที่เป็นไปได้: ทดสอบบันทึกจริงด้วยบัญชี STAFF บนฐานข้อมูลทดสอบ, กราฟพัฒนาการเวลา, ทดสอบสิทธิ์ ATHLETE/CLUB ด้วย e2e
+
+## Sport-Specific Fitness Display — 2026-10-17
+- ปรับหน้า Excellence ให้ใช้โปรไฟล์นำร่องกรีฑา 7 รายการ และว่ายน้ำ 8 รายการ แยกแรงบีบมือออกจากดันพื้น ไม่บังคับจำนวนเท่ากัน
+- กรีฑาใช้ชุดความเร็ว 40 เมตร พลังระเบิดขา ความคล่องแคล่ว ความอ่อนตัว แรงบีบมือ ระบบหายใจ และองค์ประกอบร่างกาย
+- กีฬาทางน้ำ/ว่ายน้ำใช้ชุดแรงช่วงบน แกนกลาง พลังระเบิดขา ความอ่อนตัว/นอนแอ่นหลัง ระบบหายใจ และองค์ประกอบร่างกาย โดยเวลา 50 เมตรอยู่ในผลการแข่งขัน
+- ฟอร์มผลทดสอบซ้ำและการเปรียบเทียบก่อน-หลังใช้ station profile เดียวกับการ์ดนักกีฬา เพื่อให้ข้อมูลที่กรอกสอดคล้องกับกีฬาของนักกีฬา
+
+## Excellence Pilot Sports Isolation (Strict 2-Sport Scope) — 2026-10-16
+- Enforced strict 2-sport isolation for the Excellence Module (ทั้ง 10 ข้อ: แผนพัฒนา, ผู้รับผิดชอบ, วันที่เริ่ม-สิ้นสุด, สถานะ, ผลทดสอบซ้ำ, Benchmarks, สมรรถภาพก่อนแข่ง, เวลา/อันดับ, ตัวอย่างแผน, ติดตามผล 4-6 สัปดาห์):
+  1. กรีฑา (Athletics - 40m Sprint)
+  2. กีฬาทางน้ำ / ว่ายน้ำ (Aquatics / Swimming - 50m Freestyle)
+- Removed team sports (บาสเกตบอล, ฟุตซอล, วอลเลย์บอล) completely from `DEFAULT_SPORT_BENCHMARKS` and `BenchmarkModal` dropdown.
+- Filtered real applications query in `getPerformanceInsights` to include only `PILOT_SPORTS` (`กรีฑา`, `กีฬาทางน้ำ`, `ว่ายน้ำ`).
+- Updated `StaffExcellenceTab` filter dropdown to display only the 2 pilot sports clearly.
+- Quality gates: `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors, 0 warnings), `npm run test:unit` (95 passed), `npm run build` (74 routes successfully built).
+
+## Two Pilot Sports Scope: Athletics & Aquatics/Swimming — 2026-10-16
+- Defined the Excellence feature scope to focus on two quantitative, time-based pilot sports:
+  1. กรีฑา (Athletics): Sprint 40m, default benchmark 5.2s, target readiness score 85.
+  2. กีฬาทางน้ำ / ว่ายน้ำ (Aquatics / Swimming): 50m Freestyle, default benchmark 27.5s, target readiness score 85.
+- Updated `DEFAULT_SPORT_BENCHMARKS` to include both `กีฬาทางน้ำ` and `ว่ายน้ำ` alongside `กรีฑา`.
+- Tailored rule-based recommendations in `analyzeAthletePerformance` for swimming (Aerobic swim capacity, stroke rate pacing, dryland core/resistance, and shoulder/ankle mobility).
+- Added two Swimming fixtures with a 6-week Closed-Loop follow-up retest fixture showing -1.6s progress and +18 readiness score.
+- Updated Demo script at `docs/PERFORMANCE_DEMO_SCRIPT.md` to document the 2-sport walkthrough.
+- Quality gates: typecheck passed, lint 0 warnings, 95 unit tests passed, and build passed.
+
+## Production Closed-Loop Input — 2026-10-16
+- Added the real staff workflow on the Excellence tab without changing the existing demo fixtures.
+- Added `/api/staff/excellence` with server-side role checks and validation for action plans, follow-up retests, and sport benchmarks.
+- Stored action plan metadata and an append-only retest history under the existing `FitnessTestResult.scores._excellence` JSON namespace, preserving legacy score fields and avoiding an unapproved database migration.
+- Added `ActionPlanModal` for coach, responsible person, date range, plan items, status, and retest station results.
+- Added `BenchmarkModal` for staff-editable target time and target readiness score, persisted in `SystemSetting` key `SPORT_BENCHMARKS`.
+- Real records now render the latest Closed-Loop comparison and expose all retest history; demo records remain read-only.
+- Quality gates: `npx tsc --noEmit`, `npm run lint`, `npm run test:unit` (94 passed), and `npm run build` passed. Build retains the existing non-blocking middleware deprecation warning.
+
+## Performance Excellence Analytics — Implementation Status — 2026-10-15
+- Demo readiness follow-up — 2026-10-16: deterministic Demo mode now uses the three athletics/40m sprint fixtures only, keeps demo and real records separate, aligns fixture event names with the 5.2-second benchmark, and adds the graduation-project walkthrough at `docs/PERFORMANCE_DEMO_SCRIPT.md`.
+- สถานะ: COMPLETED (Single Sport Demo: กรีฑา)
+- ปรับปรุงครบตามแผน:
+  1. รวมชุดข้อมูลตัวอย่างเป็นกีฬาเดียวคือ "กรีฑา" ทั้ง 3 โปรไฟล์ (Benchmarking, Speed/Endurance Gap, Flexibility Risk)
+  2. คำนวณและแสดงผล 7 สถานีมาตรฐาน (Standard 7 Stations) อย่างชัดเจนและแน่นอน
+  3. คำนวณ Gap เทียบเกณฑ์มาตรฐาน (80 คะแนน) และ Gap เวลาที่ทำได้จริงเทียบกับเวลาเป้าหมาย (5.2s)
+  4. ครอบ query ดึงข้อมูลใน getPerformanceInsights ด้วย prisma.$transaction
+  5. บังคับใช้ includeDemo=true เพื่อไม่ให้ข้อมูลตัวอย่างปะปนกับข้อมูลจริง
+- Quality gates: npx tsc --noEmit (ผ่าน), npm run lint (ผ่าน), npm run test:unit (86/86 ผ่าน), npm run build (ผ่าน)
+- ไม่มี database migration หรือ db:push
+
 ## Release Final Verification — 2026-09-28 (Run ID: run-20260928-191300)
 
 Final pre-release verification bundle established:

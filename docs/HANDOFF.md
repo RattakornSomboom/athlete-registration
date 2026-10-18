@@ -1,4 +1,99 @@
-# Task Status: ✅ Completed
+## Excellence rebuilt as athletics-track module at /staff/excellence — 2026-10-18
+- Retired the old `staff/analytics?tab=excellence` tab and deleted its code (components, `staff/excellence|match-results|performance-insights` APIs, `lib/performance-*`, tests, demo script). The old code is preserved in commit `0e2d3f9`; removal is commit `aa69735`.
+- New scope: athletics track events only (100–10,000 m, hurdles), gender read from `Application.category` "ลู่ (ชาย)/(หญิง)", applications in `STAFF_APPROVED`/`FINAL_SELECTED`.
+- Pages: `/staff/excellence` (overview, filter by event/gender/search, 4 people-count tiles, one row per athlete per event), `/staff/excellence/[applicationId]` (results with PB/SB and gap, weak stations, plans whose items link to a station, retests compared per plan item and by time with SWC, timeline), `/staff/excellence/benchmarks` (staff-entered target per event+gender; empty = "ยังไม่ตั้งเป้า"). Nav link added in `AppNav`.
+- Storage (no schema change): results as `CompetitionMatch` TIMED + entry `timeSeconds`; targets in `SystemSetting` `ATHLETICS_TRACK_BENCHMARKS`; plans/retests in `FitnessTestResult.scores._excellence.v2` with `revision` optimistic lock (409 on mismatch). Legacy `_excellence` keys and `SPORT_BENCHMARKS` are left untouched in the DB. Plans and retests need an existing fitness test result.
+- Logic: `lib/excellence-athletics.ts` (pure), `excellence-validation.ts`, `excellence-service.ts`, `excellence-demo.ts` (10 athletes, read-only, `?demo=true`). Demo script: `docs/EXCELLENCE_DEMO_SCRIPT.md`.
+- Tests: `tests/unit/excellence-athletics.test.mjs` (17), `excellence-validation.test.mjs` (8, includes `preserveExcellenceMetadata` keeping `_excellence.v2`). Typecheck, lint, unit tests (106/106) and build pass.
+- Browser-checked as STAFF: old tab gone, empty state on real data, demo overview/filter/detail, benchmarks grid, API 400/404/401 responses, demo writes refused. Not checked: saving real results/plans/retests/benchmarks (no eligible athletes in the local DB, and no writes were made), and ATHLETE/CLUB denial with a logged-in account (middleware + `api(STAFF)` cover it; unauthenticated requests get 401/redirect).
+
+## Excellence Follow-up Smallest Worthwhile Change (SWC) — 2026-10-18
+- `compareFollowUp` in `lib/performance-analytics.ts` no longer treats any non-zero delta as a real change. Time changes count only when |delta| ≥ max(0.1s, 0.5% of the baseline time) (athletics 5.7s → 0.1s, swimming 27.5s → 0.14s); fitness-average changes count only when ≥ 3 points. Thresholds live in `FOLLOW_UP_SWC`, with helpers `timeSwcSeconds` and `classifyChange`.
+- `FollowUpComparison` gained `timeChange`, `fitnessChange` (`IMPROVED` / `WITHIN_SWC` / `DECLINED` / null) and `swc`. The summary now distinguishes "within SWC" and mixed results (time improved but fitness declined). Comparisons are computed on read, so no stored data changes.
+- `FollowUpComparisonPanel` colors each delta by its classification and labels within-SWC deltas "อยู่ในช่วงคลาดเคลื่อน ±…". `ActionPlanModal` colors deltas by the same classification.
+- Program-level counts use the same rule: `computeProgramAnalytics` takes a `ProgramChangeClassifier` (injected like `RACE_PROXY_STATION_NAMES`, so the module still has no runtime imports), and `lib/performance-service.ts` passes `SWC_CHANGE_CLASSIFIER` built from `classifyChange`/`timeSwcSeconds`. Time deltas are now taken from raw times rather than rounded gaps, so they match the card's delta. Each time point carries `change`; `ProgramAnalyticsPanel` labels the middle count "ไม่เปลี่ยนชัดเจน" and draws within-SWC lines in slate, with a legend. Real data and the demo cohort both go through `buildProgram`. Without a classifier, `computeProgramAnalytics` falls back to `RAW_CHANGE_CLASSIFIER` (sign only).
+- The thresholds are reasoned defaults, not calibrated from test-retest data.
+- Tests: 7 new cases in `tests/unit/performance-analytics.test.mjs`, 3 in `tests/unit/performance-program-analytics.test.mjs`. Typecheck, lint, unit tests (126/126), and build pass. Not checked in a browser.
+
+## Excellence Program-Level Analytics — 2026-10-17
+- Added a "ภาพรวมโปรแกรม" view to the Excellence tab (also shown first under "ทั้งหมด") via `components/shared/ProgramAnalyticsPanel.tsx`. It answers three program-level questions per sport: share of athletes at target (time / fitness / both), Gap before vs after the development plan, and which fitness stations move with race time.
+- Pure computation lives in `lib/performance-program-analytics.ts` (no runtime imports so node unit tests run it directly). `getPerformanceInsights` now returns `program`; real-data figures are computed before the search filter so searching for a person does not change program numbers.
+- Method choices: sports are never pooled (40m vs 50m times); every figure carries n/N; before/after uses the same athletes on both sides and medians (small n); station relationship uses Spearman rho with tie-averaged ranks, one baseline point per athlete, withheld below n=8 or when a variable is constant; the athletics 40m station is flagged RACE_PROXY and not ranked because it measures the same thing as the race time. No p-values or causal claims are shown.
+- Demo mode uses a separate seeded cohort (`lib/performance-program-demo.ts`, 12 athletes per sport, includes missing-time, plan-without-retest cases). Its station relationships are authored on purpose and the panel says so; the original 5 per-person demo cases are unchanged.
+- `toBaselineInput` now reads the fitness target from `DEFAULT_SPORT_BENCHMARKS` (athletics 85) instead of a hardcoded 80. Real data already used the staff-set benchmark.
+- Tests: `tests/unit/performance-program-analytics.test.mjs` (14 cases). No schema change, no migration, no new dependency.
+- Not yet verified in a browser; the new panel was type-checked and linted only.
+
+## Sport-Specific Excellence Fitness Stations — 2026-10-17
+- Replaced the Excellence page's fixed station mapping with a 7-item athletics pilot profile and an 8-item swimming pilot profile. Grip strength and push-ups are separate measurements, not interchangeable ratings.
+- Athletics now emphasizes 40m acceleration, leg power, agility, flexibility, grip strength, aerobic readiness, and body composition.
+- Aquatics now emphasizes upper-body strength, core strength, leg power, flexibility/back extension, aerobic readiness, and body composition; the 50m freestyle time remains the competition metric rather than a fitness-station rating.
+- Athlete cards, the production retest form, the comparison dashboard, and Closed-Loop station comparisons use the athlete's sport profile. Missing baseline values are not silently displayed as ปานกลาง.
+- Preserved the legacy mapToStandardSevenStations helper for older data/tests; Group 9 remains available as the gender-specific fitness reference layer and is not automatically treated as the 40m/50m competition benchmark.
+
+## Excellence Demo Copy and Sport Labels Alignment — 2026-10-17
+- Updated Demo and Closed-Loop follow-up presentation strings in components/shared/StaffExcellenceTab.tsx, components/shared/FollowUpComparisonPanel.tsx, components/shared/AthleteExcellenceCard.tsx, and components/shared/ActionPlanModal.tsx.
+- Walkthrough step 2 now clearly references both pilot benchmarks: Athletics (40m Sprint: 5.2s) and Swimming/Aquatics (50m Freestyle: 27.5s).
+- Empty state and demo launch CTA explicitly invite users to explore the combined Athletics and Swimming demo fixtures.
+- Retest panels and athlete modal dynamically adapt the time label based on the athlete's sport (เวลาวิ่ง 40 เมตร for athletics vs เวลาว่ายน้ำ 50 เมตร for swimming).
+- Verified via browser accessibility tree, npx tsc --noEmit (0 errors), npm run lint (0 errors), npm run test:unit (101/101 passed), and production build npm run build (74 routes generated).
+## SAT Group 9 Fitness Norms — 2026-10-17
+- Added `lib/fitness-group9-norms.ts` with the official Group 9 five-level rating boundaries from the provided SAT/กกมท. reference screenshots.
+- Supported inputs cover 11 tests: body fat, sit-and-reach, back extension, grip strength ratio, leg strength ratio, 1-minute sit-ups, 1-minute push-ups, 40m sprint, Wingate power, Wingate capacity, and VO2max.
+- Norms are gender-specific (`ชาย` / `หญิง`), validate measurement ranges, calculate per-test ratings, total score, percentage, overall rating, missing tests, and pass/fail status.
+- Grip and leg strength can be submitted as raw force plus body weight; the evaluator converts them to kg/kg body-weight ratios before rating.
+- Integrated the evaluator into `POST /api/staff/fitness-tests/evaluate` with `type: "group9"`, server-side payload validation, and clean 400 responses for invalid input.
+- Added unit coverage for boundary values, gender-specific norms, ratio conversion, partial test sets, and validation failures. Typecheck, lint, unit tests (101/101), and production build pass.
+- The Group 9 norms provide the fitness-test reference layer; the Excellence pilot remains strictly limited to the two agreed sports: กรีฑา and กีฬาทางน้ำ/ว่ายน้ำ.
+
+## Excellence Pilot Sports Isolation (Strict 2-Sport Scope) — 2026-10-16
+- Enforced strict 2-sport isolation for the Excellence Module (all 10 quantitative pipeline components):
+  1. กรีฑา (Athletics - 40m Sprint)
+  2. กีฬาทางน้ำ / ว่ายน้ำ (Aquatics / Swimming - 50m Freestyle)
+- Removed unrelated sports (basketball, futsal, volleyball) from `DEFAULT_SPORT_BENCHMARKS` and `BenchmarkModal`.
+- Scoped `getPerformanceInsights` application filtering to only the 2 pilot sports so non-pilot athletes are not misanalyzed under time-based metrics.
+- All quality gates verified: typecheck, lint 0 warnings, 95 unit tests passing, production build passing.
+
+## Two Pilot Sports Scope: Athletics & Aquatics/Swimming — 2026-10-16
+- Scoped the Excellence analytics feature to focus initially on two pilot sports with deterministic, time-based measurements:
+  1. กรีฑา (40m Sprint)
+  2. กีฬาทางน้ำ / ว่ายน้ำ (50m Freestyle)
+- Added default benchmarks for `กีฬาทางน้ำ` and `ว่ายน้ำ` (`targetTimeSeconds: 27.5`, `targetScore: 85`).
+- Specialized sport recommendations in `lib/performance-analytics.ts` for aquatic sports (Aerobic swim capacity, dryland resistance/turns, shoulder/ankle mobility).
+- Added demo fixtures and closed-loop follow-up comparison for aquatics; all 95 unit tests passing.
+- Production build completed cleanly with no new warnings.
+
+## Production Closed-Loop Input — 2026-10-16
+- Implemented production input for athlete action plans, plan dates, coach/responsible person, plan status, repeated fitness retests, and staff-editable benchmarks.
+- Added `app/api/staff/excellence/route.ts` with STAFF/ADMIN authorization and server-side validation.
+- Added `components/shared/ActionPlanModal.tsx` and `components/shared/BenchmarkModal.tsx`; wired both into `StaffExcellenceTab` and `AthleteExcellenceCard`.
+- Production storage uses the existing `FitnessTestResult.scores._excellence` JSON namespace for plan metadata and append-only retest history. Existing baseline score data remains untouched.
+- Benchmark overrides use `SystemSetting` key `SPORT_BENCHMARKS`; defaults remain available when no override exists.
+- No `db:push` or migration was run. A future normalized relational model can be introduced after explicit migration approval if reporting volume requires it.
+- Verification passed: typecheck, lint, 94 unit tests, and production build. Build warning: Next.js reports the existing `middleware` convention deprecation.
+
+## Graduation Project Performance Demo — 2026-10-16
+- Continued the existing Performance Excellence changes without reverting user work.
+- Made `includeDemo=true` deterministic: the API returns only the three demo fixtures and skips the real-application query, so the demo remains reliable even when real data exists.
+- Aligned all athletics demo fixtures to the 40m sprint event and the existing 5.2-second benchmark.
+- Added a visible Demo-only walkthrough banner and softened correlation language so the UI does not claim causality or statistical significance from three fixtures.
+- Added `docs/PERFORMANCE_DEMO_SCRIPT.md` with the 5–7 minute presentation flow, scope, limitations, and acceptance criteria.
+- Added closed-loop follow-up comparison to the demo in lib/performance-analytics.ts, components/shared/FollowUpComparisonPanel.tsx, and components/shared/AthleteExcellenceCard.tsx.
+- Demo profile 2 (Speed Gap) now includes a simulated 4-week retest showing 5.7s -> 5.4s (-0.3s) and composite readiness 52% -> 70% with remaining gap (+0.2s) and clear non-causality notes.
+- Added 4 unit tests covering follow-up comparison (improvement, decline, missing time, equal metrics); suite passes 90/90.
+- No Prisma schema, migration, or `db:push` was run.
+
+## Performance Excellence Analytics — Implementation Status — 2026-10-15
+- สถานะ: COMPLETED (Single Sport Demo: กรีฑา)
+- สถาปัตยกรรมและการทำงาน:
+  1. ใช้กีฬาเดโมเพียงชนิดเดียวคือ "กรีฑา" เพื่อให้เกณฑ์และเป้าหมายเวลาเปรียบเทียบได้แน่นอน ชัดเจน ไม่สับสน
+  2. แสดง 7 สถานีมาตรฐานคงที่เสมอ (ความอ่อนตัว, ความแข็งแรง, แรงระเบิดกล้ามเนื้อ, ความคล่องแคล่วว่องไว, ความเร็วสปีด, ความอดทนระบบหายใจ, องค์ประกอบร่างกาย)
+  3. แสดง Gap เทียบเกณฑ์มาตรฐาน 80 คะแนน และ Gap เวลาเทียบกับเป้าหมาย (Target Time)
+  4. ฟังก์ชัน getPerformanceInsights ครอบการอ่านด้วย prisma.$transaction
+  5. การบันทึกผลการแข่งขันผ่าน API /api/staff/match-results และตรวจสอบด้วย performance-validation.ts
+  6. Demo fixtures เปิดดูได้เมื่อเปิด flag includeDemo=true เท่านั้น ไม่ปนกับข้อมูลจริงใน Production
+- Quality gates: npx tsc (0 errors), eslint (0 warnings/errors), node --test (86 passed), next build (73 routes successfully generated)
+- ไม่มีการรัน database migration หรือ db:push
 
 ## Data Reset Performed (นิสิต, Team-Official, Club)
 - ลบข้อมูลในฐานข้อมูล PostgreSQL เรียบร้อยแล้วผ่าน atomic transaction
