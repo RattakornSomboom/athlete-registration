@@ -30,6 +30,7 @@ import {
   ExcellenceValidationError,
   type BenchmarkInput,
   type PlanInput,
+  type ResultFields,
   type ResultInput,
   type RetestInput,
 } from "@/lib/excellence-validation";
@@ -143,26 +144,100 @@ async function eligibleRecord(tx: Tx, applicationId: string): Promise<{ app: App
   return { app, record };
 }
 
+type MatchTarget = { competitionId: string; category: string };
+
+// ผลแข่งรายการ/วัน/รอบเดียวกันของการแข่งขันเดียวกันใช้ match เดียวกัน ไม่สร้าง match ใหม่ทุกครั้ง
+async function findOrCreateMatch(tx: Tx, target: MatchTarget, fields: ResultFields) {
+  const scheduledAt = new Date(`${fields.competedAt}T00:00:00.000Z`);
+  const existing = await tx.competitionMatch.findFirst({
+    where: {
+      competitionId: target.competitionId,
+      sport: EXCELLENCE_SPORT,
+      category: target.category,
+      division: fields.event,
+      eventType: "TIMED",
+      scheduledAt,
+      stage: fields.stage,
+    },
+  });
+  if (existing) return existing;
+  return tx.competitionMatch.create({
+    data: {
+      competitionId: target.competitionId,
+      sport: EXCELLENCE_SPORT,
+      category: target.category,
+      division: fields.event,
+      eventType: "TIMED",
+      stage: fields.stage,
+      scheduledAt,
+      status: "COMPLETED",
+    },
+  });
+}
+
+// ผลเดียวกัน (นักกีฬา+รายการ+วัน+เวลา) บันทึกซ้ำไม่ได้ เช่น กดส่งซ้ำหรือคีย์ซ้ำ
+async function assertNotDuplicate(tx: Tx, applicationId: string, fields: ResultFields, exceptEntryId?: string) {
+  const duplicate = await tx.competitionMatchEntry.findFirst({
+    where: {
+      applicationId,
+      timeSeconds: fields.timeSeconds,
+      ...(exceptEntryId ? { id: { not: exceptEntryId } } : {}),
+      match: { sport: EXCELLENCE_SPORT, eventType: "TIMED", division: fields.event, scheduledAt: new Date(`${fields.competedAt}T00:00:00.000Z`) },
+    },
+    select: { id: true },
+  });
+  if (duplicate) throw new ApiError(409, "มีผลเวลานี้ของรายการและวันที่เดียวกันบันทึกไว้แล้ว");
+}
+
+async function removeEmptyMatch(tx: Tx, matchId: string) {
+  const remaining = await tx.competitionMatchEntry.count({ where: { matchId } });
+  if (remaining === 0) await tx.competitionMatch.delete({ where: { id: matchId } });
+}
+
 export async function recordResult(input: ResultInput) {
   return atomic(async tx => {
     const { app, record } = await eligibleRecord(tx, input.applicationId);
     assertEventForGender(input.event, record.gender);
-    const match = await tx.competitionMatch.create({
-      data: {
-        competitionId: app.competitionId,
-        sport: EXCELLENCE_SPORT,
-        category: app.category,
-        division: input.event,
-        eventType: "TIMED",
-        stage: input.stage,
-        scheduledAt: new Date(`${input.competedAt}T00:00:00.000Z`),
-        status: "COMPLETED",
-      },
-    });
+    await assertNotDuplicate(tx, app.id, input);
+    const match = await findOrCreateMatch(tx, app, input);
     const entry = await tx.competitionMatchEntry.create({
       data: { matchId: match.id, applicationId: app.id, participantName: record.name, timeSeconds: input.timeSeconds },
     });
     return { success: true, resultId: entry.id };
+  });
+}
+
+// โหลดผลเวลาของโมดูลนี้เท่านั้น (กรีฑาลู่, TIMED) และตรวจว่านักกีฬายังผ่านการคัดเลือก
+async function editableEntry(tx: Tx, resultId: string) {
+  const entry = await tx.competitionMatchEntry.findUnique({ where: { id: resultId }, include: { match: true } });
+  ensure(
+    entry && entry.applicationId && entry.timeSeconds !== null
+      && entry.match.sport === EXCELLENCE_SPORT && entry.match.eventType === "TIMED" && KNOWN_EVENTS.has(entry.match.division ?? ""),
+    "ไม่พบผลเวลาที่ต้องการ",
+    404,
+  );
+  const { app, record } = await eligibleRecord(tx, entry.applicationId as string);
+  return { entry, app, record };
+}
+
+export async function updateResult(resultId: string, fields: ResultFields) {
+  return atomic(async tx => {
+    const { entry, app, record } = await editableEntry(tx, resultId);
+    assertEventForGender(fields.event, record.gender);
+    await assertNotDuplicate(tx, app.id, fields, entry.id);
+    const match = await findOrCreateMatch(tx, app, fields);
+    await tx.competitionMatchEntry.update({ where: { id: entry.id }, data: { matchId: match.id, timeSeconds: fields.timeSeconds } });
+    if (match.id !== entry.matchId) await removeEmptyMatch(tx, entry.matchId);
+    return { success: true };
+  });
+}
+
+export async function deleteResult(resultId: string) {
+  return atomic(async tx => {
+    const { entry } = await editableEntry(tx, resultId);
+    await tx.competitionMatchEntry.delete({ where: { id: entry.id } });
+    await removeEmptyMatch(tx, entry.matchId);
+    return { success: true };
   });
 }
 

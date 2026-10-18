@@ -115,18 +115,33 @@ export function trackSeconds(value: unknown, event: string, field = "timeSeconds
   return rounded;
 }
 
-export type ResultInput = { applicationId: string; event: string; timeSeconds: number; competedAt: string; stage: string | null };
+export type ResultFields = { event: string; timeSeconds: number; competedAt: string; stage: string | null };
+export type ResultInput = ResultFields & { applicationId: string };
 
-export function validateResultInput(raw: unknown): ResultInput {
-  const data = record(raw);
+function resultFields(data: Record<string, unknown>): ResultFields {
   const event = eventKey(data.event);
   return {
-    applicationId: applicationId(data.applicationId),
     event,
     timeSeconds: trackSeconds(data.timeSeconds, event),
     competedAt: date(data.competedAt, "competedAt", "วันที่แข่ง"),
     stage: optionalText(data.stage, "stage", "รอบการแข่งขัน", 100),
   };
+}
+
+export function validateResultInput(raw: unknown): ResultInput {
+  const data = record(raw);
+  return { applicationId: applicationId(data.applicationId), ...resultFields(data) };
+}
+
+// แก้ผลเดิม: ไม่รับ applicationId (ผลผูกกับนักกีฬาเดิม) ผลสาธิตแก้ไม่ได้
+export function validateResultUpdateInput(raw: unknown): ResultFields {
+  return resultFields(record(raw));
+}
+
+export function resultId(value: unknown): string {
+  const id = requiredText(value, "resultId", "รหัสผลเวลา", 100);
+  if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
+  return id;
 }
 
 export type BenchmarkInput = { event: string; gender: TrackGender; targetSeconds: number | null };

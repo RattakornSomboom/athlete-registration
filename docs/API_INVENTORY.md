@@ -33,7 +33,7 @@
 | staff/requests, staff/requests/[id] | STAFF_REQUEST_REVIEW_ROLES |
 | staff/rosters, officials, profile, snapshots*, analytics | STAFF |
 | staff/fitness-tests, [applicationId], evaluate, import | STAFF |
-| staff/excellence (GET ภาพรวม), [applicationId] (GET), results (POST), benchmarks (GET/PUT), plans (POST), retests (POST) — `?demo=true` อ่านชุดสาธิต, เขียนชุดสาธิตได้ 400 | STAFF |
+| staff/excellence (GET ภาพรวม), [applicationId] (GET), results (POST), results/[resultId] (PUT/DELETE แก้/ลบผลเวลา), benchmarks (GET/PUT), plans (POST), retests (POST) — `?demo=true` อ่านชุดสาธิต, เขียนชุดสาธิตได้ 400 | STAFF |
 | team-official/applications | TEAM_OFFICIAL |
 
 ## รูปแบบมาตรฐาน

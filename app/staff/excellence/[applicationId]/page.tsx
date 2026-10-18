@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Page } from "@/components/shared/Phase4UI";
 import { ChangeLabel, DemoBanner, EmptyText, ExcellenceNav, Section, demoQuery, formatThaiDate, useDemoMode } from "@/components/shared/ExcellenceUI";
-import { PlanForm, ResultForm, RetestForm } from "@/components/shared/ExcellenceForms";
+import { PlanForm, ResultForm, RetestForm, type EditableResult } from "@/components/shared/ExcellenceForms";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   PLAN_STATUS_LABEL,
@@ -20,7 +20,7 @@ import {
 } from "@/lib/excellence-athletics";
 
 type Detail = AthleteDetail & { isDemo: boolean };
-type OpenForm = { kind: "result" } | { kind: "plan"; plan: DevelopmentPlan | null } | { kind: "retest" } | null;
+type OpenForm = { kind: "result"; result?: EditableResult } | { kind: "plan"; plan: DevelopmentPlan | null } | { kind: "retest" } | null;
 
 const ratingClass = (score: number) =>
   score >= 80 ? "bg-emerald-100 text-emerald-800" : score >= 60 ? "bg-slate-100 text-slate-700" : "bg-rose-100 text-rose-800";
@@ -59,6 +59,17 @@ export default function ExcellenceAthletePage() {
   }, [applicationId, demo, ready, reload]);
 
   const saved = () => { setForm(null); setReload(value => value + 1); };
+
+  async function removeResult(result: EditableResult) {
+    if (!window.confirm(`ลบผล ${eventLabel(result.event)} ${formatTrackTime(result.timeSeconds)} ของวันที่ ${formatThaiDate(result.competedAt)} ใช่หรือไม่`)) return;
+    try {
+      await requestJson(`/api/staff/excellence/results/${encodeURIComponent(result.id)}`, {}, "DELETE");
+      setError("");
+      setReload(value => value + 1);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
   const readOnly = !detail || detail.isDemo;
   const weak = detail?.stations.filter(station => station.weak).sort((a, b) => a.score - b.score) ?? [];
   const hasFitness = Boolean(detail?.athlete.fitness);
@@ -86,7 +97,7 @@ export default function ExcellenceAthletePage() {
             description="PB = เวลาดีที่สุดของรายการ · SB = เวลาดีที่สุดในปีนั้น · Gap เทียบเป้าเวลาของรายการและเพศ"
             action={<AddButton label="+ บันทึกเวลา" hidden={readOnly || form?.kind === "result"} onClick={() => setForm({ kind: "result" })} />}
           >
-            {form?.kind === "result" && <ResultForm applicationId={applicationId} events={detail.events} onSaved={saved} onCancel={() => setForm(null)} />}
+            {form?.kind === "result" && <ResultForm key={form.result?.id ?? "new"} applicationId={applicationId} events={detail.events} result={form.result} onSaved={saved} onCancel={() => setForm(null)} />}
             {detail.results.length ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left text-sm">
@@ -99,6 +110,7 @@ export default function ExcellenceAthletePage() {
                       <th className="py-2 pr-4 text-right font-medium">เป้า</th>
                       <th className="py-2 pr-4 text-right font-medium">Gap</th>
                       <th className="py-2 font-medium">การแข่งขัน</th>
+                      {!readOnly && <th className="py-2 pl-4 font-medium"><span className="sr-only">จัดการ</span></th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -118,6 +130,12 @@ export default function ExcellenceAthletePage() {
                           {formatSignedSeconds(result.gapSeconds)}
                         </td>
                         <td className="py-2 text-slate-600">{result.competitionName}{result.stage ? ` · ${result.stage}` : ""}</td>
+                        {!readOnly && (
+                          <td className="whitespace-nowrap py-2 pl-4 text-sm">
+                            <button type="button" onClick={() => setForm({ kind: "result", result })} className="text-blue-900 hover:underline">แก้ไข</button>
+                            <button type="button" onClick={() => void removeResult(result)} className="ml-3 text-rose-700 hover:underline">ลบ</button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

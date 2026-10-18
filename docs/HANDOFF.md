@@ -1,3 +1,11 @@
+## Excellence results: duplicate guard, edit/delete, live save verification — 2026-10-18
+- Verified real writes against the `.env` database with temporary rows (marker `zz-excellence`, 2 athletes + 1 competition), all deleted afterwards and the `ATHLETICS_TRACK_BENCHMARKS` setting restored to its original value: save result, benchmark set/clear, plan save, retest save, plan/retest `revision` conflict (409), wrong-gender event (400), unknown plan (404), demo writes (400).
+- `POST /api/staff/excellence/results` now rejects the same athlete + event + date + time with 409 (also when only the stage differs), and reuses one `CompetitionMatch` per competition/category/event/date/stage instead of creating a match per result.
+- New `PUT` and `DELETE /api/staff/excellence/results/[resultId]`: edit time/event/date/stage (moves the entry to the right match and removes a match left empty) and delete a wrongly keyed result. They only touch athletics TIMED entries of eligible athletes; demo ids are refused. PB/SB recompute on read, so no stored values go stale.
+- UI: result rows have "แก้ไข" / "ลบ" (confirm) on real data; the form has an in-flight guard against double submit. Edit form verified in the browser.
+- Not done: a retest cannot be edited or cancelled yet; ATHLETE/CLUB denial was not tested with a logged-in account (no credentials available to this session, so it needs a manual check).
+- Tests: +1 case in `excellence-validation.test.mjs` for the update validator; service writes are covered by the live check above, not by unit tests.
+
 ## Excellence rebuilt as athletics-track module at /staff/excellence — 2026-10-18
 - Retired the old `staff/analytics?tab=excellence` tab and deleted its code (components, `staff/excellence|match-results|performance-insights` APIs, `lib/performance-*`, tests, demo script). The old code is preserved in commit `0e2d3f9`; removal is commit `aa69735`.
 - New scope: athletics track events only (100–10,000 m, hurdles), gender read from `Application.category` "ลู่ (ชาย)/(หญิง)", applications in `STAFF_APPROVED`/`FINAL_SELECTED`.

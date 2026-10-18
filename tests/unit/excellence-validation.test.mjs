@@ -7,9 +7,11 @@ import {
   VALID_EVENT_GENDERS,
   VALID_STATION_KEYS,
   assertEventForGender,
+  resultId,
   validateBenchmarkInput,
   validatePlanInput,
   validateResultInput,
+  validateResultUpdateInput,
   validateRetestInput,
 } from "../../lib/excellence-validation.ts";
 import { preserveExcellenceMetadata } from "../../lib/fitness-score-metadata.ts";
@@ -102,4 +104,14 @@ test("fitness re-import keeps Excellence v2 data", () => {
   const existing = { items: { agility: "ดี" }, _excellence: { v2: { revision: 4, plans: [], retests: [] } } };
   const next = preserveExcellenceMetadata(existing, { items: { agility: "ดีมาก" }, _excellence: { v2: { revision: 0 } } });
   assert.deepEqual(next, { items: { agility: "ดีมาก" }, _excellence: { v2: { revision: 4, plans: [], retests: [] } } });
+});
+
+test("result update takes the same fields without an application id and refuses demo ids", () => {
+  const parsed = validateResultUpdateInput({ event: "200m", timeSeconds: "23.45", competedAt: "2026-09-01", stage: "" });
+  assert.deepEqual(parsed, { event: "200m", timeSeconds: 23.45, competedAt: "2026-09-01", stage: null });
+  rejects(() => validateResultUpdateInput({ event: "200m", timeSeconds: "5", competedAt: "2026-09-01" }), "timeSeconds");
+  rejects(() => validateResultUpdateInput({ event: "200m", timeSeconds: "23.45" }), "competedAt");
+  assert.equal(resultId("cmabc123"), "cmabc123");
+  assert.throws(() => resultId("demo-1-r1"), error => error instanceof ExcellenceValidationError && error.message.includes("สาธิต"));
+  rejects(() => resultId(" "), "resultId");
 });

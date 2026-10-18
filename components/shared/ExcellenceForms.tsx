@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { buttonClass, fieldClass } from "@/components/shared/Phase4UI";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
@@ -8,6 +8,7 @@ import {
   FITNESS_RATINGS,
   PLAN_STATUSES,
   PLAN_STATUS_LABEL,
+  formatTrackTime,
   type DevelopmentPlan,
   type PlanStatus,
   type StationResult,
@@ -50,34 +51,44 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
-export function ResultForm({ applicationId, events, onSaved, onCancel }: {
+export type EditableResult = { id: string; event: string; timeSeconds: number; competedAt: string; stage: string | null };
+
+// result = โหมดแก้ไขผลเดิม (PUT) ไม่ส่ง = บันทึกผลใหม่ (POST)
+export function ResultForm({ applicationId, events, result, onSaved, onCancel }: {
   applicationId: string;
   events: TrackEvent[];
+  result?: EditableResult;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const [event, setEvent] = useState(events[0]?.key ?? "");
-  const [time, setTime] = useState("");
-  const [competedAt, setCompetedAt] = useState(today());
-  const [stage, setStage] = useState("");
+  const [event, setEvent] = useState(result?.event ?? events[0]?.key ?? "");
+  const [time, setTime] = useState(result ? formatTrackTime(result.timeSeconds) : "");
+  const [competedAt, setCompetedAt] = useState(result?.competedAt ?? today());
+  const [stage, setStage] = useState(result?.stage ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const inFlight = useRef(false);
 
   async function submit() {
+    // กันกดส่งซ้ำก่อนที่ state saving จะอัปเดต
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     setError("");
     try {
-      await requestJson("/api/staff/excellence/results", { applicationId, event, timeSeconds: time, competedAt, stage });
+      if (result) await requestJson(`/api/staff/excellence/results/${encodeURIComponent(result.id)}`, { event, timeSeconds: time, competedAt, stage }, "PUT");
+      else await requestJson("/api/staff/excellence/results", { applicationId, event, timeSeconds: time, competedAt, stage });
       onSaved();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }
 
   return (
-    <FormShell title="บันทึกเวลาแข่งขัน" onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
+    <FormShell title={result ? "แก้ไขผลเวลา" : "บันทึกเวลาแข่งขัน"} onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="รายการ">
           <select value={event} onChange={e => setEvent(e.target.value)} className={fieldClass}>
