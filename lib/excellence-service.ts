@@ -297,6 +297,35 @@ export async function savePlan(input: PlanInput, actorId: string) {
   }));
 }
 
+export async function updateRetest(retestId: string, input: RetestInput, actorId: string) {
+  return atomic(tx => updateStorage(tx, input.applicationId, input.revision, (storage, record) => {
+    const existing = storage.retests.find(retest => retest.id === retestId);
+    ensure(existing, "ไม่พบผลทดสอบซ้ำที่ต้องการแก้ไข", 404);
+    ensure(!input.retest.planId || storage.plans.some(plan => plan.id === input.retest.planId), "ไม่พบแผนพัฒนาที่อ้างถึง", 404);
+    if (input.retest.event) assertEventForGender(input.retest.event, record.gender);
+    storage.retests = storage.retests.map(retest => retest.id === retestId
+      ? {
+          ...retest,
+          planId: input.retest.planId,
+          testedAt: input.retest.testedAt,
+          ratings: input.retest.ratings,
+          event: input.retest.event,
+          timeSeconds: input.retest.timeSeconds,
+          notes: input.retest.notes,
+          updatedAt: new Date().toISOString(),
+          updatedBy: actorId,
+        }
+      : retest);
+  }));
+}
+
+export async function deleteRetest(retestId: string, input: { applicationId: string; revision: number }) {
+  return atomic(tx => updateStorage(tx, input.applicationId, input.revision, storage => {
+    ensure(storage.retests.some(retest => retest.id === retestId), "ไม่พบผลทดสอบซ้ำที่ต้องการลบ", 404);
+    storage.retests = storage.retests.filter(retest => retest.id !== retestId);
+  }));
+}
+
 export async function saveRetest(input: RetestInput, actorId: string) {
   return atomic(tx => updateStorage(tx, input.applicationId, input.revision, (storage, record) => {
     ensure(!input.retest.planId || storage.plans.some(plan => plan.id === input.retest.planId), "ไม่พบแผนพัฒนาที่อ้างถึง", 404);

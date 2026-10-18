@@ -8,10 +8,12 @@ import {
   VALID_STATION_KEYS,
   assertEventForGender,
   resultId,
+  retestId,
   validateBenchmarkInput,
   validatePlanInput,
   validateResultInput,
   validateResultUpdateInput,
+  validateRetestDeleteInput,
   validateRetestInput,
 } from "../../lib/excellence-validation.ts";
 import { preserveExcellenceMetadata } from "../../lib/fitness-score-metadata.ts";
@@ -114,4 +116,12 @@ test("result update takes the same fields without an application id and refuses 
   assert.equal(resultId("cmabc123"), "cmabc123");
   assert.throws(() => resultId("demo-1-r1"), error => error instanceof ExcellenceValidationError && error.message.includes("สาธิต"));
   rejects(() => resultId(" "), "resultId");
+});
+
+test("retest delete needs an application id and revision and refuses demo ids", () => {
+  assert.deepEqual(validateRetestDeleteInput({ applicationId: "app-1", revision: 3 }), { applicationId: "app-1", revision: 3 });
+  rejects(() => validateRetestDeleteInput({ applicationId: "app-1" }), "revision");
+  rejects(() => validateRetestDeleteInput({ applicationId: "demo-2", revision: 0 }));
+  assert.equal(retestId("abc-123"), "abc-123");
+  assert.throws(() => retestId("demo-2-t1"), error => error instanceof ExcellenceValidationError && error.message.includes("สาธิต"));
 });

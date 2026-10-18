@@ -215,44 +215,62 @@ export function PlanForm({ applicationId, revision, plan, weakStations, onSaved,
   );
 }
 
-export function RetestForm({ applicationId, revision, plans, events, defaultPlanId, onSaved, onCancel }: {
+export type EditableRetest = {
+  id: string;
+  planId: string | null;
+  testedAt: string;
+  ratings: Record<string, string>;
+  event: string | null;
+  timeSeconds: number | null;
+  notes: string | null;
+};
+
+// retest = โหมดแก้ไขผลเดิม (PUT) ไม่ส่ง = บันทึกผลใหม่ (POST)
+export function RetestForm({ applicationId, revision, plans, events, defaultPlanId, retest, onSaved, onCancel }: {
   applicationId: string;
   revision: number;
   plans: DevelopmentPlan[];
   events: TrackEvent[];
   defaultPlanId: string | null;
+  retest?: EditableRetest;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const [planId, setPlanId] = useState(defaultPlanId ?? "");
-  const [testedAt, setTestedAt] = useState(today());
-  const [ratings, setRatings] = useState<Record<string, string>>({});
-  const [event, setEvent] = useState("");
-  const [time, setTime] = useState("");
-  const [notes, setNotes] = useState("");
+  const [planId, setPlanId] = useState(retest ? retest.planId ?? "" : defaultPlanId ?? "");
+  const [testedAt, setTestedAt] = useState(retest?.testedAt ?? today());
+  const [ratings, setRatings] = useState<Record<string, string>>(retest?.ratings ?? {});
+  const [event, setEvent] = useState(retest?.event ?? "");
+  const [time, setTime] = useState(retest?.timeSeconds != null ? formatTrackTime(retest.timeSeconds) : "");
+  const [notes, setNotes] = useState(retest?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const inFlight = useRef(false);
   const planStations = new Set(plans.find(plan => plan.id === planId)?.items.map(item => item.stationKey) ?? []);
 
   async function submit() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSaving(true);
     setError("");
     try {
-      await requestJson("/api/staff/excellence/retests", {
+      const payload = {
         applicationId,
         revision,
         retest: { planId: planId || null, testedAt, ratings, event: event || null, timeSeconds: event ? time : null, notes },
-      });
+      };
+      if (retest) await requestJson(`/api/staff/excellence/retests/${encodeURIComponent(retest.id)}`, payload, "PUT");
+      else await requestJson("/api/staff/excellence/retests", payload);
       onSaved();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      inFlight.current = false;
       setSaving(false);
     }
   }
 
   return (
-    <FormShell title="บันทึกผลทดสอบซ้ำ" onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
+    <FormShell title={retest ? "แก้ไขผลทดสอบซ้ำ" : "บันทึกผลทดสอบซ้ำ"} onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="ผูกกับแผนพัฒนา">
           <select value={planId} onChange={e => setPlanId(e.target.value)} className={fieldClass}>

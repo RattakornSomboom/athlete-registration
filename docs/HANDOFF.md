@@ -1,3 +1,9 @@
+## Excellence retest edit/cancel — 2026-10-18
+- New `PUT` / `DELETE /api/staff/excellence/retests/[retestId]` (body carries `applicationId` and the latest `revision`; 409 on mismatch, 404 for unknown retest/plan). Edit keeps `id`/`recordedAt`/`recordedBy` and adds `updatedAt`/`updatedBy`; delete removes the retest. The athlete page shows "แก้ไข" / "ยกเลิกผล" on real data and the retest form prefills in edit mode. Comparisons are computed on read, so edits and deletes update them automatically.
+- Live-verified on the `.env` database with temporary `zz-excellence` rows (add, edit, stale-revision 409, bad plan 404, missing id 404, demo id 400, delete, repeat delete 404), then removed; the benchmark setting is unchanged. Edit form prefill checked in the browser.
+- Checked `CompetitionMatch` use: nothing outside the Excellence module reads or writes it, and every Excellence query filters by sport, TIMED and a known `division`; recorded as a constraint in `docs/TECH_DEBT.md`.
+- Tests: +1 case in `excellence-validation.test.mjs` (delete validator). Service writes are covered by the live check, not unit tests.
+
 ## Excellence access e2e — 2026-10-18
 - Added `tests/e2e/excellence-access.spec.ts` (Playwright). Unauthenticated: every `/api/staff/excellence/*` endpoint returns 401 and every page redirects to `/login` (ran: 14 passed). Per role it reads test accounts from env `E2E_<ROLE>_USERNAME` / `E2E_<ROLE>_PASSWORD` for ATHLETE, CLUB, TEAM_OFFICIAL (expect 403 on all endpoints and pages, also with a forged `role=staff` cookie) and STAFF, ADMIN (expect 200 on reads, 400 validation on writes, pages render). Roles without env are skipped (73 skipped when no env is set).
 - Writes use empty bodies or demo ids so they fail validation and never write data even if the guard broke. Test accounts must not have `mustChangePassword` and must really have the named role (checked in `beforeAll`).

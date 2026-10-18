@@ -326,6 +326,8 @@ export type Retest = {
   notes: string | null;
   recordedAt: string;
   recordedBy: string;
+  updatedAt?: string;
+  updatedBy?: string;
 };
 
 export type ExcellenceStorage = { revision: number; plans: DevelopmentPlan[]; retests: Retest[] };

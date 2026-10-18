@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Page } from "@/components/shared/Phase4UI";
 import { ChangeLabel, DemoBanner, EmptyText, ExcellenceNav, Section, demoQuery, formatThaiDate, useDemoMode } from "@/components/shared/ExcellenceUI";
-import { PlanForm, ResultForm, RetestForm, type EditableResult } from "@/components/shared/ExcellenceForms";
+import { PlanForm, ResultForm, RetestForm, type EditableResult, type EditableRetest } from "@/components/shared/ExcellenceForms";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   PLAN_STATUS_LABEL,
@@ -20,7 +20,7 @@ import {
 } from "@/lib/excellence-athletics";
 
 type Detail = AthleteDetail & { isDemo: boolean };
-type OpenForm = { kind: "result"; result?: EditableResult } | { kind: "plan"; plan: DevelopmentPlan | null } | { kind: "retest" } | null;
+type OpenForm = { kind: "result"; result?: EditableResult } | { kind: "plan"; plan: DevelopmentPlan | null } | { kind: "retest"; retest?: EditableRetest } | null;
 
 const ratingClass = (score: number) =>
   score >= 80 ? "bg-emerald-100 text-emerald-800" : score >= 60 ? "bg-slate-100 text-slate-700" : "bg-rose-100 text-rose-800";
@@ -59,6 +59,17 @@ export default function ExcellenceAthletePage() {
   }, [applicationId, demo, ready, reload]);
 
   const saved = () => { setForm(null); setReload(value => value + 1); };
+
+  async function removeRetest(retest: EditableRetest) {
+    if (!detail || !window.confirm(`ยกเลิกผลทดสอบซ้ำของวันที่ ${formatThaiDate(retest.testedAt)} ใช่หรือไม่`)) return;
+    try {
+      await requestJson(`/api/staff/excellence/retests/${encodeURIComponent(retest.id)}`, { applicationId, revision: detail.revision }, "DELETE");
+      setError("");
+      setReload(value => value + 1);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
 
   async function removeResult(result: EditableResult) {
     if (!window.confirm(`ลบผล ${eventLabel(result.event)} ${formatTrackTime(result.timeSeconds)} ของวันที่ ${formatThaiDate(result.competedAt)} ใช่หรือไม่`)) return;
@@ -205,6 +216,8 @@ export default function ExcellenceAthletePage() {
           >
             {form?.kind === "retest" && (
               <RetestForm
+                key={form.retest?.id ?? "new"}
+                retest={form.retest}
                 applicationId={applicationId}
                 revision={detail.revision}
                 plans={detail.plans}
@@ -223,7 +236,15 @@ export default function ExcellenceAthletePage() {
                     : comparison.stations.map(station => ({ ...station, key: station.stationKey, activity: null }));
                   return (
                     <li key={retest.id} className="rounded-lg border border-slate-200 p-4">
-                      <p className="text-sm font-semibold text-slate-900">ทดสอบซ้ำ {formatThaiDate(retest.testedAt)}</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900">ทดสอบซ้ำ {formatThaiDate(retest.testedAt)}</p>
+                        {!readOnly && (
+                          <span className="text-sm">
+                            <button type="button" onClick={() => setForm({ kind: "retest", retest })} className="text-blue-900 hover:underline">แก้ไข</button>
+                            <button type="button" onClick={() => void removeRetest(retest)} className="ml-3 text-rose-700 hover:underline">ยกเลิกผล</button>
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-1 text-sm text-slate-700">{comparison.summary}</p>
                       {rows.length > 0 && (
                         <div className="mt-3 overflow-x-auto">

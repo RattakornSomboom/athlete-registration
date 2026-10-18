@@ -203,6 +203,18 @@ export function validatePlanInput(raw: unknown): PlanInput {
   };
 }
 
+export function retestId(value: unknown): string {
+  const id = requiredText(value, "retestId", "รหัสผลทดสอบซ้ำ", 100);
+  if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
+  return id;
+}
+
+// ยกเลิก (ลบ) ผลทดสอบซ้ำ ต้องส่ง applicationId และ revision ล่าสุด
+export function validateRetestDeleteInput(raw: unknown): { applicationId: string; revision: number } {
+  const data = record(raw);
+  return { applicationId: applicationId(data.applicationId), revision: revision(data.revision) };
+}
+
 export type RetestInput = {
   applicationId: string;
   revision: number;

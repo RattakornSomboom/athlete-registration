@@ -16,6 +16,7 @@
 ## สถาปัตยกรรม / ข้อมูล
 - route 2 สไตล์ (`api()` vs try/catch เอง) ข้อความ/สถานะ error ไม่สม่ำเสมอ
 - Excellence เก็บใน JSON `scores._excellence.v2` ต้องตรวจว่า `lib/fitness-service.ts` / `fitness-import-service.ts` ไม่เขียนทับ (มี unit test ใน `excellence-validation.test.mjs`)
+- ผลเวลา Excellence ใช้ `CompetitionMatch` (sport `กรีฑา`, `eventType` TIMED, `division` = รหัสรายการ เช่น `100m`) ตรวจแล้วยังไม่มีโค้ดส่วนอื่นใช้ตารางนี้ และ service กรองด้วยเงื่อนไขทั้งสามเสมอ ถ้าระบบจัดการแข่งขันอื่นจะใช้ TIMED ของกรีฑาด้วย ต้องกำหนดรหัส `division` ใหม่ไม่ให้ชน
 - ค่าคงที่รายการกรีฑา/สถานีซ้ำกันใน `lib/excellence-athletics.ts` และ `lib/excellence-validation.ts` เพราะ node unit test import runtime ข้ามไฟล์ไม่ได้ มี test ตรวจว่าตรงกัน
 - `StatusHistory.status` เป็น String; สถานะยืนยัน/สละสิทธิ์ derive จากข้อความ
 - `Application` มีคอลัมน์ไฟล์ non-null ที่ UI ซ่อนไว้
