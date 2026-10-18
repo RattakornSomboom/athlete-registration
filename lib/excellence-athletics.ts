@@ -1,51 +1,78 @@
-// โมดูลสู่ความเป็นเลิศ (Excellence) — กรีฑาประเภทลู่เท่านั้น
+// โมดูลสู่ความเป็นเลิศ (Excellence) — กรีฑา ประเภทลู่ (วัดเวลา ยิ่งน้อยยิ่งดี) และประเภทลาน (วัดระยะ ยิ่งมากยิ่งดี)
 // ฟังก์ชันทั้งหมดเป็น pure และไม่ import ค่า runtime จากโมดูลอื่น เพื่อให้ unit test รันด้วย node ได้โดยตรง
 // และใช้ร่วมกันทั้งฝั่ง server (lib/excellence-service.ts) และหน้า UI
+// "ผล" (mark) ของลู่เป็นวินาที ของลานเป็นเมตร ทิศทางของค่าที่ดีกว่าดูจาก kind ของรายการ
 
 export const EXCELLENCE_SPORT = "กรีฑา";
-export const TRACK_CATEGORIES = { "ลู่ (ชาย)": "ชาย", "ลู่ (หญิง)": "หญิง" } as const;
-export const TRACK_GENDERS = ["ชาย", "หญิง"] as const;
-export type TrackGender = typeof TRACK_GENDERS[number];
+// เพศอ่านจากประเภทที่สมัคร เพราะ schema ไม่มีฟิลด์เพศ
+export const ATHLETICS_CATEGORIES = {
+  "ลู่ (ชาย)": "ชาย",
+  "ลู่ (หญิง)": "หญิง",
+  "ลาน (ชาย)": "ชาย",
+  "ลาน (หญิง)": "หญิง",
+} as const;
+export const ATHLETICS_CATEGORY_NAMES: string[] = Object.keys(ATHLETICS_CATEGORIES);
+export const ATHLETICS_GENDERS = ["ชาย", "หญิง"] as const;
+export type AthleticsGender = typeof ATHLETICS_GENDERS[number];
 
-export type TrackEvent = {
+export type EventKind = "TRACK" | "FIELD";
+
+export type AthleticsEvent = {
   key: string;
   label: string;
-  genders: readonly TrackGender[];
-  // ช่วงเวลาที่ยอมรับได้ (วินาที) กันการพิมพ์ผิด ไม่ใช่เกณฑ์คัดตัว
-  minSeconds: number;
-  maxSeconds: number;
+  kind: EventKind;
+  genders: readonly AthleticsGender[];
+  // ช่วงผลที่ยอมรับได้ (ลู่ = วินาที, ลาน = เมตร) กันการพิมพ์ผิด ไม่ใช่เกณฑ์คัดตัว
+  min: number;
+  max: number;
 };
 
-const BOTH: readonly TrackGender[] = TRACK_GENDERS;
+const BOTH: readonly AthleticsGender[] = ATHLETICS_GENDERS;
 
-export const ATHLETICS_TRACK_EVENTS: readonly TrackEvent[] = [
-  { key: "100m", label: "100 เมตร", genders: BOTH, minSeconds: 9, maxSeconds: 20 },
-  { key: "200m", label: "200 เมตร", genders: BOTH, minSeconds: 18, maxSeconds: 40 },
-  { key: "400m", label: "400 เมตร", genders: BOTH, minSeconds: 40, maxSeconds: 90 },
-  { key: "800m", label: "800 เมตร", genders: BOTH, minSeconds: 95, maxSeconds: 240 },
-  { key: "1500m", label: "1,500 เมตร", genders: BOTH, minSeconds: 200, maxSeconds: 480 },
-  { key: "5000m", label: "5,000 เมตร", genders: BOTH, minSeconds: 750, maxSeconds: 1800 },
-  { key: "10000m", label: "10,000 เมตร", genders: BOTH, minSeconds: 1600, maxSeconds: 3600 },
-  { key: "100mH", label: "100 เมตรข้ามรั้ว", genders: ["หญิง"], minSeconds: 11, maxSeconds: 25 },
-  { key: "110mH", label: "110 เมตรข้ามรั้ว", genders: ["ชาย"], minSeconds: 12, maxSeconds: 25 },
-  { key: "400mH", label: "400 เมตรข้ามรั้ว", genders: BOTH, minSeconds: 45, maxSeconds: 100 },
+export const ATHLETICS_EVENTS: readonly AthleticsEvent[] = [
+  { key: "100m", label: "100 เมตร", kind: "TRACK", genders: BOTH, min: 9, max: 20 },
+  { key: "200m", label: "200 เมตร", kind: "TRACK", genders: BOTH, min: 18, max: 40 },
+  { key: "400m", label: "400 เมตร", kind: "TRACK", genders: BOTH, min: 40, max: 90 },
+  { key: "800m", label: "800 เมตร", kind: "TRACK", genders: BOTH, min: 95, max: 240 },
+  { key: "1500m", label: "1,500 เมตร", kind: "TRACK", genders: BOTH, min: 200, max: 480 },
+  { key: "5000m", label: "5,000 เมตร", kind: "TRACK", genders: BOTH, min: 750, max: 1800 },
+  { key: "10000m", label: "10,000 เมตร", kind: "TRACK", genders: BOTH, min: 1600, max: 3600 },
+  { key: "100mH", label: "100 เมตรข้ามรั้ว", kind: "TRACK", genders: ["หญิง"], min: 11, max: 25 },
+  { key: "110mH", label: "110 เมตรข้ามรั้ว", kind: "TRACK", genders: ["ชาย"], min: 12, max: 25 },
+  { key: "400mH", label: "400 เมตรข้ามรั้ว", kind: "TRACK", genders: BOTH, min: 45, max: 100 },
+  { key: "longJump", label: "กระโดดไกล", kind: "FIELD", genders: BOTH, min: 2.5, max: 9.5 },
+  { key: "tripleJump", label: "กระโดดสามชั้น", kind: "FIELD", genders: BOTH, min: 6, max: 19 },
+  { key: "highJump", label: "กระโดดสูง", kind: "FIELD", genders: BOTH, min: 0.8, max: 2.6 },
+  { key: "poleVault", label: "กระโดดค้ำถ่อ", kind: "FIELD", genders: BOTH, min: 1.5, max: 6.3 },
+  { key: "shotPut", label: "ทุ่มน้ำหนัก", kind: "FIELD", genders: BOTH, min: 5, max: 24 },
+  { key: "discus", label: "ขว้างจักร", kind: "FIELD", genders: BOTH, min: 15, max: 75 },
+  { key: "javelin", label: "พุ่งแหลน", kind: "FIELD", genders: BOTH, min: 20, max: 95 },
+  { key: "hammer", label: "ขว้างค้อน", kind: "FIELD", genders: BOTH, min: 20, max: 85 },
 ];
 
-export function findTrackEvent(key: string): TrackEvent | null {
-  return ATHLETICS_TRACK_EVENTS.find(event => event.key === key) ?? null;
+export function findEvent(key: string): AthleticsEvent | null {
+  return ATHLETICS_EVENTS.find(event => event.key === key) ?? null;
 }
 
-export function eventsForGender(gender: TrackGender): TrackEvent[] {
-  return ATHLETICS_TRACK_EVENTS.filter(event => event.genders.includes(gender));
+export function eventsForGender(gender: AthleticsGender): AthleticsEvent[] {
+  return ATHLETICS_EVENTS.filter(event => event.genders.includes(gender));
 }
 
 export function eventLabel(key: string): string {
-  return findTrackEvent(key)?.label ?? key;
+  return findEvent(key)?.label ?? key;
 }
 
-// เพศอ่านจากประเภทที่สมัคร ("ลู่ (ชาย)" / "ลู่ (หญิง)") เพราะ schema ไม่มีฟิลด์เพศ
-export function parseTrackGender(category: string): TrackGender | null {
-  return TRACK_CATEGORIES[category.trim() as keyof typeof TRACK_CATEGORIES] ?? null;
+export function eventKind(key: string): EventKind {
+  return findEvent(key)?.kind ?? "TRACK";
+}
+
+// ลู่: เวลาน้อยกว่าดีกว่า / ลาน: ระยะมากกว่าดีกว่า
+export function lowerIsBetter(key: string): boolean {
+  return eventKind(key) === "TRACK";
+}
+
+export function parseAthleticsGender(category: string): AthleticsGender | null {
+  return ATHLETICS_CATEGORIES[category.trim() as keyof typeof ATHLETICS_CATEGORIES] ?? null;
 }
 
 export function round(value: number, digits = 2): number {
@@ -73,10 +100,33 @@ export function parseTrackTime(input: string): number | null {
   return round(minutes * 60 + seconds, 2);
 }
 
-export function formatSignedSeconds(value: number | null): string {
+// รับระยะเป็นเมตร "7.85" (ทศนิยมไม่เกิน 2 ตำแหน่ง)
+export function parseFieldDistance(input: string): number | null {
+  const match = /^(\d{1,2}(?:\.\d{1,2})?)$/.exec(input.trim());
+  return match ? round(Number(match[1]), 2) : null;
+}
+
+export function parseMark(event: string, input: string): number | null {
+  return eventKind(event) === "TRACK" ? parseTrackTime(input) : parseFieldDistance(input);
+}
+
+// ลู่ = "10.85" / "1:58.32", ลาน = "7.85 ม."
+export function formatMark(event: string, value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  return eventKind(event) === "TRACK" ? formatTrackTime(value) : `${value.toFixed(2)} ม.`;
+}
+
+// ข้อความสำหรับใส่ในช่องกรอก (ไม่มีหน่วย) ให้ parseMark อ่านกลับได้
+export function formatMarkInput(event: string, value: number): string {
+  return eventKind(event) === "TRACK" ? formatTrackTime(value) : value.toFixed(2);
+}
+
+// ส่วนต่างมีเครื่องหมาย เช่น "+0.48s" / "−0.02s" / "+0.15 ม."
+export function formatSignedMark(event: string, value: number | null): string {
   if (value === null) return "—";
-  if (value === 0) return "0.00s";
-  return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}s`;
+  const unit = eventKind(event) === "TRACK" ? "s" : " ม.";
+  if (value === 0) return `0.00${unit}`;
+  return `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}${unit}`;
 }
 
 // ---------- สมรรถภาพ ----------
@@ -177,25 +227,27 @@ export function weakStations(ratings: Record<string, FitnessRating>): StationRes
 
 // ---------- Benchmark ----------
 
-export type TrackBenchmark = { targetSeconds: number; updatedAt: string; updatedBy: string };
-export type TrackBenchmarks = Record<string, TrackBenchmark>;
+export type Benchmark = { target: number; updatedAt: string; updatedBy: string };
+export type Benchmarks = Record<string, Benchmark>;
 
-export function benchmarkKey(event: string, gender: TrackGender): string {
+export function benchmarkKey(event: string, gender: AthleticsGender): string {
   return `${event}|${gender}`;
 }
 
-export function parseBenchmarks(value: unknown): TrackBenchmarks {
+export function parseBenchmarks(value: unknown): Benchmarks {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const result: TrackBenchmarks = {};
+  const result: Benchmarks = {};
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     const [event, gender] = key.split("|");
-    const known = findTrackEvent(event);
-    if (!known || !known.genders.includes(gender as TrackGender)) continue;
+    const known = findEvent(event);
+    if (!known || !known.genders.includes(gender as AthleticsGender)) continue;
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
     const record = raw as Record<string, unknown>;
-    if (typeof record.targetSeconds !== "number" || !Number.isFinite(record.targetSeconds) || record.targetSeconds <= 0) continue;
+    // รุ่นแรกเก็บเป็น targetSeconds (ลู่เท่านั้น) อ่านต่อได้
+    const target = typeof record.target === "number" ? record.target : record.targetSeconds;
+    if (typeof target !== "number" || !Number.isFinite(target) || target <= 0) continue;
     result[key] = {
-      targetSeconds: record.targetSeconds,
+      target,
       updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : "",
       updatedBy: typeof record.updatedBy === "string" ? record.updatedBy : "",
     };
@@ -203,70 +255,76 @@ export function parseBenchmarks(value: unknown): TrackBenchmarks {
   return result;
 }
 
-export function targetFor(benchmarks: TrackBenchmarks, event: string, gender: TrackGender): number | null {
-  return benchmarks[benchmarkKey(event, gender)]?.targetSeconds ?? null;
+export function targetFor(benchmarks: Benchmarks, event: string, gender: AthleticsGender): number | null {
+  return benchmarks[benchmarkKey(event, gender)]?.target ?? null;
 }
 
-// ค่าบวก = ช้ากว่าเป้า, null = ยังไม่มีเวลาหรือยังไม่ตั้งเป้า
-export function gapToTarget(timeSeconds: number | null, targetSeconds: number | null): number | null {
-  if (timeSeconds === null || targetSeconds === null) return null;
-  return round(timeSeconds - targetSeconds, 2);
+// ค่าบวก = ตามหลังเป้า (ลู่: ช้ากว่าเป้า, ลาน: สั้น/ต่ำกว่าเป้า), null = ยังไม่มีผลหรือยังไม่ตั้งเป้า
+export function gapToTarget(event: string, mark: number | null, target: number | null): number | null {
+  if (mark === null || target === null) return null;
+  return round(lowerIsBetter(event) ? mark - target : target - mark, 2);
 }
 
-// ร้อยละของเป้า = เป้า ÷ เวลา × 100: 100 = เท่าเป้า, มากกว่า 100 = เร็วกว่าเป้า
+// ร้อยละของเป้า: 100 = เท่าเป้า, มากกว่า 100 = ดีกว่าเป้า (ลู่ = เป้า ÷ เวลา, ลาน = ระยะ ÷ เป้า)
 // ใช้เทียบข้ามรายการได้เพราะอยู่บนสเกลเดียวกัน แต่เป็นสัดส่วนต่อเป้าที่เจ้าหน้าที่ตั้ง ไม่ใช่คะแนนทางการของสหพันธ์
-export function percentOfTarget(timeSeconds: number | null, targetSeconds: number | null): number | null {
-  if (timeSeconds === null || targetSeconds === null || timeSeconds <= 0) return null;
-  return round((targetSeconds / timeSeconds) * 100, 1);
+export function percentOfTarget(event: string, mark: number | null, target: number | null): number | null {
+  if (mark === null || target === null || mark <= 0 || target <= 0) return null;
+  return round((lowerIsBetter(event) ? target / mark : mark / target) * 100, 1);
 }
 
 export type TargetStatus = "AT_TARGET" | "BELOW_TARGET" | "NO_TARGET" | "NO_RESULT";
 
-export function targetStatus(timeSeconds: number | null, targetSeconds: number | null): TargetStatus {
-  if (timeSeconds === null) return "NO_RESULT";
-  if (targetSeconds === null) return "NO_TARGET";
-  return timeSeconds <= targetSeconds ? "AT_TARGET" : "BELOW_TARGET";
+export function targetStatus(event: string, mark: number | null, target: number | null): TargetStatus {
+  if (mark === null) return "NO_RESULT";
+  if (target === null) return "NO_TARGET";
+  return (lowerIsBetter(event) ? mark <= target : mark >= target) ? "AT_TARGET" : "BELOW_TARGET";
+}
+
+// a ดีกว่า b อย่างเคร่งครัดหรือไม่
+function isBetter(event: string, a: number, b: number): boolean {
+  return lowerIsBetter(event) ? a < b : a > b;
 }
 
 // ---------- ผลการแข่งขัน ----------
 
-export type TrackResult = {
+export type EventResult = {
   id: string;
   event: string;
-  timeSeconds: number;
+  mark: number; // ลู่ = วินาที, ลาน = เมตร
   competedAt: string; // วันที่ YYYY-MM-DD
   competitionName: string;
   stage: string | null;
 };
 
-export type MarkedResult = TrackResult & { isPB: boolean; isSB: boolean };
+export type MarkedResult = EventResult & { isPB: boolean; isSB: boolean };
 
-export type ProgressionPoint = { id: string; date: string; seconds: number; isPB: boolean };
-export type ProgressionSeries = { event: string; targetSeconds: number | null; points: ProgressionPoint[] };
+export type ProgressionPoint = { id: string; date: string; mark: number; isPB: boolean };
+export type ProgressionSeries = { event: string; kind: EventKind; target: number | null; points: ProgressionPoint[] };
 
 // กราฟพัฒนาการ: 1 ชุดต่อรายการ เรียงเก่า → ใหม่ แสดงเฉพาะรายการที่มีผลตั้งแต่ 2 ครั้งขึ้นไป
-export function progressionSeries(results: (MarkedResult & { targetSeconds: number | null })[]): ProgressionSeries[] {
-  return ATHLETICS_TRACK_EVENTS
+export function progressionSeries(results: (MarkedResult & { target: number | null })[]): ProgressionSeries[] {
+  return ATHLETICS_EVENTS
     .map(event => {
       const rows = results
         .filter(result => result.event === event.key)
         .sort((a, b) => a.competedAt.localeCompare(b.competedAt) || a.id.localeCompare(b.id));
       return {
         event: event.key,
-        targetSeconds: rows[0]?.targetSeconds ?? null,
-        points: rows.map(row => ({ id: row.id, date: row.competedAt, seconds: row.timeSeconds, isPB: row.isPB })),
+        kind: event.kind,
+        target: rows[0]?.target ?? null,
+        points: rows.map(row => ({ id: row.id, date: row.competedAt, mark: row.mark, isPB: row.isPB })),
       };
     })
     .filter(series => series.points.length >= 2);
 }
 
-function byDateThenId(a: TrackResult, b: TrackResult): number {
+function byDateThenId(a: EventResult, b: EventResult): number {
   return a.competedAt.localeCompare(b.competedAt) || a.id.localeCompare(b.id);
 }
 
-// PB = เวลาดีที่สุดของรายการนั้นทั้งหมด, SB = เวลาดีที่สุดของรายการนั้นในปีเดียวกัน
-// เวลาเท่ากันให้เครื่องหมายแก่ครั้งที่ทำได้ก่อน คืนค่าเรียงใหม่สุดก่อน
-export function markBests(results: TrackResult[]): MarkedResult[] {
+// PB = ผลดีที่สุดของรายการนั้นทั้งหมด, SB = ผลดีที่สุดของรายการนั้นในปีเดียวกัน
+// ผลเท่ากันให้เครื่องหมายแก่ครั้งที่ทำได้ก่อน คืนค่าเรียงใหม่สุดก่อน
+export function markBests(results: EventResult[]): MarkedResult[] {
   const ordered = [...results].sort(byDateThenId);
   const pbId = new Map<string, string>();
   const sbId = new Map<string, string>();
@@ -274,12 +332,12 @@ export function markBests(results: TrackResult[]): MarkedResult[] {
   const seasonBest = new Map<string, number>();
   for (const result of ordered) {
     const season = `${result.event}|${result.competedAt.slice(0, 4)}`;
-    if (!best.has(result.event) || result.timeSeconds < (best.get(result.event) as number)) {
-      best.set(result.event, result.timeSeconds);
+    if (!best.has(result.event) || isBetter(result.event, result.mark, best.get(result.event) as number)) {
+      best.set(result.event, result.mark);
       pbId.set(result.event, result.id);
     }
-    if (!seasonBest.has(season) || result.timeSeconds < (seasonBest.get(season) as number)) {
-      seasonBest.set(season, result.timeSeconds);
+    if (!seasonBest.has(season) || isBetter(result.event, result.mark, seasonBest.get(season) as number)) {
+      seasonBest.set(season, result.mark);
       sbId.set(season, result.id);
     }
   }
@@ -292,23 +350,26 @@ export function markBests(results: TrackResult[]): MarkedResult[] {
     .reverse();
 }
 
-export function personalBest(results: TrackResult[], event: string): number | null {
-  const times = results.filter(result => result.event === event).map(result => result.timeSeconds);
-  return times.length ? Math.min(...times) : null;
+export function personalBest(results: EventResult[], event: string): number | null {
+  const marks = results.filter(result => result.event === event).map(result => result.mark);
+  if (!marks.length) return null;
+  return lowerIsBetter(event) ? Math.min(...marks) : Math.max(...marks);
 }
 
 // ---------- SWC (Smallest Worthwhile Change) ----------
 
 // การเปลี่ยนแปลงที่น้อยกว่าเกณฑ์นี้ถือว่าอยู่ในช่วงคลาดเคลื่อนของการวัด
-export const TIME_SWC = {
-  minSeconds: 0.1, // ความคลาดเคลื่อนโดยประมาณของการจับเวลาด้วยมือ
-  relative: 0.005, // 0.5% ของเวลาเดิม ใช้เมื่อมากกว่า minSeconds (เช่น 400 ม. 52s → 0.26s)
+export const MARK_SWC = {
+  trackMinSeconds: 0.1, // ความคลาดเคลื่อนโดยประมาณของการจับเวลาด้วยมือ
+  fieldMinMeters: 0.02, // ความละเอียดของการวัดระยะ
+  relative: 0.005, // 0.5% ของผลเดิม ใช้เมื่อมากกว่าค่าต่ำสุด (เช่น 400 ม. 52s → 0.26s, พุ่งแหลน 60 ม. → 0.30 ม.)
 } as const;
 
 export type MetricChange = "IMPROVED" | "WITHIN_SWC" | "DECLINED";
 
-export function timeSwcSeconds(baselineSeconds: number): number {
-  return round(Math.max(TIME_SWC.minSeconds, baselineSeconds * TIME_SWC.relative), 2);
+export function markSwc(event: string, baseline: number): number {
+  const floor = eventKind(event) === "TRACK" ? MARK_SWC.trackMinSeconds : MARK_SWC.fieldMinMeters;
+  return round(Math.max(floor, baseline * MARK_SWC.relative), 2);
 }
 
 // delta = หลัง - ก่อน; สำหรับเวลาให้ lowerIsBetter = true
@@ -348,7 +409,7 @@ export type Retest = {
   testedAt: string;
   ratings: Record<string, FitnessRating>;
   event: string | null;
-  timeSeconds: number | null;
+  mark: number | null; // ลู่ = วินาที, ลาน = เมตร
   notes: string | null;
   recordedAt: string;
   recordedBy: string;
@@ -371,8 +432,16 @@ export function readExcellenceStorage(scores: unknown): ExcellenceStorage {
   return {
     revision: Number.isInteger(v2.revision) ? Number(v2.revision) : 0,
     plans: Array.isArray(v2.plans) ? v2.plans.filter(isRecord) as DevelopmentPlan[] : [],
-    retests: Array.isArray(v2.retests) ? v2.retests.filter(isRecord) as Retest[] : [],
+    retests: Array.isArray(v2.retests) ? v2.retests.filter(isRecord).map(normalizeRetest) : [],
   };
+}
+
+// รุ่นแรกเก็บเวลาไว้ที่ timeSeconds (ลู่เท่านั้น) อ่านเป็น mark ต่อได้
+function normalizeRetest(raw: Record<string, unknown>): Retest {
+  const legacy = typeof raw.timeSeconds === "number" ? raw.timeSeconds : null;
+  const { timeSeconds: _legacy, ...rest } = raw;
+  void _legacy;
+  return { ...rest, mark: typeof raw.mark === "number" ? raw.mark : legacy } as Retest;
 }
 
 // เขียนเฉพาะ _excellence.v2 คงคีย์อื่นของ scores และข้อมูล _excellence รุ่นเดิมไว้ทั้งหมด
@@ -401,7 +470,7 @@ export type RetestComparison = {
   // แต่ละข้อของแผนกับสถานีที่ผูกไว้ (ว่างเมื่อการทดสอบซ้ำไม่ได้ผูกกับแผน)
   planItems: (StationChange & { itemId: string; activity: string })[];
   stations: StationChange[];
-  time: {
+  mark: {
     event: string;
     before: number | null;
     after: number;
@@ -420,12 +489,12 @@ function stationChange(stationKey: string, before: FitnessRating | null, after: 
   return { stationKey, stationName: name, before, after, change: delta > 0 ? "IMPROVED" : delta < 0 ? "DECLINED" : "NO_CHANGE" };
 }
 
-// เวลาก่อนหน้า = ผลแข่งล่าสุดของรายการเดียวกันที่วันที่ไม่เกินวันทดสอบซ้ำ
-export function timeBefore(results: TrackResult[], event: string, onOrBefore: string): number | null {
+// ผลก่อนหน้า = ผลแข่งล่าสุดของรายการเดียวกันที่วันที่ไม่เกินวันทดสอบซ้ำ
+export function markBefore(results: EventResult[], event: string, onOrBefore: string): number | null {
   const candidates = results
     .filter(result => result.event === event && result.competedAt <= onOrBefore)
     .sort(byDateThenId);
-  return candidates.length ? candidates[candidates.length - 1].timeSeconds : null;
+  return candidates.length ? candidates[candidates.length - 1].mark : null;
 }
 
 // เทียบการทดสอบซ้ำกับค่าก่อนหน้า (ผลทดสอบซ้ำครั้งก่อน หรือผลทดสอบสมรรถภาพครั้งแรก)
@@ -433,7 +502,7 @@ export function compareRetest(input: {
   retest: Retest;
   baselineRatings: Record<string, FitnessRating>;
   plan: DevelopmentPlan | null;
-  results: TrackResult[];
+  results: EventResult[];
 }): RetestComparison {
   const { retest, baselineRatings, plan, results } = input;
   const stations = ATHLETICS_STATIONS
@@ -447,18 +516,18 @@ export function compareRetest(input: {
       }))
     : [];
 
-  let time: RetestComparison["time"] = null;
-  if (retest.event && retest.timeSeconds !== null) {
-    const before = timeBefore(results, retest.event, retest.testedAt);
-    const delta = before === null ? null : round(retest.timeSeconds - before, 2);
-    const swc = before === null ? null : timeSwcSeconds(before);
-    time = {
+  let mark: RetestComparison["mark"] = null;
+  if (retest.event && retest.mark !== null) {
+    const before = markBefore(results, retest.event, retest.testedAt);
+    const delta = before === null ? null : round(retest.mark - before, 2);
+    const swc = before === null ? null : markSwc(retest.event, before);
+    mark = {
       event: retest.event,
       before,
-      after: retest.timeSeconds,
+      after: retest.mark,
       delta,
       swc,
-      change: delta === null || swc === null ? null : classifyChange(delta, swc, true),
+      change: delta === null || swc === null ? null : classifyChange(delta, swc, lowerIsBetter(retest.event)),
     };
   }
 
@@ -470,10 +539,14 @@ export function compareRetest(input: {
       ? `จุดอ่อนตามแผนดีขึ้น ${improved} จาก ${tested.length} สถานีที่ทดสอบ`
       : "ยังไม่ได้ทดสอบสถานีที่อยู่ในแผน");
   }
-  if (time?.change === "IMPROVED") parts.push(`เวลา ${eventLabel(time.event)} ดีขึ้นเกินช่วงคลาดเคลื่อน`);
-  else if (time?.change === "DECLINED") parts.push(`เวลา ${eventLabel(time.event)} ช้าลงเกินช่วงคลาดเคลื่อน`);
-  else if (time?.change === "WITHIN_SWC") parts.push(`เวลา ${eventLabel(time.event)} เปลี่ยนน้อยกว่าช่วงคลาดเคลื่อน (±${time.swc}s)`);
-  else if (time) parts.push(`ยังไม่มีผลแข่ง ${eventLabel(time.event)} ก่อนหน้าให้เทียบเวลา`);
+  if (mark) {
+    const noun = eventKind(mark.event) === "TRACK" ? "เวลา" : "ระยะ";
+    const unit = eventKind(mark.event) === "TRACK" ? "s" : " ม.";
+    if (mark.change === "IMPROVED") parts.push(`${noun} ${eventLabel(mark.event)} ดีขึ้นเกินช่วงคลาดเคลื่อน`);
+    else if (mark.change === "DECLINED") parts.push(`${noun} ${eventLabel(mark.event)} แย่ลงเกินช่วงคลาดเคลื่อน`);
+    else if (mark.change === "WITHIN_SWC") parts.push(`${noun} ${eventLabel(mark.event)} เปลี่ยนน้อยกว่าช่วงคลาดเคลื่อน (±${mark.swc}${unit})`);
+    else parts.push(`ยังไม่มีผลแข่ง ${eventLabel(mark.event)} ก่อนหน้าให้เทียบ${noun}`);
+  }
 
   return {
     retestId: retest.id,
@@ -481,7 +554,7 @@ export function compareRetest(input: {
     planId: retest.planId,
     planItems,
     stations,
-    time,
+    mark,
     summary: parts.join(" · ") || "บันทึกผลทดสอบซ้ำแล้ว",
   };
 }
@@ -494,10 +567,10 @@ export type AthleteRecord = {
   studentId: string;
   name: string;
   faculty: string;
-  gender: TrackGender;
+  gender: AthleticsGender;
   competitionName: string;
   fitness: { testedAt: string | null; ratings: Record<string, FitnessRating> } | null;
-  results: TrackResult[];
+  results: EventResult[];
   storage: ExcellenceStorage;
 };
 
@@ -507,11 +580,11 @@ export type OverviewRow = {
   studentId: string;
   name: string;
   faculty: string;
-  gender: TrackGender;
+  gender: AthleticsGender;
   event: string | null;
-  bestSeconds: number | null;
-  targetSeconds: number | null;
-  gapSeconds: number | null;
+  bestMark: number | null;
+  targetMark: number | null;
+  gapMark: number | null;
   percentOfTarget: number | null;
   status: TargetStatus;
   weakestStation: string | null;
@@ -520,7 +593,7 @@ export type OverviewRow = {
 };
 
 // 1 แถวต่อ (นักกีฬา, รายการ) ที่มีผล นักกีฬาที่ยังไม่มีผลแข่งได้ 1 แถว
-export function overviewRows(record: AthleteRecord, benchmarks: TrackBenchmarks): OverviewRow[] {
+export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks): OverviewRow[] {
   const weakest = weakStations(record.fitness?.ratings ?? {})[0]?.name ?? null;
   const plan = latestPlan(record.storage.plans);
   const base = {
@@ -533,9 +606,9 @@ export function overviewRows(record: AthleteRecord, benchmarks: TrackBenchmarks)
     planStatus: plan?.status ?? null,
     retestCount: record.storage.retests.length,
   };
-  const events = ATHLETICS_TRACK_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key));
+  const events = ATHLETICS_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key));
   if (!events.length) {
-    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestSeconds: null, targetSeconds: null, gapSeconds: null, percentOfTarget: null, status: "NO_RESULT" }];
+    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestMark: null, targetMark: null, gapMark: null, percentOfTarget: null, status: "NO_RESULT" }];
   }
   return events.map(event => {
     const best = personalBest(record.results, event);
@@ -544,16 +617,16 @@ export function overviewRows(record: AthleteRecord, benchmarks: TrackBenchmarks)
       ...base,
       rowId: `${record.applicationId}|${event}`,
       event,
-      bestSeconds: best,
-      targetSeconds: target,
-      gapSeconds: gapToTarget(best, target),
-      percentOfTarget: percentOfTarget(best, target),
-      status: targetStatus(best, target),
+      bestMark: best,
+      targetMark: target,
+      gapMark: gapToTarget(event, best, target),
+      percentOfTarget: percentOfTarget(event, best, target),
+      status: targetStatus(event, best, target),
     };
   });
 }
 
-export type OverviewFilter = { event?: string; gender?: TrackGender; search?: string };
+export type OverviewFilter = { event?: string; gender?: AthleticsGender; search?: string };
 
 export function filterRows(rows: OverviewRow[], filter: OverviewFilter): OverviewRow[] {
   const query = filter.search?.trim().toLowerCase() ?? "";
@@ -583,7 +656,7 @@ export function buildTimeline(record: AthleteRecord): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   if (record.fitness?.testedAt) entries.push({ date: record.fitness.testedAt.slice(0, 10), kind: "FITNESS", label: "ทดสอบสมรรถภาพครั้งแรก" });
   for (const plan of record.storage.plans) entries.push({ date: plan.startDate, kind: "PLAN", label: `เริ่มแผนพัฒนา (${plan.items.length} ข้อ)` });
-  for (const result of record.results) entries.push({ date: result.competedAt, kind: "RESULT", label: `${eventLabel(result.event)} ${formatTrackTime(result.timeSeconds)}` });
+  for (const result of record.results) entries.push({ date: result.competedAt, kind: "RESULT", label: `${eventLabel(result.event)} ${formatMark(result.event, result.mark)}` });
   for (const retest of record.storage.retests) entries.push({ date: retest.testedAt, kind: "RETEST", label: "ทดสอบซ้ำ" });
   const order: Record<TimelineEntry["kind"], number> = { FITNESS: 0, PLAN: 1, RESULT: 2, RETEST: 3 };
   return entries.sort((a, b) => a.date.localeCompare(b.date) || order[a.kind] - order[b.kind]);
@@ -592,15 +665,15 @@ export function buildTimeline(record: AthleteRecord): TimelineEntry[] {
 export type AthleteDetail = {
   athlete: Omit<AthleteRecord, "results" | "storage">;
   revision: number;
-  results: (MarkedResult & { targetSeconds: number | null; gapSeconds: number | null; percentOfTarget: number | null })[];
+  results: (MarkedResult & { target: number | null; gap: number | null; percentOfTarget: number | null })[];
   stations: StationResult[];
   plans: DevelopmentPlan[];
   retests: (Retest & { comparison: RetestComparison })[];
   timeline: TimelineEntry[];
-  events: TrackEvent[];
+  events: AthleticsEvent[];
 };
 
-export function buildAthleteDetail(record: AthleteRecord, benchmarks: TrackBenchmarks): AthleteDetail {
+export function buildAthleteDetail(record: AthleteRecord, benchmarks: Benchmarks): AthleteDetail {
   const baseline = record.fitness?.ratings ?? {};
   const plansById = new Map(record.storage.plans.map(plan => [plan.id, plan]));
   const retests = [...record.storage.retests].sort((a, b) => a.testedAt.localeCompare(b.testedAt) || a.recordedAt.localeCompare(b.recordedAt));
@@ -616,7 +689,7 @@ export function buildAthleteDetail(record: AthleteRecord, benchmarks: TrackBench
     revision: storage.revision,
     results: markBests(results).map(result => {
       const target = targetFor(benchmarks, result.event, record.gender);
-      return { ...result, targetSeconds: target, gapSeconds: gapToTarget(result.timeSeconds, target), percentOfTarget: percentOfTarget(result.timeSeconds, target) };
+      return { ...result, target, gap: gapToTarget(result.event, result.mark, target), percentOfTarget: percentOfTarget(result.event, result.mark, target) };
     }),
     stations: stationResults(baseline),
     plans: [...storage.plans].sort((a, b) => b.startDate.localeCompare(a.startDate)),
@@ -624,4 +697,67 @@ export function buildAthleteDetail(record: AthleteRecord, benchmarks: TrackBench
     timeline: buildTimeline(record),
     events: eventsForGender(record.gender),
   };
+}
+
+// ---------- Heatmap ทีม × สถานี ----------
+
+export type HeatmapCell = { rating: FitnessRating; score: number; weak: boolean };
+
+export type HeatmapRow = {
+  applicationId: string;
+  studentId: string;
+  name: string;
+  faculty: string;
+  gender: AthleticsGender;
+  events: string[];
+  cells: Record<string, HeatmapCell | null>;
+  weakCount: number;
+  testedCount: number;
+};
+
+export type HeatmapStation = { key: string; name: string; tested: number; weak: number; averageScore: number | null };
+export type Heatmap = { stations: HeatmapStation[]; rows: HeatmapRow[] };
+
+// 1 แถวต่อนักกีฬา (กรองตามเพศ/ค้นหา และรายการที่นักกีฬามีผลแข่ง) เรียงคนที่มีจุดอ่อนมากสุดก่อน
+// สรุปรายสถานีนับเฉพาะคนที่มีผลสถานีนั้น ไม่นับคนที่ยังไม่ได้ทดสอบเป็นจุดอ่อน
+export function buildHeatmap(records: AthleteRecord[], filter: OverviewFilter): Heatmap {
+  const query = filter.search?.trim().toLowerCase() ?? "";
+  const rows: HeatmapRow[] = records
+    .filter(record =>
+      (!filter.gender || record.gender === filter.gender)
+      && (!filter.event || record.results.some(result => result.event === filter.event))
+      && (!query || record.name.toLowerCase().includes(query) || record.studentId.toLowerCase().includes(query) || record.faculty.toLowerCase().includes(query)),
+    )
+    .map(record => {
+      const results = stationResults(record.fitness?.ratings ?? {});
+      const byKey = new Map(results.map(result => [result.key, result]));
+      const cells: Record<string, HeatmapCell | null> = {};
+      for (const station of ATHLETICS_STATIONS) {
+        const result = byKey.get(station.key);
+        cells[station.key] = result ? { rating: result.rating, score: result.score, weak: result.weak } : null;
+      }
+      return {
+        applicationId: record.applicationId,
+        studentId: record.studentId,
+        name: record.name,
+        faculty: record.faculty,
+        gender: record.gender,
+        events: ATHLETICS_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key)),
+        cells,
+        weakCount: results.filter(result => result.weak).length,
+        testedCount: results.length,
+      };
+    })
+    .sort((a, b) => b.weakCount - a.weakCount || a.name.localeCompare(b.name, "th"));
+  const stations = ATHLETICS_STATIONS.map(station => {
+    const cells = rows.flatMap(row => row.cells[station.key] ? [row.cells[station.key] as HeatmapCell] : []);
+    return {
+      key: station.key,
+      name: station.name,
+      tested: cells.length,
+      weak: cells.filter(cell => cell.weak).length,
+      averageScore: cells.length ? round(cells.reduce((sum, cell) => sum + cell.score, 0) / cells.length, 0) : null,
+    };
+  });
+  return { stations, rows };
 }

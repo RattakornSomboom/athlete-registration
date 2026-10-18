@@ -2,17 +2,19 @@
 
 import { useRef, useState } from "react";
 import { buttonClass, fieldClass } from "@/components/shared/Phase4UI";
+import { EventOptions } from "@/components/shared/ExcellenceUI";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   ATHLETICS_STATIONS,
   FITNESS_RATINGS,
   PLAN_STATUSES,
   PLAN_STATUS_LABEL,
-  formatTrackTime,
+  eventKind,
+  formatMarkInput,
   type DevelopmentPlan,
   type PlanStatus,
   type StationResult,
-  type TrackEvent,
+  type AthleticsEvent,
 } from "@/lib/excellence-athletics";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -51,18 +53,18 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
-export type EditableResult = { id: string; event: string; timeSeconds: number; competedAt: string; stage: string | null };
+export type EditableResult = { id: string; event: string; mark: number; competedAt: string; stage: string | null };
 
 // result = โหมดแก้ไขผลเดิม (PUT) ไม่ส่ง = บันทึกผลใหม่ (POST)
 export function ResultForm({ applicationId, events, result, onSaved, onCancel }: {
   applicationId: string;
-  events: TrackEvent[];
+  events: AthleticsEvent[];
   result?: EditableResult;
   onSaved: () => void;
   onCancel: () => void;
 }) {
   const [event, setEvent] = useState(result?.event ?? events[0]?.key ?? "");
-  const [time, setTime] = useState(result ? formatTrackTime(result.timeSeconds) : "");
+  const [time, setTime] = useState(result ? formatMarkInput(result.event, result.mark) : "");
   const [competedAt, setCompetedAt] = useState(result?.competedAt ?? today());
   const [stage, setStage] = useState(result?.stage ?? "");
   const [saving, setSaving] = useState(false);
@@ -76,8 +78,8 @@ export function ResultForm({ applicationId, events, result, onSaved, onCancel }:
     setSaving(true);
     setError("");
     try {
-      if (result) await requestJson(`/api/staff/excellence/results/${encodeURIComponent(result.id)}`, { event, timeSeconds: time, competedAt, stage }, "PUT");
-      else await requestJson("/api/staff/excellence/results", { applicationId, event, timeSeconds: time, competedAt, stage });
+      if (result) await requestJson(`/api/staff/excellence/results/${encodeURIComponent(result.id)}`, { event, mark: time, competedAt, stage }, "PUT");
+      else await requestJson("/api/staff/excellence/results", { applicationId, event, mark: time, competedAt, stage });
       onSaved();
     } catch (e) {
       setError(errorMessage(e));
@@ -88,14 +90,17 @@ export function ResultForm({ applicationId, events, result, onSaved, onCancel }:
   }
 
   return (
-    <FormShell title={result ? "แก้ไขผลเวลา" : "บันทึกเวลาแข่งขัน"} onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
+    <FormShell title={result ? "แก้ไขผลแข่ง" : "บันทึกผลแข่งขัน"} onCancel={onCancel} onSubmit={submit} saving={saving} error={error}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="รายการ">
           <select value={event} onChange={e => setEvent(e.target.value)} className={fieldClass}>
-            {events.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+            <EventOptions events={events} />
           </select>
         </Field>
-        <Field label="เวลา" hint="วินาที เช่น 10.85 หรือ นาที:วินาที เช่น 1:58.32">
+        <Field
+          label={eventKind(event) === "TRACK" ? "เวลา" : "ระยะ (เมตร)"}
+          hint={eventKind(event) === "TRACK" ? "วินาที เช่น 10.85 หรือ นาที:วินาที เช่น 1:58.32" : "เมตร เช่น 7.85"}
+        >
           <input value={time} onChange={e => setTime(e.target.value)} required inputMode="decimal" className={fieldClass} />
         </Field>
         <Field label="วันที่แข่ง">
@@ -221,7 +226,7 @@ export type EditableRetest = {
   testedAt: string;
   ratings: Record<string, string>;
   event: string | null;
-  timeSeconds: number | null;
+  mark: number | null;
   notes: string | null;
 };
 
@@ -230,7 +235,7 @@ export function RetestForm({ applicationId, revision, plans, events, defaultPlan
   applicationId: string;
   revision: number;
   plans: DevelopmentPlan[];
-  events: TrackEvent[];
+  events: AthleticsEvent[];
   defaultPlanId: string | null;
   retest?: EditableRetest;
   onSaved: () => void;
@@ -240,7 +245,7 @@ export function RetestForm({ applicationId, revision, plans, events, defaultPlan
   const [testedAt, setTestedAt] = useState(retest?.testedAt ?? today());
   const [ratings, setRatings] = useState<Record<string, string>>(retest?.ratings ?? {});
   const [event, setEvent] = useState(retest?.event ?? "");
-  const [time, setTime] = useState(retest?.timeSeconds != null ? formatTrackTime(retest.timeSeconds) : "");
+  const [time, setTime] = useState(retest?.mark != null && retest.event ? formatMarkInput(retest.event, retest.mark) : "");
   const [notes, setNotes] = useState(retest?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -256,7 +261,7 @@ export function RetestForm({ applicationId, revision, plans, events, defaultPlan
       const payload = {
         applicationId,
         revision,
-        retest: { planId: planId || null, testedAt, ratings, event: event || null, timeSeconds: event ? time : null, notes },
+        retest: { planId: planId || null, testedAt, ratings, event: event || null, mark: event ? time : null, notes },
       };
       if (retest) await requestJson(`/api/staff/excellence/retests/${encodeURIComponent(retest.id)}`, payload, "PUT");
       else await requestJson("/api/staff/excellence/retests", payload);
@@ -301,13 +306,13 @@ export function RetestForm({ applicationId, revision, plans, events, defaultPlan
       </fieldset>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="รายการที่จับเวลาในการทดสอบซ้ำ (ไม่บังคับ)">
+        <Field label="รายการที่บันทึกผลในการทดสอบซ้ำ (ไม่บังคับ)">
           <select value={event} onChange={e => setEvent(e.target.value)} className={fieldClass}>
-            <option value="">ไม่ได้จับเวลา</option>
-            {events.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+            <option value="">ไม่ได้บันทึกผล</option>
+            <EventOptions events={events} />
           </select>
         </Field>
-        <Field label="เวลา" hint="เทียบกับผลแข่งล่าสุดของรายการเดียวกัน">
+        <Field label={event && eventKind(event) === "FIELD" ? "ระยะ (เมตร)" : "เวลา"} hint="เทียบกับผลแข่งล่าสุดของรายการเดียวกัน">
           <input value={time} onChange={e => setTime(e.target.value)} disabled={!event} required={Boolean(event)} inputMode="decimal" className={fieldClass} />
         </Field>
       </div>

@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Page, fieldClass } from "@/components/shared/Phase4UI";
-import { DemoBanner, EmptyText, ExcellenceNav, TargetBadge, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, TargetBadge, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
-  ATHLETICS_TRACK_EVENTS,
+  ATHLETICS_EVENTS,
+  ATHLETICS_GENDERS,
   PLAN_STATUS_LABEL,
-  TRACK_GENDERS,
   eventLabel,
-  formatSignedSeconds,
-  formatTrackTime,
+  formatMark,
+  formatSignedMark,
   type OverviewRow,
   type OverviewSummary,
 } from "@/lib/excellence-athletics";
@@ -59,7 +59,7 @@ export default function ExcellenceOverviewPage() {
   const summary = data?.summary;
 
   return (
-    <Page title="สู่ความเป็นเลิศ · กรีฑาประเภทลู่">
+    <Page title="สู่ความเป็นเลิศ · กรีฑา (ลู่และลาน)">
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
 
@@ -68,14 +68,14 @@ export default function ExcellenceOverviewPage() {
           รายการแข่งขัน
           <select value={event} onChange={e => setEvent(e.target.value)} className={`${fieldClass} mt-1`}>
             <option value="">ทุกรายการ</option>
-            {ATHLETICS_TRACK_EVENTS.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+            <EventOptions events={ATHLETICS_EVENTS} />
           </select>
         </label>
         <label className="text-sm font-medium text-slate-700">
           เพศ
           <select value={gender} onChange={e => setGender(e.target.value)} className={`${fieldClass} mt-1`}>
             <option value="">ทั้งชายและหญิง</option>
-            {TRACK_GENDERS.map(item => <option key={item} value={item}>{item}</option>)}
+            {ATHLETICS_GENDERS.map(item => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium text-slate-700">
@@ -103,7 +103,7 @@ export default function ExcellenceOverviewPage() {
             <EmptyText>
               {filtered
                 ? "ไม่พบนักกีฬาตามตัวกรองที่เลือก"
-                : "ยังไม่มีนักกีฬากรีฑาประเภทลู่ที่ผ่านการคัดเลือก (สถานะกองกิจฯ อนุมัติ หรือประกาศผลแล้ว)"}
+                : "ยังไม่มีนักกีฬากรีฑาที่ผ่านการคัดเลือก (สถานะกองกิจฯ อนุมัติ หรือประกาศผลแล้ว)"}
             </EmptyText>
             {!filtered && !demo && (
               <button type="button" onClick={() => setDemo(true)} className="rounded-lg border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
@@ -118,7 +118,7 @@ export default function ExcellenceOverviewPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">นักกีฬา</th>
                   <th className="px-4 py-3 font-medium">รายการ</th>
-                  <th className="px-4 py-3 text-right font-medium">เวลาดีที่สุด</th>
+                  <th className="px-4 py-3 text-right font-medium">ผลดีที่สุด</th>
                   <th className="px-4 py-3 text-right font-medium">เป้า</th>
                   <th className="px-4 py-3 text-right font-medium">Gap</th>
                   <th className="px-4 py-3 text-right font-medium">% ของเป้า</th>
@@ -137,10 +137,10 @@ export default function ExcellenceOverviewPage() {
                       <p className="text-xs text-slate-500">{row.studentId} · {row.gender} · {row.faculty}</p>
                     </td>
                     <td className="px-4 py-3 text-slate-700">{row.event ? eventLabel(row.event) : "—"}</td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums">{formatTrackTime(row.bestSeconds)}</td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{formatTrackTime(row.targetSeconds)}</td>
-                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.gapSeconds === null ? "text-slate-400" : row.gapSeconds > 0 ? "text-rose-700" : "text-emerald-700"}`}>
-                      {formatSignedSeconds(row.gapSeconds)}
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">{formatMark(row.event ?? "", row.bestMark)}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">{formatMark(row.event ?? "", row.targetMark)}</td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.gapMark === null ? "text-slate-400" : row.gapMark > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                      {formatSignedMark(row.event ?? "", row.gapMark)}
                     </td>
                     <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.percentOfTarget === null ? "text-slate-400" : row.percentOfTarget >= 100 ? "text-emerald-700" : "text-slate-700"}`}>
                       {row.percentOfTarget === null ? "—" : `${row.percentOfTarget.toFixed(1)}%`}
@@ -159,7 +159,7 @@ export default function ExcellenceOverviewPage() {
         )}
       </section>
       <p className="text-xs text-slate-500">
-        แสดง 1 แถวต่อนักกีฬาต่อรายการที่มีผลแข่ง · Gap = เวลาดีที่สุด − เป้า (ค่าบวกคือช้ากว่าเป้า) · % ของเป้า = เป้า ÷ เวลา × 100 (100 = เท่าเป้า, มากกว่า = เร็วกว่า) ใช้เทียบข้ามรายการ · จุดอ่อน = สถานีสมรรถภาพระดับพอใช้ลงไป
+        แสดง 1 แถวต่อนักกีฬาต่อรายการที่มีผลแข่ง · Gap = ระยะที่ตามหลังเป้า (ค่าบวก = ตามหลัง: ลู่ช้ากว่าเป้า, ลานสั้นกว่าเป้า) · % ของเป้า (ลู่ = เป้า ÷ เวลา, ลาน = ระยะ ÷ เป้า) × 100 โดย 100 = เท่าเป้า มากกว่า = ดีกว่า ใช้เทียบข้ามรายการ · จุดอ่อน = สถานีสมรรถภาพระดับพอใช้ลงไป
       </p>
     </Page>
   );

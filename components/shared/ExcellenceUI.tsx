@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { MetricChange, StationChange, TargetStatus } from "@/lib/excellence-athletics";
+import type { AthleticsEvent, MetricChange, StationChange, TargetStatus } from "@/lib/excellence-athletics";
 
 // โหมดสาธิตอ่านจาก ?demo=true ใน URL ready = อ่าน URL เสร็จแล้ว (กันการโหลดข้อมูลซ้ำสองรอบ)
 export function useDemoMode(): { demo: boolean; ready: boolean; setDemo: (value: boolean) => void } {
@@ -34,8 +34,21 @@ export function demoQuery(demo: boolean): string {
 
 const NAV: [href: string, label: string][] = [
   ["/staff/excellence", "ภาพรวมนักกีฬา"],
-  ["/staff/excellence/benchmarks", "เป้าเวลา (Benchmark)"],
+  ["/staff/excellence/heatmap", "แผนที่จุดอ่อนทีม"],
+  ["/staff/excellence/benchmarks", "เป้าหมาย (Benchmark)"],
 ];
+
+// ตัวเลือกรายการแบบแยกกลุ่ม ลู่ (วัดเวลา) / ลาน (วัดระยะ)
+export function EventOptions({ events }: { events: readonly AthleticsEvent[] }) {
+  const track = events.filter(event => event.kind === "TRACK");
+  const field = events.filter(event => event.kind === "FIELD");
+  return (
+    <>
+      {track.length > 0 && <optgroup label="ลู่ (วัดเวลา)">{track.map(event => <option key={event.key} value={event.key}>{event.label}</option>)}</optgroup>}
+      {field.length > 0 && <optgroup label="ลาน (วัดระยะ)">{field.map(event => <option key={event.key} value={event.key}>{event.label}</option>)}</optgroup>}
+    </>
+  );
+}
 
 export function ExcellenceNav({ demo, onDemoChange }: { demo: boolean; onDemoChange?: (value: boolean) => void }) {
   const path = usePathname();
@@ -70,7 +83,7 @@ export function DemoBanner({ show }: { show: boolean }) {
   if (!show) return null;
   return (
     <p role="note" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-      <span className="font-semibold">ข้อมูลสาธิต:</span> นักกีฬาและผลทั้งหมดในโหมดนี้เป็นข้อมูลจำลองของกรีฑาประเภทลู่ ใช้สาธิตขั้นตอนของระบบเท่านั้น และบันทึกหรือแก้ไขไม่ได้
+      <span className="font-semibold">ข้อมูลสาธิต:</span> นักกีฬาและผลทั้งหมดในโหมดนี้เป็นข้อมูลจำลองของกรีฑา (ลู่และลาน) ใช้สาธิตขั้นตอนของระบบเท่านั้น และบันทึกหรือแก้ไขไม่ได้
     </p>
   );
 }

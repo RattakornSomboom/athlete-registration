@@ -1,33 +1,35 @@
-// ชุดข้อมูลสาธิตของโมดูลสู่ความเป็นเลิศ (กรีฑาประเภทลู่) — ข้อมูลจำลอง ไม่ใช่ผลจริง
+// ชุดข้อมูลสาธิตของโมดูลสู่ความเป็นเลิศ (กรีฑาประเภทลู่และลาน) — ข้อมูลจำลอง ไม่ใช่ผลจริง
 // ใช้รูปแบบ AthleteRecord เดียวกับข้อมูลจริง ภาพรวมและหน้ารายคนจึงแสดงชุดเดียวกันทั้งหมด
 import type {
   AthleteRecord,
+  AthleticsGender,
+  Benchmarks,
   DevelopmentPlan,
+  EventResult,
   FitnessRating,
   Retest,
-  TrackBenchmarks,
-  TrackGender,
-  TrackResult,
 } from "./excellence-athletics";
 
 const DEMO_AT = "2026-01-05T00:00:00.000Z";
 const DEMO_BY = "demo";
 
-export const DEMO_BENCHMARKS: TrackBenchmarks = {
-  "100m|ชาย": { targetSeconds: 11, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
-  "100m|หญิง": { targetSeconds: 12.6, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
-  "400m|ชาย": { targetSeconds: 50.5, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
-  "400m|หญิง": { targetSeconds: 60, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+export const DEMO_BENCHMARKS: Benchmarks = {
+  "100m|ชาย": { target: 11, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+  "100m|หญิง": { target: 12.6, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+  "400m|ชาย": { target: 50.5, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+  "400m|หญิง": { target: 60, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+  "longJump|ชาย": { target: 7.2, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
+  "shotPut|หญิง": { target: 13, updatedAt: DEMO_AT, updatedBy: DEMO_BY },
   // 200 เมตรตั้งใจไม่ตั้งเป้า เพื่อแสดงสถานะ "ยังไม่ตั้งเป้า"
 };
 
-type ResultSeed = [event: string, timeSeconds: number, competedAt: string, competitionName: string];
+type ResultSeed = [event: string, mark: number, competedAt: string, competitionName: string];
 
-function results(id: string, seeds: ResultSeed[]): TrackResult[] {
-  return seeds.map(([event, timeSeconds, competedAt, competitionName], index) => ({
+function results(id: string, seeds: ResultSeed[]): EventResult[] {
+  return seeds.map(([event, mark, competedAt, competitionName], index) => ({
     id: `${id}-r${index + 1}`,
     event,
-    timeSeconds,
+    mark,
     competedAt,
     competitionName,
     stage: "รอบชิงชนะเลิศ",
@@ -48,14 +50,14 @@ function plan(id: string, startDate: string, endDate: string, status: Developmen
   };
 }
 
-function retest(id: string, planId: string | null, testedAt: string, ratings: Record<string, FitnessRating>, event: string | null, timeSeconds: number | null): Retest {
-  return { id, planId, testedAt, ratings, event, timeSeconds, notes: null, recordedAt: `${testedAt}T00:00:00.000Z`, recordedBy: DEMO_BY };
+function retest(id: string, planId: string | null, testedAt: string, ratings: Record<string, FitnessRating>, event: string | null, mark: number | null): Retest {
+  return { id, planId, testedAt, ratings, event, mark, notes: null, recordedAt: `${testedAt}T00:00:00.000Z`, recordedBy: DEMO_BY };
 }
 
 function athlete(
   index: number,
   name: string,
-  gender: TrackGender,
+  gender: AthleticsGender,
   faculty: string,
   ratings: Record<string, FitnessRating>,
   seeds: ResultSeed[],
@@ -149,6 +151,30 @@ export function getDemoAthletes(): AthleteRecord[] {
     athlete(10, "นางสาวอรอุมา ปัญญาดี", "หญิง", "คณะนิติศาสตร์",
       { sprint40m: "ดี", legPower: "ปานกลาง", agility: "ดี", flexibility: "ดี", grip: "พอใช้", aerobic: "ปานกลาง", body: "ดี" },
       [],
+    ),
+    // รายการลาน (วัดระยะ ยิ่งมากยิ่งดี)
+    athlete(11, "นายปฏิภาณ เจริญสุข", "ชาย", "คณะสาธารณสุขศาสตร์",
+      { sprint40m: "ดี", legPower: "พอใช้", agility: "ดี", flexibility: "ปานกลาง", grip: "ดี", aerobic: "ปานกลาง", body: "ดี" },
+      [
+        ["longJump", 6.85, "2025-11-20", "คัดตัวภายในมหาวิทยาลัย 2568"],
+        ["longJump", 7.05, "2026-03-14", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
+        ["longJump", 7.18, "2026-08-22", "กีฬามหาวิทยาลัยรอบมหกรรม"],
+      ],
+      [plan("demo-11-p1", "2026-08-25", "2026-10-20", "ACTIVE", [
+        ["legPower", "Plyometrics และ jump squat สัปดาห์ละ 2 ครั้ง"],
+      ])],
+      [retest("demo-11-t1", "demo-11-p1", "2026-10-05", { legPower: "ปานกลาง" }, "longJump", 7.3)],
+    ),
+    athlete(12, "นางสาวชลธิชา แสงทอง", "หญิง", "คณะรัฐศาสตร์และสังคมศาสตร์",
+      { sprint40m: "ปานกลาง", legPower: "ปานกลาง", agility: "ปานกลาง", flexibility: "ดี", grip: "ต่ำ", aerobic: "ปานกลาง", body: "ดี" },
+      [
+        ["shotPut", 12.1, "2026-03-15", "กีฬามหาวิทยาลัยรอบคัดเลือก"],
+        ["shotPut", 12.8, "2026-08-23", "กีฬามหาวิทยาลัยรอบมหกรรม"],
+      ],
+      [plan("demo-12-p1", "2026-08-25", "2026-10-30", "ACTIVE", [
+        ["grip", "ฝึกแรงบีบมือและแรงดึง สัปดาห์ละ 2 ครั้ง"],
+      ])],
+      [retest("demo-12-t1", "demo-12-p1", "2026-10-06", { grip: "พอใช้" }, "shotPut", 12.82)],
     ),
   ];
 }

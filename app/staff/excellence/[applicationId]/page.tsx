@@ -10,10 +10,11 @@ import { PlanForm, ResultForm, RetestForm, type EditableResult, type EditableRet
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   PLAN_STATUS_LABEL,
+  eventKind,
   eventLabel,
   findStation,
-  formatSignedSeconds,
-  formatTrackTime,
+  formatMark,
+  formatSignedMark,
   latestPlan,
   progressionSeries,
   type AthleteDetail,
@@ -74,7 +75,7 @@ export default function ExcellenceAthletePage() {
   }
 
   async function removeResult(result: EditableResult) {
-    if (!window.confirm(`ลบผล ${eventLabel(result.event)} ${formatTrackTime(result.timeSeconds)} ของวันที่ ${formatThaiDate(result.competedAt)} ใช่หรือไม่`)) return;
+    if (!window.confirm(`ลบผล ${eventLabel(result.event)} ${formatMark(result.event, result.mark)} ของวันที่ ${formatThaiDate(result.competedAt)} ใช่หรือไม่`)) return;
     try {
       await requestJson(`/api/staff/excellence/results/${encodeURIComponent(result.id)}`, {}, "DELETE");
       setError("");
@@ -102,14 +103,14 @@ export default function ExcellenceAthletePage() {
           <section className="flex flex-wrap gap-x-8 gap-y-2 rounded-xl border border-slate-200 bg-white p-5 text-sm shadow-sm">
             <p><span className="text-slate-500">รหัสนิสิต</span> <span className="font-medium">{detail.athlete.studentId || "—"}</span></p>
             <p><span className="text-slate-500">คณะ</span> <span className="font-medium">{detail.athlete.faculty || "—"}</span></p>
-            <p><span className="text-slate-500">ประเภท</span> <span className="font-medium">กรีฑาลู่ ({detail.athlete.gender})</span></p>
+            <p><span className="text-slate-500">ประเภท</span> <span className="font-medium">กรีฑา ({detail.athlete.gender})</span></p>
             <p><span className="text-slate-500">การแข่งขัน</span> <span className="font-medium">{detail.athlete.competitionName}</span></p>
           </section>
 
           <Section
             title="ผลการแข่งขัน"
-            description="PB = เวลาดีที่สุดของรายการ · SB = เวลาดีที่สุดในปีนั้น · Gap เทียบเป้าเวลาของรายการและเพศ · % ของเป้า = เป้า ÷ เวลา × 100"
-            action={<AddButton label="+ บันทึกเวลา" hidden={readOnly || form?.kind === "result"} onClick={() => setForm({ kind: "result" })} />}
+            description="PB = ผลดีที่สุดของรายการ · SB = ผลดีที่สุดในปีนั้น · Gap = ตามหลังเป้า (ค่าบวก = ตามหลัง) · % ของเป้า: 100 = เท่าเป้า มากกว่า = ดีกว่า"
+            action={<AddButton label="+ บันทึกผลแข่ง" hidden={readOnly || form?.kind === "result"} onClick={() => setForm({ kind: "result" })} />}
           >
             {form?.kind === "result" && <ResultForm key={form.result?.id ?? "new"} applicationId={applicationId} events={detail.events} result={form.result} onSaved={saved} onCancel={() => setForm(null)} />}
             {detail.results.length ? (
@@ -119,7 +120,7 @@ export default function ExcellenceAthletePage() {
                     <tr className="border-b border-slate-200">
                       <th className="py-2 pr-4 font-medium">วันที่</th>
                       <th className="py-2 pr-4 font-medium">รายการ</th>
-                      <th className="py-2 pr-4 text-right font-medium">เวลา</th>
+                      <th className="py-2 pr-4 text-right font-medium">ผล</th>
                       <th className="py-2 pr-4 font-medium"></th>
                       <th className="py-2 pr-4 text-right font-medium">เป้า</th>
                       <th className="py-2 pr-4 text-right font-medium">Gap</th>
@@ -133,16 +134,16 @@ export default function ExcellenceAthletePage() {
                       <tr key={result.id}>
                         <td className="py-2 pr-4 text-slate-600">{formatThaiDate(result.competedAt)}</td>
                         <td className="py-2 pr-4">{eventLabel(result.event)}</td>
-                        <td className="py-2 pr-4 text-right font-mono tabular-nums font-semibold">{formatTrackTime(result.timeSeconds)}</td>
+                        <td className="py-2 pr-4 text-right font-mono tabular-nums font-semibold">{formatMark(result.event, result.mark)}</td>
                         <td className="py-2 pr-4">
                           <span className="flex gap-1">
                             {result.isPB && <span className="rounded bg-violet-100 px-1.5 py-0.5 text-xs font-bold text-violet-800">PB</span>}
                             {result.isSB && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs font-bold text-sky-800">SB</span>}
                           </span>
                         </td>
-                        <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.targetSeconds === null ? "ยังไม่ตั้งเป้า" : formatTrackTime(result.targetSeconds)}</td>
-                        <td className={`py-2 pr-4 text-right font-mono tabular-nums ${result.gapSeconds === null ? "text-slate-400" : result.gapSeconds > 0 ? "text-rose-700" : "text-emerald-700"}`}>
-                          {formatSignedSeconds(result.gapSeconds)}
+                        <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.target === null ? "ยังไม่ตั้งเป้า" : formatMark(result.event, result.target)}</td>
+                        <td className={`py-2 pr-4 text-right font-mono tabular-nums ${result.gap === null ? "text-slate-400" : result.gap > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                          {formatSignedMark(result.event, result.gap)}
                         </td>
                         <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.percentOfTarget === null ? "—" : `${result.percentOfTarget.toFixed(1)}%`}</td>
                         <td className="py-2 text-slate-600">{result.competitionName}{result.stage ? ` · ${result.stage}` : ""}</td>
@@ -161,7 +162,7 @@ export default function ExcellenceAthletePage() {
           </Section>
 
           {progression.length > 0 && (
-            <Section title="พัฒนาการเวลา" description="แสดงเฉพาะรายการที่มีผลแข่งตั้งแต่ 2 ครั้งขึ้นไป">
+            <Section title="พัฒนาการผลแข่ง" description="แสดงเฉพาะรายการที่มีผลแข่งตั้งแต่ 2 ครั้งขึ้นไป">
               <div className={`grid gap-6 ${progression.length > 1 ? "lg:grid-cols-2" : ""}`}>
                 {progression.map(series => <ProgressionChart key={series.event} series={series} />)}
               </div>
@@ -224,7 +225,7 @@ export default function ExcellenceAthletePage() {
 
           <Section
             title="ผลทดสอบซ้ำ"
-            description="เทียบกับผลครั้งก่อนหน้า เวลาเทียบกับผลแข่งล่าสุดของรายการเดียวกัน และนับว่าเปลี่ยนเมื่อเกินช่วงคลาดเคลื่อน (SWC)"
+            description="เทียบกับผลครั้งก่อนหน้า ผลแข่งเทียบกับผลล่าสุดของรายการเดียวกัน และนับว่าเปลี่ยนเมื่อเกินช่วงคลาดเคลื่อน (SWC)"
             action={<AddButton label="+ บันทึกผลทดสอบซ้ำ" hidden={readOnly || !hasFitness || form?.kind === "retest"} onClick={() => setForm({ kind: "retest" })} />}
           >
             {form?.kind === "retest" && (
@@ -286,10 +287,10 @@ export default function ExcellenceAthletePage() {
                           </table>
                         </div>
                       )}
-                      {comparison.time && (
+                      {comparison.mark && (
                         <p className="mt-3 text-sm text-slate-700">
-                          {eventLabel(comparison.time.event)}: {formatTrackTime(comparison.time.before)} → <span className="font-semibold">{formatTrackTime(comparison.time.after)}</span>
-                          {comparison.time.delta !== null && <> ({formatSignedSeconds(comparison.time.delta)}, ช่วงคลาดเคลื่อน ±{comparison.time.swc}s) · <ChangeLabel change={comparison.time.change} /></>}
+                          {eventLabel(comparison.mark.event)}: {formatMark(comparison.mark.event, comparison.mark.before)} → <span className="font-semibold">{formatMark(comparison.mark.event, comparison.mark.after)}</span>
+                          {comparison.mark.delta !== null && <> ({formatSignedMark(comparison.mark.event, comparison.mark.delta)}, ช่วงคลาดเคลื่อน ±{comparison.mark.swc}{eventKind(comparison.mark.event) === "TRACK" ? "s" : " ม."}) · <ChangeLabel change={comparison.mark.change} /></>}
                         </p>
                       )}
                       {retest.notes && <p className="mt-2 text-sm text-slate-600">หมายเหตุ: {retest.notes}</p>}

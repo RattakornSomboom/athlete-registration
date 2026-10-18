@@ -22,7 +22,7 @@
 - คุณสมบัตินักกีฬา: GPAX ≥ 2.00, อายุ ≤ 28 ปี (เทียบปีแข่งขัน), เข้าร่วมไม่เกิน 5 ครั้ง → `lib/rule-checker.ts`, `lib/athlete-eligibility.ts` (ใช้ซ้ำใน login, register, import, อนุมัติ, ประกาศผล)
 - หลักฐานที่ต้องผ่าน: `REQUIRED_EVIDENCE_ITEMS` (`lib/evidence-verification.ts`) ยกเว้นผลสมรรถภาพชั่วคราว; ผลงานย้อนหลัง ≤ 2 ปีผ่อนปรน → ใช้ร่วมกันใน roster, team readiness, `lib/publication-gate.ts`
 - เอกสาร UP Academy / ผลสมรรถภาพ / หนังสือไม่มีชมรม ถูก "ซ่อน" ใน UI (`ATHLETE_VISIBLE_DOCUMENT_FIELDS`) แต่ยังอยู่ใน schema และ API ห้ามลบ
-- Excellence (`/staff/excellence`) = กรีฑาประเภทลู่เท่านั้น (เพศอ่านจาก `Application.category` "ลู่ (ชาย)/(หญิง)") แผนและผลทดสอบซ้ำเก็บใน `FitnessTestResult.scores._excellence.v2` (มี `revision` เป็น optimistic lock) เป้าเวลาแยกรายการ+เพศใน `SystemSetting` key `ATHLETICS_TRACK_BENCHMARKS` ผลเวลาใน `CompetitionMatch`(TIMED, `division` = รายการ) อย่าเขียนทับ `scores` ทั้งก้อน และห้ามลบ `_excellence`/`SPORT_BENCHMARKS` รุ่นเดิมที่ยังอยู่ใน DB
+- Excellence (`/staff/excellence`) = กรีฑาเท่านั้น ทั้งประเภทลู่ (วัดเวลา ยิ่งน้อยยิ่งดี) และลาน (วัดระยะเมตร ยิ่งมากยิ่งดี) เพศอ่านจาก `Application.category` "ลู่/ลาน (ชาย)/(หญิง)" แผนและผลทดสอบซ้ำเก็บใน `FitnessTestResult.scores._excellence.v2` (มี `revision` เป็น optimistic lock) เป้าแยกรายการ+เพศใน `SystemSetting` key `ATHLETICS_TRACK_BENCHMARKS` (ชื่อเดิม ใช้ทั้งลู่และลาน) ผลแข่งใน `CompetitionMatch` โดย `division` = รหัสรายการ: ลู่ = match TIMED + `timeSeconds`, ลาน = match RANKING + `score` อย่าเขียนทับ `scores` ทั้งก้อน และห้ามลบ `_excellence`/`SPORT_BENCHMARKS` รุ่นเดิมที่ยังอยู่ใน DB
 
 ## ข้อควรระวัง
 - Schema/migration: ห้ามรัน `db:push` / `prisma migrate` เอง ต้องได้รับคำสั่ง

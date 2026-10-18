@@ -1,6 +1,6 @@
-// ตรวจ input ของ API โมดูลสู่ความเป็นเลิศ (กรีฑาประเภทลู่)
+// ตรวจ input ของ API โมดูลสู่ความเป็นเลิศ (กรีฑาประเภทลู่และลาน)
 // ไม่ import ค่า runtime จากโมดูลอื่นนอกจาก ./excellence-athletics.ts แบบ type-only เพื่อให้ node รัน unit test ได้โดยตรง
-import type { FitnessRating, PlanStatus, TrackGender } from "./excellence-athletics";
+import type { AthleticsGender, FitnessRating, PlanStatus } from "./excellence-athletics";
 
 export class ExcellenceValidationError extends Error {
   status: number;
@@ -13,30 +13,29 @@ export class ExcellenceValidationError extends Error {
   }
 }
 
-// ค่าคงที่ซ้ำกับ excellence-athletics.ts โดยตั้งใจ (import runtime ข้ามไฟล์ไม่ได้ใน node test) — test ตรวจว่าตรงกัน
-export const VALID_EVENT_GENDERS: Record<string, readonly TrackGender[]> = {
-  "100m": ["ชาย", "หญิง"],
-  "200m": ["ชาย", "หญิง"],
-  "400m": ["ชาย", "หญิง"],
-  "800m": ["ชาย", "หญิง"],
-  "1500m": ["ชาย", "หญิง"],
-  "5000m": ["ชาย", "หญิง"],
-  "10000m": ["ชาย", "หญิง"],
-  "100mH": ["หญิง"],
-  "110mH": ["ชาย"],
-  "400mH": ["ชาย", "หญิง"],
-};
-export const EVENT_TIME_RANGES: Record<string, readonly [number, number]> = {
-  "100m": [9, 20],
-  "200m": [18, 40],
-  "400m": [40, 90],
-  "800m": [95, 240],
-  "1500m": [200, 480],
-  "5000m": [750, 1800],
-  "10000m": [1600, 3600],
-  "100mH": [11, 25],
-  "110mH": [12, 25],
-  "400mH": [45, 100],
+type EventRule = { kind: "TRACK" | "FIELD"; genders: readonly AthleticsGender[]; min: number; max: number };
+
+// ตารางนี้ซ้ำกับ ATHLETICS_EVENTS ใน excellence-athletics.ts โดยตั้งใจ (import runtime ข้ามไฟล์ไม่ได้ใน node test) — test ตรวจว่าตรงกัน
+const BOTH: readonly AthleticsGender[] = ["ชาย", "หญิง"];
+export const EVENT_RULES: Record<string, EventRule> = {
+  "100m": { kind: "TRACK", genders: BOTH, min: 9, max: 20 },
+  "200m": { kind: "TRACK", genders: BOTH, min: 18, max: 40 },
+  "400m": { kind: "TRACK", genders: BOTH, min: 40, max: 90 },
+  "800m": { kind: "TRACK", genders: BOTH, min: 95, max: 240 },
+  "1500m": { kind: "TRACK", genders: BOTH, min: 200, max: 480 },
+  "5000m": { kind: "TRACK", genders: BOTH, min: 750, max: 1800 },
+  "10000m": { kind: "TRACK", genders: BOTH, min: 1600, max: 3600 },
+  "100mH": { kind: "TRACK", genders: ["หญิง"], min: 11, max: 25 },
+  "110mH": { kind: "TRACK", genders: ["ชาย"], min: 12, max: 25 },
+  "400mH": { kind: "TRACK", genders: BOTH, min: 45, max: 100 },
+  longJump: { kind: "FIELD", genders: BOTH, min: 2.5, max: 9.5 },
+  tripleJump: { kind: "FIELD", genders: BOTH, min: 6, max: 19 },
+  highJump: { kind: "FIELD", genders: BOTH, min: 0.8, max: 2.6 },
+  poleVault: { kind: "FIELD", genders: BOTH, min: 1.5, max: 6.3 },
+  shotPut: { kind: "FIELD", genders: BOTH, min: 5, max: 24 },
+  discus: { kind: "FIELD", genders: BOTH, min: 15, max: 75 },
+  javelin: { kind: "FIELD", genders: BOTH, min: 20, max: 95 },
+  hammer: { kind: "FIELD", genders: BOTH, min: 20, max: 85 },
 };
 export const VALID_STATION_KEYS = ["sprint40m", "legPower", "agility", "flexibility", "grip", "aerobic", "body"] as const;
 const RATINGS: readonly FitnessRating[] = ["ดีมาก", "ดี", "ปานกลาง", "พอใช้", "ต่ำ", "ต่ำมาก"];
@@ -73,10 +72,13 @@ function date(value: unknown, field: string, label: string): string {
   return value;
 }
 
-function applicationId(value: unknown): string {
-  const id = requiredText(value, "applicationId", "ใบสมัคร", 100);
+function demoGuard(id: string): string {
   if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
   return id;
+}
+
+function applicationId(value: unknown): string {
+  return demoGuard(requiredText(value, "applicationId", "ใบสมัคร", 100));
 }
 
 function revision(value: unknown): number {
@@ -85,44 +87,53 @@ function revision(value: unknown): number {
 }
 
 export function eventKey(value: unknown, field = "event"): string {
-  if (typeof value !== "string" || !VALID_EVENT_GENDERS[value]) fail(field, "รายการแข่งขันไม่ถูกต้อง");
+  if (typeof value !== "string" || !Object.hasOwn(EVENT_RULES, value)) fail(field, "รายการแข่งขันไม่ถูกต้อง");
   return value;
 }
 
-export function gender(value: unknown, field = "gender"): TrackGender {
+export function gender(value: unknown, field = "gender"): AthleticsGender {
   if (value !== "ชาย" && value !== "หญิง") fail(field, "เพศไม่ถูกต้อง");
   return value;
 }
 
-export function assertEventForGender(event: string, athleteGender: TrackGender): void {
-  if (!VALID_EVENT_GENDERS[event]?.includes(athleteGender)) fail("event", "รายการนี้ไม่เปิดสำหรับเพศของนักกีฬา");
+export function assertEventForGender(event: string, athleteGender: AthleticsGender): void {
+  if (!EVENT_RULES[event]?.genders.includes(athleteGender)) fail("event", "รายการนี้ไม่เปิดสำหรับเพศของนักกีฬา");
 }
 
-// รับวินาทีเป็นตัวเลข หรือข้อความ "10.85" / "1:58.32"
-export function trackSeconds(value: unknown, event: string, field = "timeSeconds"): number {
-  let seconds: number | null = null;
-  if (typeof value === "number" && Number.isFinite(value)) seconds = value;
+// ผลของรายการ: ลู่รับวินาที (ตัวเลข หรือ "10.85" / "1:58.32"), ลานรับเมตร (ตัวเลข หรือ "7.85") ตรวจช่วงตามรายการ
+export function markValue(value: unknown, event: string, field = "mark"): number {
+  const rule = EVENT_RULES[event];
+  let parsed: number | null = null;
+  if (typeof value === "number" && Number.isFinite(value)) parsed = value;
   if (typeof value === "string") {
-    const match = /^(?:(\d{1,2}):)?(\d{1,4}(?:\.\d{1,2})?)$/.exec(value.trim());
-    if (match && (match[1] === undefined || Number(match[2]) < 60)) {
-      seconds = (match[1] === undefined ? 0 : Number(match[1]) * 60) + Number(match[2]);
+    const text = value.trim();
+    if (rule.kind === "TRACK") {
+      const match = /^(?:(\d{1,2}):)?(\d{1,4}(?:\.\d{1,2})?)$/.exec(text);
+      if (match && (match[1] === undefined || Number(match[2]) < 60)) {
+        parsed = (match[1] === undefined ? 0 : Number(match[1]) * 60) + Number(match[2]);
+      }
+    } else if (/^\d{1,2}(?:\.\d{1,2})?$/.test(text)) {
+      parsed = Number(text);
     }
   }
-  if (seconds === null) fail(field, "เวลาต้องเป็นตัวเลข เช่น 10.85 หรือ 1:58.32");
-  const rounded = Math.round(seconds * 100) / 100;
-  const [min, max] = EVENT_TIME_RANGES[event];
-  if (rounded < min || rounded > max) fail(field, `เวลาของรายการนี้ต้องอยู่ระหว่าง ${min}–${max} วินาที`);
+  if (parsed === null) fail(field, rule.kind === "TRACK" ? "เวลาต้องเป็นตัวเลข เช่น 10.85 หรือ 1:58.32" : "ระยะต้องเป็นเมตร เช่น 7.85");
+  const rounded = Math.round(parsed * 100) / 100;
+  if (rounded < rule.min || rounded > rule.max) {
+    fail(field, rule.kind === "TRACK"
+      ? `เวลาของรายการนี้ต้องอยู่ระหว่าง ${rule.min}–${rule.max} วินาที`
+      : `ระยะของรายการนี้ต้องอยู่ระหว่าง ${rule.min}–${rule.max} เมตร`);
+  }
   return rounded;
 }
 
-export type ResultFields = { event: string; timeSeconds: number; competedAt: string; stage: string | null };
+export type ResultFields = { event: string; mark: number; competedAt: string; stage: string | null };
 export type ResultInput = ResultFields & { applicationId: string };
 
 function resultFields(data: Record<string, unknown>): ResultFields {
   const event = eventKey(data.event);
   return {
     event,
-    timeSeconds: trackSeconds(data.timeSeconds, event),
+    mark: markValue(data.mark, event),
     competedAt: date(data.competedAt, "competedAt", "วันที่แข่ง"),
     stage: optionalText(data.stage, "stage", "รอบการแข่งขัน", 100),
   };
@@ -139,21 +150,19 @@ export function validateResultUpdateInput(raw: unknown): ResultFields {
 }
 
 export function resultId(value: unknown): string {
-  const id = requiredText(value, "resultId", "รหัสผลเวลา", 100);
-  if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
-  return id;
+  return demoGuard(requiredText(value, "resultId", "รหัสผลแข่ง", 100));
 }
 
-export type BenchmarkInput = { event: string; gender: TrackGender; targetSeconds: number | null };
+export type BenchmarkInput = { event: string; gender: AthleticsGender; target: number | null };
 
-// targetSeconds = null คือยกเลิกเป้าของรายการนั้น
+// target = null คือยกเลิกเป้าของรายการนั้น
 export function validateBenchmarkInput(raw: unknown): BenchmarkInput {
   const data = record(raw);
   const event = eventKey(data.event);
   const targetGender = gender(data.gender);
   assertEventForGender(event, targetGender);
-  const empty = data.targetSeconds === null || data.targetSeconds === undefined || data.targetSeconds === "";
-  return { event, gender: targetGender, targetSeconds: empty ? null : trackSeconds(data.targetSeconds, event, "targetSeconds") };
+  const empty = data.target === null || data.target === undefined || data.target === "";
+  return { event, gender: targetGender, target: empty ? null : markValue(data.target, event, "target") };
 }
 
 export type PlanInput = {
@@ -204,9 +213,7 @@ export function validatePlanInput(raw: unknown): PlanInput {
 }
 
 export function retestId(value: unknown): string {
-  const id = requiredText(value, "retestId", "รหัสผลทดสอบซ้ำ", 100);
-  if (id.startsWith(DEMO_ID_PREFIX)) throw new ExcellenceValidationError(400, "ข้อมูลสาธิตแก้ไขไม่ได้");
-  return id;
+  return demoGuard(requiredText(value, "retestId", "รหัสผลทดสอบซ้ำ", 100));
 }
 
 // ยกเลิก (ลบ) ผลทดสอบซ้ำ ต้องส่ง applicationId และ revision ล่าสุด
@@ -223,7 +230,7 @@ export type RetestInput = {
     testedAt: string;
     ratings: Record<string, FitnessRating>;
     event: string | null;
-    timeSeconds: number | null;
+    mark: number | null;
     notes: string | null;
   };
 };
@@ -240,11 +247,11 @@ export function validateRetestInput(raw: unknown): RetestInput {
     ratings[key] = value as FitnessRating;
   }
   const hasEvent = retest.event !== undefined && retest.event !== null && retest.event !== "";
-  const hasTime = retest.timeSeconds !== undefined && retest.timeSeconds !== null && retest.timeSeconds !== "";
-  if (hasEvent !== hasTime) fail(hasEvent ? "timeSeconds" : "event", "ต้องระบุรายการและเวลาคู่กัน");
+  const hasMark = retest.mark !== undefined && retest.mark !== null && retest.mark !== "";
+  if (hasEvent !== hasMark) fail(hasEvent ? "mark" : "event", "ต้องระบุรายการและผล (เวลา/ระยะ) คู่กัน");
   const event = hasEvent ? eventKey(retest.event) : null;
-  const timeSeconds = event ? trackSeconds(retest.timeSeconds, event) : null;
-  if (!Object.keys(ratings).length && timeSeconds === null) fail("ratings", "กรุณากรอกผลอย่างน้อย 1 สถานีหรือเวลา");
+  const mark = event ? markValue(retest.mark, event) : null;
+  if (!Object.keys(ratings).length && mark === null) fail("ratings", "กรุณากรอกผลอย่างน้อย 1 สถานีหรือผลการแข่ง");
   return {
     applicationId: applicationId(data.applicationId),
     revision: revision(data.revision),
@@ -253,7 +260,7 @@ export function validateRetestInput(raw: unknown): RetestInput {
       testedAt: date(retest.testedAt, "testedAt", "วันที่ทดสอบซ้ำ"),
       ratings,
       event,
-      timeSeconds,
+      mark,
       notes: optionalText(retest.notes, "notes", "หมายเหตุ", 1000),
     },
   };

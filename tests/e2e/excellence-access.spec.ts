@@ -1,6 +1,6 @@
 import { test, expect, type APIResponse, type BrowserContext } from "@playwright/test";
 
-// ทดสอบสิทธิ์ของโมดูลสู่ความเป็นเลิศ (/staff/excellence และ /api/staff/excellence/*)
+// ทดสอบสิทธิ์ของโมดูลสู่ความเป็นเลิศ กรีฑาลู่/ลาน (/staff/excellence และ /api/staff/excellence/*)
 // บัญชีทดสอบอ่านจาก env เท่านั้น ไม่มีรหัสผ่านในโค้ด เช่น
 //   E2E_STAFF_USERNAME / E2E_STAFF_PASSWORD
 // บทบาทที่รองรับ: ATHLETE, CLUB, TEAM_OFFICIAL, STAFF, ADMIN (ข้ามเฉพาะบทบาทที่ไม่ได้ตั้งค่า)
@@ -18,6 +18,9 @@ const ENDPOINTS: Endpoint[] = [
   { method: "GET", path: "/api/staff/excellence?demo=true", allowedStatus: 200 },
   { method: "GET", path: "/api/staff/excellence/demo-1?demo=true", allowedStatus: 200 },
   { method: "GET", path: "/api/staff/excellence/benchmarks?demo=true", allowedStatus: 200 },
+  { method: "GET", path: "/api/staff/excellence/heatmap?demo=true", allowedStatus: 200 },
+  { method: "PUT", path: "/api/staff/excellence/retests/demo-2-t1", data: {}, allowedStatus: 400 },
+  { method: "DELETE", path: "/api/staff/excellence/retests/demo-2-t1", data: {}, allowedStatus: 400 },
   // เขียน: ส่ง body ว่าง/รหัสสาธิต เพื่อให้ผ่านสิทธิ์แล้วได้ 400 (validation) และไม่มีการเขียนจริง
   { method: "PUT", path: "/api/staff/excellence/benchmarks", data: {}, allowedStatus: 400 },
   { method: "POST", path: "/api/staff/excellence/results", data: {}, allowedStatus: 400 },
@@ -27,7 +30,7 @@ const ENDPOINTS: Endpoint[] = [
   { method: "POST", path: "/api/staff/excellence/retests", data: {}, allowedStatus: 400 },
 ];
 
-const PAGES = ["/staff/excellence", "/staff/excellence?demo=true", "/staff/excellence/demo-1?demo=true", "/staff/excellence/benchmarks"];
+const PAGES = ["/staff/excellence", "/staff/excellence?demo=true", "/staff/excellence/demo-1?demo=true", "/staff/excellence/benchmarks", "/staff/excellence/heatmap?demo=true"];
 
 function credentials(role: Role): { username: string; password: string } | null {
   const username = process.env[`E2E_${role}_USERNAME`];
