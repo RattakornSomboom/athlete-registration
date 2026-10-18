@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   ATHLETICS_EVENTS,
   buildAthleteDetail,
+  buildExecutiveReport,
   buildHeatmap,
   classifyChange,
   compareRetest,
@@ -20,6 +21,7 @@ import {
   lowerIsBetter,
   markBests,
   markSwc,
+  overviewCsv,
   overviewRows,
   parseAthleticsGender,
   parseBenchmarks,
@@ -436,3 +438,83 @@ test("heatmap filters by gender, event and search", () => {
   assert.equal(buildHeatmap(athletes, { search: "กฤษดา" }).rows.length, 1);
   assert.equal(buildHeatmap(athletes, { search: "ไม่มีชื่อนี้" }).rows.length, 0);
 });
+
+// ---------- รายงานผู้บริหาร / ส่งออก ----------
+
+const TODAY = "2026-10-18";
+
+test("executive report counts people against the right denominators", () => {
+  const athletes = getDemoAthletes();
+  const report = buildExecutiveReport(athletes, DEMO_BENCHMARKS, {}, TODAY);
+  assert.equal(report.kpi.athletes, athletes.length);
+  assert.equal(report.kpi.withResult, athletes.filter(item => item.results.length > 0).length);
+  // ตัวหารของ "ถึงเป้า" = คนที่มีทั้งเป้าและผลแข่ง (ไม่รวมคนที่รายการยังไม่ตั้งเป้า)
+  assert.equal(report.kpi.targetEligible, report.kpi.withResult - 1);
+  assert.ok(report.kpi.atTarget <= report.kpi.targetEligible);
+  assert.equal(report.kpi.withPlan, athletes.filter(item => item.storage.plans.length > 0).length);
+  assert.equal(report.kpi.retested, athletes.filter(item => item.storage.retests.length > 0).length);
+  assert.ok(report.kpi.improved > 0 && report.kpi.improved <= report.kpi.retested);
+});
+
+test("executive report summarizes by event and ranks the team's weak stations", () => {
+  const report = buildExecutiveReport(getDemoAthletes(), DEMO_BENCHMARKS, {}, TODAY);
+  const byKey = Object.fromEntries(report.byEvent.map(item => [item.event, item]));
+  assert.deepEqual(Object.keys(byKey).sort(), ["100m", "200m", "400m", "longJump", "shotPut"]);
+  for (const item of report.byEvent) assert.equal(item.atTarget + item.belowTarget + item.noTarget, item.athletes);
+  assert.equal(byKey["200m"].noTarget, 1);
+  assert.ok(report.weakStations.length > 0 && report.weakStations.length <= 5);
+  const weakCounts = report.weakStations.map(item => item.weak);
+  assert.deepEqual(weakCounts, [...weakCounts].sort((a, b) => b - a));
+  assert.ok(report.weakStations.every(item => item.weak > 0 && item.weak <= item.tested));
+});
+
+test("attention flags find weak athletes without a plan, overdue plans, missing targets and results", () => {
+  const rows = getDemoAthletes().flatMap(item => overviewRows(item, DEMO_BENCHMARKS, TODAY));
+  const withFlag = flag => rows.filter(row => row.flags.includes(flag)).map(row => row.name);
+  assert.deepEqual(withFlag("WEAK_NO_PLAN"), ["นางสาวอรอุมา ปัญญาดี"]);
+  assert.deepEqual(withFlag("PLAN_OVERDUE"), ["นายอภิสิทธิ์ ทองดี"]);
+  assert.deepEqual(withFlag("NO_TARGET"), ["นายวรเมธ คำแก้ว"]);
+  assert.deepEqual(withFlag("NO_RESULT"), ["นางสาวอรอุมา ปัญญาดี"]);
+  // ไม่ส่งวันที่ = ไม่ตัดสินว่าแผนเลยกำหนด
+  const undated = getDemoAthletes().flatMap(item => overviewRows(item, DEMO_BENCHMARKS));
+  assert.equal(undated.some(row => row.flags.includes("PLAN_OVERDUE")), false);
+  const report = buildExecutiveReport(getDemoAthletes(), DEMO_BENCHMARKS, {}, TODAY);
+  assert.deepEqual(report.attention, { NO_TARGET: 1, NO_RESULT: 1, WEAK_NO_PLAN: 1, PLAN_OVERDUE: 1 });
+});
+
+test("a plan with a retest is not overdue, and the report follows the table filter", () => {
+  const athlete = getDemoAthletes().find(item => item.name.includes("อภิสิทธิ์"));
+  const retest = { id: "t", planId: athlete.storage.plans[0].id, testedAt: "2026-10-01", ratings: {}, event: null, mark: null, notes: null, recordedAt: "", recordedBy: "" };
+  const withRetest = { ...athlete, storage: { ...athlete.storage, retests: [retest] } };
+  assert.equal(overviewRows(withRetest, DEMO_BENCHMARKS, TODAY)[0].flags.includes("PLAN_OVERDUE"), false);
+  const women = buildExecutiveReport(getDemoAthletes(), DEMO_BENCHMARKS, { gender: "หญิง" }, TODAY);
+  assert.equal(women.kpi.athletes, getDemoAthletes().filter(item => item.gender === "หญิง").length);
+  const jumps = buildExecutiveReport(getDemoAthletes(), DEMO_BENCHMARKS, { event: "longJump" }, TODAY);
+  assert.equal(jumps.kpi.athletes, 1);
+  assert.deepEqual(jumps.byEvent.map(item => item.event), ["longJump"]);
+  const empty = buildExecutiveReport([], DEMO_BENCHMARKS, {}, TODAY);
+  assert.equal(empty.kpi.athletes, 0);
+  assert.deepEqual(empty.byEvent, []);
+});
+
+test("filterRows filters by status and attention flag", () => {
+  const rows = getDemoAthletes().flatMap(item => overviewRows(item, DEMO_BENCHMARKS, TODAY));
+  assert.ok(filterRows(rows, { status: "AT_TARGET" }).every(row => row.status === "AT_TARGET"));
+  assert.equal(filterRows(rows, { flag: "PLAN_OVERDUE" }).length, 1);
+  assert.equal(filterRows(rows, { status: "AT_TARGET", flag: "PLAN_OVERDUE" }).length, 0);
+});
+
+test("CSV export has a header, one line per row, Thai labels and no spreadsheet formulas", () => {
+  const rows = getDemoAthletes().flatMap(item => overviewRows(item, DEMO_BENCHMARKS, TODAY));
+  const csv = overviewCsv(rows);
+  const lines = csv.split("\r\n");
+  assert.equal(lines.length, rows.length + 1);
+  assert.ok(lines[0].includes('"ชื่อ"') && lines[0].includes('"% ของเป้า"'));
+  assert.ok(csv.includes('"ยังไม่ถึงเป้า"') && csv.includes('"ยังไม่มีแผน"'));
+  assert.ok(csv.includes('"7.18 ม."'));
+  // Gap เป็นตัวเลขล้วน (ไม่มี + หรือหน่วย) เพื่อไม่ให้ Excel ตีความเป็นสูตรและไม่ต้องมี ' นำหน้า
+  assert.ok(csv.includes('"0.02"') && csv.includes('"-0.02"') && !csv.includes("'+") && !csv.includes("'-"));
+  const unsafe = overviewCsv([{ ...rows[0], name: '=HYPERLINK("x")', faculty: "+cmd" }]);
+  assert.ok(unsafe.includes('"\'=HYPERLINK(""x"")"') && unsafe.includes('"\'+cmd"'));
+});
+

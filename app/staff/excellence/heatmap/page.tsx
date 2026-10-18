@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Page, fieldClass } from "@/components/shared/Phase4UI";
-import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, EmptyText, EventOptions, ExcellenceNav, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DEFAULT_EXCELLENCE_SPORT } from "@/lib/excellence-sports";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import { ATHLETICS_EVENTS, ATHLETICS_GENDERS, eventLabel, type Heatmap, type HeatmapCell } from "@/lib/excellence-athletics";
 
@@ -40,9 +41,10 @@ export default function ExcellenceHeatmapPage() {
   }, [query, ready]);
 
   return (
-    <Page title="แผนที่จุดอ่อนทีม · กรีฑา">
+    <Page title="แผนที่จุดอ่อนทีม">
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
+      <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
 
       <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-3">
         <label className="text-sm font-medium text-slate-700">

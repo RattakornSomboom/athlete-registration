@@ -7,6 +7,7 @@ import {
   EXCELLENCE_SPORT,
   benchmarkKey,
   buildAthleteDetail,
+  buildExecutiveReport,
   buildHeatmap,
   eventKind,
   extractStationRatings,
@@ -22,12 +23,14 @@ import {
   type Benchmarks,
   type DevelopmentPlan,
   type EventResult,
+  type ExecutiveReport,
   type Heatmap,
   type OverviewFilter,
   type OverviewRow,
   type OverviewSummary,
 } from "@/lib/excellence-athletics";
 import { DEMO_BENCHMARKS, getDemoAthletes } from "@/lib/excellence-demo";
+import { DEFAULT_EXCELLENCE_SPORT, findExcellenceSport } from "@/lib/excellence-sports";
 import { rateGroup9Value, type Group9TestKey } from "@/lib/fitness-group9-norms";
 import {
   assertEventForGender,
@@ -128,20 +131,40 @@ async function loadBenchmarks(db: Tx | typeof prisma): Promise<Benchmarks> {
 
 export type OverviewResponse = {
   isDemo: boolean;
+  sport: string;
+  generatedAt: string;
   rows: OverviewRow[];
   summary: OverviewSummary;
+  report: ExecutiveReport;
   benchmarks: Benchmarks;
 };
 
-export async function getOverview(filter: OverviewFilter, demo: boolean): Promise<OverviewResponse> {
+// กีฑาที่ไม่อยู่ในทะเบียน (lib/excellence-sports.ts) ตอบ 400 ตอนนี้ชั้นข้อมูลรองรับเฉพาะกรีฑา
+// เมื่อเพิ่มกีฬาใหม่ ให้ loader เลือกชั้นข้อมูลตาม sport ที่นี่
+export function parseSport(params: URLSearchParams): string {
+  const requested = params.get("sport") ?? DEFAULT_EXCELLENCE_SPORT;
+  if (!findExcellenceSport(requested)) throw new ApiError(400, "ไม่รองรับกีฬานี้");
+  return requested;
+}
+
+export async function getOverview(filter: OverviewFilter, demo: boolean, sport: string = DEFAULT_EXCELLENCE_SPORT): Promise<OverviewResponse> {
   const [records, benchmarks] = demo
     ? [getDemoAthletes(), DEMO_BENCHMARKS]
     : await Promise.all([
         loadApplications(prisma).then(apps => apps.map(toRecord).filter((record): record is AthleteRecord => record !== null)),
         loadBenchmarks(prisma),
       ]);
-  const rows = filterRows(records.flatMap(record => overviewRows(record, benchmarks)), filter);
-  return { isDemo: demo, rows, summary: summarizeRows(rows), benchmarks };
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = filterRows(records.flatMap(record => overviewRows(record, benchmarks, today)), filter);
+  return {
+    isDemo: demo,
+    sport,
+    generatedAt: new Date().toISOString(),
+    rows,
+    summary: summarizeRows(rows),
+    report: buildExecutiveReport(records, benchmarks, filter, today),
+    benchmarks,
+  };
 }
 
 export async function getAthleteDetail(applicationId: string, demo: boolean): Promise<AthleteDetail & { isDemo: boolean }> {

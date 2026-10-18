@@ -2,7 +2,8 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { Page } from "@/components/shared/Phase4UI";
-import { DemoBanner, ExcellenceNav, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DemoBanner, ExcellenceNav, SportSwitcher, demoQuery, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { DEFAULT_EXCELLENCE_SPORT } from "@/lib/excellence-sports";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   ATHLETICS_EVENTS,
@@ -96,9 +97,10 @@ export default function ExcellenceBenchmarksPage() {
   }, [demo, ready]);
 
   return (
-    <Page title="เป้าหมาย (Benchmark) · กรีฑา">
+    <Page title="เป้าหมาย (Benchmark)">
       <ExcellenceNav demo={demo} onDemoChange={setDemo} />
       <DemoBanner show={demo} />
+      <SportSwitcher sport={DEFAULT_EXCELLENCE_SPORT} />
       <p className="text-sm text-slate-600">
         ตั้งเป้าแยกตามรายการและเพศ ใช้คำนวณ Gap และสถานะ &quot;ถึงเป้า&quot; ในภาพรวม รายการที่ยังไม่ตั้งเป้าจะแสดงว่า &quot;ยังไม่ตั้งเป้า&quot; ไม่มีการเดาค่าแทน
         เว้นว่างแล้วกดบันทึกเพื่อยกเลิกเป้า

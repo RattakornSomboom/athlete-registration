@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { AthleticsEvent, MetricChange, StationChange, TargetStatus } from "@/lib/excellence-athletics";
+import { TARGET_STATUS_LABEL, type AthleticsEvent, type MetricChange, type StationChange, type TargetStatus } from "@/lib/excellence-athletics";
+import { EXCELLENCE_SPORTS } from "@/lib/excellence-sports";
 
 // โหมดสาธิตอ่านจาก ?demo=true ใน URL ready = อ่าน URL เสร็จแล้ว (กันการโหลดข้อมูลซ้ำสองรอบ)
 export function useDemoMode(): { demo: boolean; ready: boolean; setDemo: (value: boolean) => void } {
@@ -79,6 +80,31 @@ export function ExcellenceNav({ demo, onDemoChange }: { demo: boolean; onDemoCha
   );
 }
 
+// ตัวเลือกกีฬา อ่านจากทะเบียนกีฬา (lib/excellence-sports.ts) ไม่ส่ง onChange = แสดงกีฬาที่ใช้อยู่เฉย ๆ
+export function SportSwitcher({ sport, onChange }: { sport: string; onChange?: (sport: string) => void }) {
+  return (
+    <div role="group" aria-label="กีฬา" className="flex flex-wrap items-center gap-2">
+      <span className="text-sm font-medium text-slate-600">กีฬา</span>
+      {EXCELLENCE_SPORTS.map(item => {
+        const active = item.key === sport;
+        return onChange ? (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(item.key)}
+            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${active ? "border-blue-900 bg-blue-900 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}
+          >
+            {item.label}
+          </button>
+        ) : (
+          <span key={item.key} className={`rounded-full border px-3.5 py-1.5 text-sm font-medium ${active ? "border-blue-900 bg-blue-50 text-blue-900" : "border-slate-300 text-slate-600"}`}>{item.label}</span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DemoBanner({ show }: { show: boolean }) {
   if (!show) return null;
   return (
@@ -88,16 +114,15 @@ export function DemoBanner({ show }: { show: boolean }) {
   );
 }
 
-const TARGET_STYLES: Record<TargetStatus, { label: string; className: string }> = {
-  AT_TARGET: { label: "ถึงเป้า", className: "bg-emerald-100 text-emerald-800" },
-  BELOW_TARGET: { label: "ยังไม่ถึงเป้า", className: "bg-rose-100 text-rose-800" },
-  NO_TARGET: { label: "ยังไม่ตั้งเป้า", className: "bg-slate-100 text-slate-600" },
-  NO_RESULT: { label: "ยังไม่มีผลแข่ง", className: "bg-slate-100 text-slate-600" },
+const TARGET_STYLES: Record<TargetStatus, string> = {
+  AT_TARGET: "bg-emerald-100 text-emerald-800",
+  BELOW_TARGET: "bg-rose-100 text-rose-800",
+  NO_TARGET: "bg-slate-100 text-slate-600",
+  NO_RESULT: "bg-slate-100 text-slate-600",
 };
 
 export function TargetBadge({ status }: { status: TargetStatus }) {
-  const style = TARGET_STYLES[status];
-  return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${style.className}`}>{style.label}</span>;
+  return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${TARGET_STYLES[status]}`}>{TARGET_STATUS_LABEL[status]}</span>;
 }
 
 const CHANGE_STYLES: Record<StationChange["change"] | MetricChange, { label: string; className: string }> = {

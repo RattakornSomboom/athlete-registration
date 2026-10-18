@@ -294,6 +294,13 @@ export function percentOfTarget(event: string, mark: number | null, target: numb
 
 export type TargetStatus = "AT_TARGET" | "BELOW_TARGET" | "NO_TARGET" | "NO_RESULT";
 
+export const TARGET_STATUS_LABEL: Record<TargetStatus, string> = {
+  AT_TARGET: "ถึงเป้า",
+  BELOW_TARGET: "ยังไม่ถึงเป้า",
+  NO_TARGET: "ยังไม่ตั้งเป้า",
+  NO_RESULT: "ยังไม่มีผลแข่ง",
+};
+
 export function targetStatus(event: string, mark: number | null, target: number | null): TargetStatus {
   if (mark === null) return "NO_RESULT";
   if (target === null) return "NO_TARGET";
@@ -617,12 +624,31 @@ export type OverviewRow = {
   weakestStation: string | null;
   planStatus: PlanStatus | null;
   retestCount: number;
+  // สิ่งที่ต้องติดตาม (ใช้กรองจากการ์ด "ต้องติดตาม" และนับในรายงาน)
+  flags: AttentionFlag[];
+};
+
+// ต้องติดตาม: ยังไม่ตั้งเป้า / ยังไม่มีผลแข่ง / มีจุดอ่อนแต่ยังไม่มีแผน / แผนเลยกำหนดแต่ยังไม่ทดสอบซ้ำ
+export type AttentionFlag = "NO_TARGET" | "NO_RESULT" | "WEAK_NO_PLAN" | "PLAN_OVERDUE";
+
+export const ATTENTION_LABEL: Record<AttentionFlag, string> = {
+  NO_TARGET: "ยังไม่ตั้งเป้าหมาย",
+  NO_RESULT: "ยังไม่มีผลแข่ง",
+  WEAK_NO_PLAN: "มีจุดอ่อนแต่ยังไม่มีแผน",
+  PLAN_OVERDUE: "แผนเลยกำหนดแต่ยังไม่ทดสอบซ้ำ",
 };
 
 // 1 แถวต่อ (นักกีฬา, รายการ) ที่มีผล นักกีฬาที่ยังไม่มีผลแข่งได้ 1 แถว
-export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks): OverviewRow[] {
+// today (YYYY-MM-DD) ใช้ตัดสินแผนเลยกำหนด ไม่ส่งมา = ไม่ตัดสิน
+export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks, today = ""): OverviewRow[] {
+  const weakCount = weakStations(record.fitness?.ratings ?? {}).length;
   const weakest = weakStations(record.fitness?.ratings ?? {})[0]?.name ?? null;
   const plan = latestPlan(record.storage.plans);
+  const personFlags: AttentionFlag[] = [];
+  if (weakCount > 0 && record.storage.plans.length === 0) personFlags.push("WEAK_NO_PLAN");
+  if (today && record.storage.plans.some(item => item.status === "ACTIVE" && item.endDate < today && !record.storage.retests.some(retest => retest.planId === item.id))) {
+    personFlags.push("PLAN_OVERDUE");
+  }
   const base = {
     applicationId: record.applicationId,
     studentId: record.studentId,
@@ -635,12 +661,13 @@ export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks): Ove
   };
   const events = ATHLETICS_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key));
   if (!events.length) {
-    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestMark: null, targetMark: null, gapMark: null, percentOfTarget: null, status: "NO_RESULT" }];
+    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestMark: null, targetMark: null, gapMark: null, percentOfTarget: null, status: "NO_RESULT", flags: ["NO_RESULT", ...personFlags] }];
   }
   return events.map(event => {
     const best = personalBest(record.results, event);
     const target = targetFor(benchmarks, event, record.gender);
     return {
+      flags: [...(target === null ? ["NO_TARGET" as const] : []), ...personFlags],
       ...base,
       rowId: `${record.applicationId}|${event}`,
       event,
@@ -653,13 +680,15 @@ export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks): Ove
   });
 }
 
-export type OverviewFilter = { event?: string; gender?: AthleticsGender; search?: string };
+export type OverviewFilter = { event?: string; gender?: AthleticsGender; search?: string; status?: TargetStatus; flag?: AttentionFlag };
 
 export function filterRows(rows: OverviewRow[], filter: OverviewFilter): OverviewRow[] {
   const query = filter.search?.trim().toLowerCase() ?? "";
   return rows.filter(row =>
     (!filter.event || row.event === filter.event)
     && (!filter.gender || row.gender === filter.gender)
+    && (!filter.status || row.status === filter.status)
+    && (!filter.flag || row.flags.includes(filter.flag))
     && (!query || row.name.toLowerCase().includes(query) || row.studentId.toLowerCase().includes(query) || row.faculty.toLowerCase().includes(query)),
   );
 }
@@ -787,4 +816,103 @@ export function buildHeatmap(records: AthleteRecord[], filter: OverviewFilter): 
     };
   });
   return { stations, rows };
+}
+
+// ---------- รายงานผู้บริหาร ----------
+
+export type ExecutiveReport = {
+  kpi: {
+    athletes: number;
+    withResult: number;
+    // คนที่มีทั้งเป้าและผลแข่ง (ตัวหารของ "ถึงเป้า")
+    targetEligible: number;
+    atTarget: number;
+    withPlan: number;
+    retested: number;
+    // คนที่ทดสอบซ้ำแล้วมีสถานีตามแผนหรือผลแข่งดีขึ้นอย่างน้อย 1 อย่าง
+    improved: number;
+  };
+  byEvent: { event: string; label: string; kind: EventKind; athletes: number; atTarget: number; belowTarget: number; noTarget: number }[];
+  weakStations: { key: string; name: string; weak: number; tested: number }[];
+  // จำนวนคน (ไม่ใช่จำนวนแถว) ต่อสิ่งที่ต้องติดตาม ยกเว้น NO_TARGET นับเป็นจำนวนแถว (นักกีฬา × รายการ) ที่ยังไม่ตั้งเป้า
+  attention: Record<AttentionFlag, number>;
+};
+
+// สรุปตามตัวกรองเดียวกับตาราง (รายการ เพศ ค้นหา) นับเป็นจำนวนคนเสมอ ยกเว้นที่ระบุ
+export function buildExecutiveReport(records: AthleteRecord[], benchmarks: Benchmarks, filter: OverviewFilter, today: string): ExecutiveReport {
+  const rows = filterRows(records.flatMap(record => overviewRows(record, benchmarks, today)), { event: filter.event, gender: filter.gender, search: filter.search });
+  const ids = new Set(rows.map(row => row.applicationId));
+  const scoped = records.filter(record => ids.has(record.applicationId));
+  const people = (predicate: (row: OverviewRow) => boolean) => new Set(rows.filter(predicate).map(row => row.applicationId)).size;
+  const improved = scoped.filter(record =>
+    buildAthleteDetail(record, benchmarks).retests.some(retest =>
+      retest.comparison.planItems.some(item => item.change === "IMPROVED") || retest.comparison.mark?.change === "IMPROVED"),
+  ).length;
+  const byEvent = ATHLETICS_EVENTS.flatMap(event => {
+    const eventRows = rows.filter(row => row.event === event.key);
+    if (!eventRows.length) return [];
+    return [{
+      event: event.key,
+      label: event.label,
+      kind: event.kind,
+      athletes: eventRows.length,
+      atTarget: eventRows.filter(row => row.status === "AT_TARGET").length,
+      belowTarget: eventRows.filter(row => row.status === "BELOW_TARGET").length,
+      noTarget: eventRows.filter(row => row.status === "NO_TARGET").length,
+    }];
+  });
+  return {
+    kpi: {
+      athletes: ids.size,
+      withResult: people(row => row.event !== null),
+      targetEligible: people(row => row.status === "AT_TARGET" || row.status === "BELOW_TARGET"),
+      atTarget: people(row => row.status === "AT_TARGET"),
+      withPlan: scoped.filter(record => record.storage.plans.length > 0).length,
+      retested: scoped.filter(record => record.storage.retests.length > 0).length,
+      improved,
+    },
+    byEvent,
+    weakStations: buildHeatmap(scoped, {}).stations
+      .filter(station => station.weak > 0)
+      .sort((a, b) => b.weak - a.weak || b.tested - a.tested)
+      .slice(0, 5)
+      .map(({ key, name, weak, tested }) => ({ key, name, weak, tested })),
+    attention: {
+      NO_TARGET: rows.filter(row => row.flags.includes("NO_TARGET")).length,
+      NO_RESULT: people(row => row.flags.includes("NO_RESULT")),
+      WEAK_NO_PLAN: people(row => row.flags.includes("WEAK_NO_PLAN")),
+      PLAN_OVERDUE: people(row => row.flags.includes("PLAN_OVERDUE")),
+    },
+  };
+}
+
+// ---------- ส่งออก CSV ----------
+
+function csvCell(value: string | number | null): string {
+  const raw = value === null ? "" : String(value);
+  // กันสูตรใน Excel (ค่าที่ขึ้นต้นด้วย = + - @ จะถูกตีความเป็นสูตร) ยกเว้นตัวเลขล้วน เช่น -0.02
+  const safe = /^\s*[=+@-]/.test(raw) && !/^-?\d+(\.\d+)?$/.test(raw) ? `'${raw}` : raw;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
+// CSV ของรายชื่อที่กรองไว้ (ผู้เรียกเติม BOM เองเมื่อดาวน์โหลดเพื่อให้ Excel อ่านภาษาไทยได้)
+export function overviewCsv(rows: OverviewRow[]): string {
+  const header = ["ชื่อ", "รหัสนิสิต", "เพศ", "คณะ", "รายการ", "ผลดีที่สุด", "เป้า", "Gap (ลู่ = วินาที, ลาน = เมตร; ค่าบวก = ตามหลังเป้า)", "% ของเป้า", "สถานะ", "จุดอ่อนหลัก", "แผนพัฒนา", "ทดสอบซ้ำ (ครั้ง)", "ต้องติดตาม"];
+  const lines = rows.map(row => [
+    row.name,
+    row.studentId,
+    row.gender,
+    row.faculty,
+    row.event ? eventLabel(row.event) : "",
+    row.event ? formatMark(row.event, row.bestMark) : "",
+    row.event ? formatMark(row.event, row.targetMark) : "",
+    row.gapMark,
+    row.percentOfTarget === null ? "" : row.percentOfTarget.toFixed(1),
+    TARGET_STATUS_LABEL[row.status],
+    row.weakestStation ?? "",
+    row.planStatus ? PLAN_STATUS_LABEL[row.planStatus] : "ยังไม่มีแผน",
+    row.retestCount,
+    row.flags.map(flag => ATTENTION_LABEL[flag]).join(" / "),
+  ].map(csvCell).join(","));
+  return [header.map(csvCell).join(","), ...lines].join("\r\n");
 }
