@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Page } from "@/components/shared/Phase4UI";
 import { ChangeLabel, DemoBanner, EmptyText, ExcellenceNav, Section, demoQuery, formatThaiDate, useDemoMode } from "@/components/shared/ExcellenceUI";
+import { ProgressionChart } from "@/components/shared/ExcellenceChart";
 import { PlanForm, ResultForm, RetestForm, type EditableResult, type EditableRetest } from "@/components/shared/ExcellenceForms";
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
@@ -14,6 +15,7 @@ import {
   formatSignedSeconds,
   formatTrackTime,
   latestPlan,
+  progressionSeries,
   type AthleteDetail,
   type DevelopmentPlan,
   type TimelineEntry,
@@ -84,6 +86,7 @@ export default function ExcellenceAthletePage() {
   const readOnly = !detail || detail.isDemo;
   const weak = detail?.stations.filter(station => station.weak).sort((a, b) => a.score - b.score) ?? [];
   const hasFitness = Boolean(detail?.athlete.fitness);
+  const progression = detail ? progressionSeries(detail.results) : [];
 
   return (
     <Page title={detail ? detail.athlete.name : "รายละเอียดนักกีฬา"}>
@@ -105,7 +108,7 @@ export default function ExcellenceAthletePage() {
 
           <Section
             title="ผลการแข่งขัน"
-            description="PB = เวลาดีที่สุดของรายการ · SB = เวลาดีที่สุดในปีนั้น · Gap เทียบเป้าเวลาของรายการและเพศ"
+            description="PB = เวลาดีที่สุดของรายการ · SB = เวลาดีที่สุดในปีนั้น · Gap เทียบเป้าเวลาของรายการและเพศ · % ของเป้า = เป้า ÷ เวลา × 100"
             action={<AddButton label="+ บันทึกเวลา" hidden={readOnly || form?.kind === "result"} onClick={() => setForm({ kind: "result" })} />}
           >
             {form?.kind === "result" && <ResultForm key={form.result?.id ?? "new"} applicationId={applicationId} events={detail.events} result={form.result} onSaved={saved} onCancel={() => setForm(null)} />}
@@ -120,6 +123,7 @@ export default function ExcellenceAthletePage() {
                       <th className="py-2 pr-4 font-medium"></th>
                       <th className="py-2 pr-4 text-right font-medium">เป้า</th>
                       <th className="py-2 pr-4 text-right font-medium">Gap</th>
+                      <th className="py-2 pr-4 text-right font-medium">% ของเป้า</th>
                       <th className="py-2 font-medium">การแข่งขัน</th>
                       {!readOnly && <th className="py-2 pl-4 font-medium"><span className="sr-only">จัดการ</span></th>}
                     </tr>
@@ -140,6 +144,7 @@ export default function ExcellenceAthletePage() {
                         <td className={`py-2 pr-4 text-right font-mono tabular-nums ${result.gapSeconds === null ? "text-slate-400" : result.gapSeconds > 0 ? "text-rose-700" : "text-emerald-700"}`}>
                           {formatSignedSeconds(result.gapSeconds)}
                         </td>
+                        <td className="py-2 pr-4 text-right font-mono tabular-nums text-slate-600">{result.percentOfTarget === null ? "—" : `${result.percentOfTarget.toFixed(1)}%`}</td>
                         <td className="py-2 text-slate-600">{result.competitionName}{result.stage ? ` · ${result.stage}` : ""}</td>
                         {!readOnly && (
                           <td className="whitespace-nowrap py-2 pl-4 text-sm">
@@ -154,6 +159,14 @@ export default function ExcellenceAthletePage() {
               </div>
             ) : <EmptyText>ยังไม่มีผลการแข่งขันที่บันทึกไว้</EmptyText>}
           </Section>
+
+          {progression.length > 0 && (
+            <Section title="พัฒนาการเวลา" description="แสดงเฉพาะรายการที่มีผลแข่งตั้งแต่ 2 ครั้งขึ้นไป">
+              <div className={`grid gap-6 ${progression.length > 1 ? "lg:grid-cols-2" : ""}`}>
+                {progression.map(series => <ProgressionChart key={series.event} series={series} />)}
+              </div>
+            </Section>
+          )}
 
           <Section
             title="สมรรถภาพและจุดอ่อน"

@@ -1,3 +1,9 @@
+## Excellence progression chart and percent-of-target — 2026-10-18
+- Athlete page: new "พัฒนาการเวลา" section with an SVG line chart per event that has 2+ results (`components/shared/ExcellenceChart.tsx`, no new dependency). Faster is up, dashed green line = staff target, violet point = PB. Has an `aria-label` summary and `<title>` tooltips per point.
+- Cross-event score: "% ของเป้า" = target ÷ time × 100 (100 = at target, above = faster), shown in the overview table and the athlete results table. `null` when no target or result. It is a ratio to the staff-entered target, not an official World Athletics score; the official points tables were not available, so none were invented.
+- Pure helpers in `lib/excellence-athletics.ts`: `percentOfTarget`, `progressionSeries`; `OverviewRow.percentOfTarget` and `AthleteDetail.results[].percentOfTarget` added. No API or storage change.
+- Tests: +3 cases in `excellence-athletics.test.mjs`. Checked in the browser on demo data (chart readable at full width, percentages match the times). Not done from the same list: team × station heatmap and field events (distance), both skipped by choice.
+
 ## Excellence retest edit/cancel — 2026-10-18
 - New `PUT` / `DELETE /api/staff/excellence/retests/[retestId]` (body carries `applicationId` and the latest `revision`; 409 on mismatch, 404 for unknown retest/plan). Edit keeps `id`/`recordedAt`/`recordedBy` and adds `updatedAt`/`updatedBy`; delete removes the retest. The athlete page shows "แก้ไข" / "ยกเลิกผล" on real data and the retest form prefills in edit mode. Comparisons are computed on read, so edits and deletes update them automatically.
 - Live-verified on the `.env` database with temporary `zz-excellence` rows (add, edit, stale-revision 409, bad plan 404, missing id 404, demo id 400, delete, repeat delete 404), then removed; the benchmark setting is unchanged. Edit form prefill checked in the browser.

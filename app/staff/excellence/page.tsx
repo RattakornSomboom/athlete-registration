@@ -113,7 +113,7 @@ export default function ExcellenceOverviewPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left text-sm">
+            <table className="w-full min-w-[940px] text-left text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="px-4 py-3 font-medium">นักกีฬา</th>
@@ -121,6 +121,7 @@ export default function ExcellenceOverviewPage() {
                   <th className="px-4 py-3 text-right font-medium">เวลาดีที่สุด</th>
                   <th className="px-4 py-3 text-right font-medium">เป้า</th>
                   <th className="px-4 py-3 text-right font-medium">Gap</th>
+                  <th className="px-4 py-3 text-right font-medium">% ของเป้า</th>
                   <th className="px-4 py-3 font-medium">สถานะ</th>
                   <th className="px-4 py-3 font-medium">จุดอ่อนหลัก</th>
                   <th className="px-4 py-3 font-medium">แผนพัฒนา</th>
@@ -141,6 +142,9 @@ export default function ExcellenceOverviewPage() {
                     <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.gapSeconds === null ? "text-slate-400" : row.gapSeconds > 0 ? "text-rose-700" : "text-emerald-700"}`}>
                       {formatSignedSeconds(row.gapSeconds)}
                     </td>
+                    <td className={`px-4 py-3 text-right font-mono tabular-nums ${row.percentOfTarget === null ? "text-slate-400" : row.percentOfTarget >= 100 ? "text-emerald-700" : "text-slate-700"}`}>
+                      {row.percentOfTarget === null ? "—" : `${row.percentOfTarget.toFixed(1)}%`}
+                    </td>
                     <td className="px-4 py-3"><TargetBadge status={row.status} /></td>
                     <td className="px-4 py-3 text-slate-700">{row.weakestStation ?? <span className="text-slate-400">ไม่พบจุดอ่อน</span>}</td>
                     <td className="px-4 py-3 text-slate-700">
@@ -155,7 +159,7 @@ export default function ExcellenceOverviewPage() {
         )}
       </section>
       <p className="text-xs text-slate-500">
-        แสดง 1 แถวต่อนักกีฬาต่อรายการที่มีผลแข่ง · Gap = เวลาดีที่สุด − เป้า (ค่าบวกคือช้ากว่าเป้า) · จุดอ่อน = สถานีสมรรถภาพระดับพอใช้ลงไป
+        แสดง 1 แถวต่อนักกีฬาต่อรายการที่มีผลแข่ง · Gap = เวลาดีที่สุด − เป้า (ค่าบวกคือช้ากว่าเป้า) · % ของเป้า = เป้า ÷ เวลา × 100 (100 = เท่าเป้า, มากกว่า = เร็วกว่า) ใช้เทียบข้ามรายการ · จุดอ่อน = สถานีสมรรถภาพระดับพอใช้ลงไป
       </p>
     </Page>
   );

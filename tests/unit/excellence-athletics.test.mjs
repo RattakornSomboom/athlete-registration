@@ -15,6 +15,8 @@ import {
   parseBenchmarks,
   parseTrackGender,
   parseTrackTime,
+  percentOfTarget,
+  progressionSeries,
   readExcellenceStorage,
   summarizeRows,
   targetStatus,
@@ -220,4 +222,36 @@ test("demo covers improved and within-SWC retest times", () => {
     .map(retest => retest.comparison.time?.change);
   assert.ok(changes.includes("IMPROVED"));
   assert.ok(changes.includes("WITHIN_SWC"));
+});
+
+test("percent of target is target over time, comparable across events", () => {
+  assert.equal(percentOfTarget(11, 11), 100);
+  assert.equal(percentOfTarget(10.98, 11), 100.2);
+  assert.equal(percentOfTarget(50.9, 50.5), 99.2);
+  assert.equal(percentOfTarget(11.48, null), null);
+  assert.equal(percentOfTarget(null, 11), null);
+  assert.equal(percentOfTarget(0, 11), null);
+});
+
+test("overview and detail carry percent of target and null when no target is set", () => {
+  const athletes = getDemoAthletes();
+  const rows = athletes.flatMap(athlete => overviewRows(athlete, DEMO_BENCHMARKS));
+  const kritsada = rows.find(row => row.name.includes("กฤษดา"));
+  assert.equal(kritsada.percentOfTarget, percentOfTarget(kritsada.bestSeconds, kritsada.targetSeconds));
+  assert.ok(kritsada.percentOfTarget > 100);
+  assert.ok(rows.filter(row => row.status === "NO_TARGET" || row.status === "NO_RESULT").every(row => row.percentOfTarget === null));
+  const detail = buildAthleteDetail(athletes[0], DEMO_BENCHMARKS);
+  assert.ok(detail.results.every(result => result.percentOfTarget === percentOfTarget(result.timeSeconds, result.targetSeconds)));
+});
+
+test("progression series keeps only events with two or more results, oldest first", () => {
+  const detail = buildAthleteDetail(getDemoAthletes()[0], DEMO_BENCHMARKS);
+  const series = progressionSeries(detail.results);
+  assert.equal(series.length, 1);
+  assert.equal(series[0].event, "100m");
+  assert.equal(series[0].targetSeconds, 11);
+  assert.deepEqual(series[0].points.map(point => point.date), ["2025-11-20", "2026-03-14", "2026-08-22"]);
+  assert.deepEqual(series[0].points.map(point => point.isPB), [false, false, true]);
+  const single = buildAthleteDetail(getDemoAthletes()[3], DEMO_BENCHMARKS);
+  assert.deepEqual(progressionSeries(single.results), []);
 });

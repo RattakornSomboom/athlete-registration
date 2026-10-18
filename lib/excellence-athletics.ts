@@ -213,6 +213,13 @@ export function gapToTarget(timeSeconds: number | null, targetSeconds: number | 
   return round(timeSeconds - targetSeconds, 2);
 }
 
+// ร้อยละของเป้า = เป้า ÷ เวลา × 100: 100 = เท่าเป้า, มากกว่า 100 = เร็วกว่าเป้า
+// ใช้เทียบข้ามรายการได้เพราะอยู่บนสเกลเดียวกัน แต่เป็นสัดส่วนต่อเป้าที่เจ้าหน้าที่ตั้ง ไม่ใช่คะแนนทางการของสหพันธ์
+export function percentOfTarget(timeSeconds: number | null, targetSeconds: number | null): number | null {
+  if (timeSeconds === null || targetSeconds === null || timeSeconds <= 0) return null;
+  return round((targetSeconds / timeSeconds) * 100, 1);
+}
+
 export type TargetStatus = "AT_TARGET" | "BELOW_TARGET" | "NO_TARGET" | "NO_RESULT";
 
 export function targetStatus(timeSeconds: number | null, targetSeconds: number | null): TargetStatus {
@@ -233,6 +240,25 @@ export type TrackResult = {
 };
 
 export type MarkedResult = TrackResult & { isPB: boolean; isSB: boolean };
+
+export type ProgressionPoint = { id: string; date: string; seconds: number; isPB: boolean };
+export type ProgressionSeries = { event: string; targetSeconds: number | null; points: ProgressionPoint[] };
+
+// กราฟพัฒนาการ: 1 ชุดต่อรายการ เรียงเก่า → ใหม่ แสดงเฉพาะรายการที่มีผลตั้งแต่ 2 ครั้งขึ้นไป
+export function progressionSeries(results: (MarkedResult & { targetSeconds: number | null })[]): ProgressionSeries[] {
+  return ATHLETICS_TRACK_EVENTS
+    .map(event => {
+      const rows = results
+        .filter(result => result.event === event.key)
+        .sort((a, b) => a.competedAt.localeCompare(b.competedAt) || a.id.localeCompare(b.id));
+      return {
+        event: event.key,
+        targetSeconds: rows[0]?.targetSeconds ?? null,
+        points: rows.map(row => ({ id: row.id, date: row.competedAt, seconds: row.timeSeconds, isPB: row.isPB })),
+      };
+    })
+    .filter(series => series.points.length >= 2);
+}
 
 function byDateThenId(a: TrackResult, b: TrackResult): number {
   return a.competedAt.localeCompare(b.competedAt) || a.id.localeCompare(b.id);
@@ -486,6 +512,7 @@ export type OverviewRow = {
   bestSeconds: number | null;
   targetSeconds: number | null;
   gapSeconds: number | null;
+  percentOfTarget: number | null;
   status: TargetStatus;
   weakestStation: string | null;
   planStatus: PlanStatus | null;
@@ -508,7 +535,7 @@ export function overviewRows(record: AthleteRecord, benchmarks: TrackBenchmarks)
   };
   const events = ATHLETICS_TRACK_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key));
   if (!events.length) {
-    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestSeconds: null, targetSeconds: null, gapSeconds: null, status: "NO_RESULT" }];
+    return [{ ...base, rowId: `${record.applicationId}|-`, event: null, bestSeconds: null, targetSeconds: null, gapSeconds: null, percentOfTarget: null, status: "NO_RESULT" }];
   }
   return events.map(event => {
     const best = personalBest(record.results, event);
@@ -520,6 +547,7 @@ export function overviewRows(record: AthleteRecord, benchmarks: TrackBenchmarks)
       bestSeconds: best,
       targetSeconds: target,
       gapSeconds: gapToTarget(best, target),
+      percentOfTarget: percentOfTarget(best, target),
       status: targetStatus(best, target),
     };
   });
@@ -564,7 +592,7 @@ export function buildTimeline(record: AthleteRecord): TimelineEntry[] {
 export type AthleteDetail = {
   athlete: Omit<AthleteRecord, "results" | "storage">;
   revision: number;
-  results: (MarkedResult & { targetSeconds: number | null; gapSeconds: number | null })[];
+  results: (MarkedResult & { targetSeconds: number | null; gapSeconds: number | null; percentOfTarget: number | null })[];
   stations: StationResult[];
   plans: DevelopmentPlan[];
   retests: (Retest & { comparison: RetestComparison })[];
@@ -588,7 +616,7 @@ export function buildAthleteDetail(record: AthleteRecord, benchmarks: TrackBench
     revision: storage.revision,
     results: markBests(results).map(result => {
       const target = targetFor(benchmarks, result.event, record.gender);
-      return { ...result, targetSeconds: target, gapSeconds: gapToTarget(result.timeSeconds, target) };
+      return { ...result, targetSeconds: target, gapSeconds: gapToTarget(result.timeSeconds, target), percentOfTarget: percentOfTarget(result.timeSeconds, target) };
     }),
     stations: stationResults(baseline),
     plans: [...storage.plans].sort((a, b) => b.startDate.localeCompare(a.startDate)),
