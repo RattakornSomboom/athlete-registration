@@ -7,7 +7,7 @@ const COMPETITION = "cmupxdfn50000vsc7gbbw9fz2";
 const CLUB_ID = "zzdemo-club-athletics";
 const ROSTER = "zzdemo-roster-athletics";
 // กรีฑาเป็นกีฬาประเภทบุคคล roster จึงต้องใช้ squadType "selected" (lib/sport-type.ts)
-const SQUADS = { "69900001": "selected", "69900002": "selected", "69900003": "selected" };
+const SQUADS = Object.fromEntries(["69900001", "69900002", "69900003", "69900004", "69900005", "69900006"].map(id => [id, "selected"]));
 const db = new Client({ connectionString: env.DIRECT_URL || env.DATABASE_URL });
 await db.connect();
 if (process.argv[2] === "seed") {

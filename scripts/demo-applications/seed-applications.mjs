@@ -12,7 +12,7 @@ const env = Object.fromEntries(readFileSync("D:/BBN/FF/.env", "utf8").split(/\r?
 const BUCKET = env.PRIVATE_DOCUMENT_BUCKET;
 const COMPETITION = "cmupxdfn50000vsc7gbbw9fz2";
 const CLUB_ID = "zzdemo-club-athletics";
-const IDS = ["69900001", "69900002", "69900003"];
+const IDS = ["69900001", "69900002", "69900003", "69900004", "69900005", "69900006"];
 const USER = id => `zzdemo-user-${id}`;
 
 const db = new Client({ connectionString: env.DIRECT_URL || env.DATABASE_URL });
@@ -57,6 +57,28 @@ const PEOPLE = [
     nationalId: "1509900100033", phone: "0810000003",
     history: [["SUBMITTED", "ส่งใบสมัคร", "นักกีฬา"], ["CLUB_APPROVED", "ชมรมอนุมัติ รอกองกิจการนิสิตพิจารณา", "ชมรมกรีฑา"]],
   },
+  // สามรายต่อไปนี้อนุมัติแล้ว จึงเข้าเงื่อนไขของหน้าสู่ความเป็นเลิศ (STAFF_APPROVED / FINAL_SELECTED)
+  {
+    id: "69900004", title: "นางสาว", first: "ศิริพร", last: "ทองใบ",
+    faculty: "คณะวิทยาศาสตร์", major: "คณิตศาสตร์", year: "3",
+    gpax: "3.05", birth: "2004-07-09", category: "ลู่ (หญิง)", status: "STAFF_APPROVED",
+    nationalId: "1509900100044", phone: "0810000004",
+    history: [["SUBMITTED", "ส่งใบสมัคร", "นักกีฬา"], ["CLUB_APPROVED", "ชมรมอนุมัติ", "ชมรมกรีฑา"], ["STAFF_APPROVED", "กองกิจการนิสิตอนุมัติ", "เจ้าหน้าที่"]],
+  },
+  {
+    id: "69900005", title: "นาย", first: "ชนาธิป", last: "ก้องเกียรติ",
+    faculty: "คณะสถาปัตยกรรมศาสตร์และศิลปกรรมศาสตร์", major: "สถาปัตยกรรม", year: "4",
+    gpax: "2.90", birth: "2003-08-25", category: "ลาน (ชาย)", status: "STAFF_APPROVED",
+    nationalId: "1509900100055", phone: "0810000005",
+    history: [["SUBMITTED", "ส่งใบสมัคร", "นักกีฬา"], ["CLUB_APPROVED", "ชมรมอนุมัติ", "ชมรมกรีฑา"], ["STAFF_APPROVED", "กองกิจการนิสิตอนุมัติ", "เจ้าหน้าที่"]],
+  },
+  {
+    id: "69900006", title: "นางสาว", first: "กานต์ธิดา", last: "พรมมา",
+    faculty: "คณะพยาบาลศาสตร์", major: "พยาบาลศาสตร์", year: "2",
+    gpax: "3.40", birth: "2005-01-16", category: "ลู่ (หญิง)", status: "STAFF_APPROVED",
+    nationalId: "1509900100066", phone: "0810000006",
+    history: [["SUBMITTED", "ส่งใบสมัคร", "นักกีฬา"], ["CLUB_APPROVED", "ชมรมอนุมัติ", "ชมรมกรีฑา"], ["STAFF_APPROVED", "กองกิจการนิสิตอนุมัติ", "เจ้าหน้าที่"]],
+  },
 ];
 
 async function cleanup() {
@@ -67,6 +89,14 @@ async function cleanup() {
     if (error) console.warn("storage remove:", error.message);
   }
   await db.query('DELETE FROM "PrivateDocument" WHERE "ownerId" = ANY($1)', [owners]);
+  // แถวที่อ้างใบสมัครแบบ Restrict ต้องไปก่อน (roster, ผลแข่ง, ผลสมรรถภาพ)
+  const apps = IDS.map(id => `zzdemo-app-${id}`);
+  await db.query('DELETE FROM "ClubRoster" WHERE id = $1', ["zzdemo-roster-athletics"]);
+  await db.query('DELETE FROM "CompetitionMatchEntry" WHERE "applicationId" = ANY($1)', [apps]);
+  await db.query(
+    'DELETE FROM "CompetitionMatch" m WHERE m.sport = $1 AND m."competitionId" = $2'
+    + ' AND NOT EXISTS (SELECT 1 FROM "CompetitionMatchEntry" e WHERE e."matchId" = m.id)', ["กรีฑา", COMPETITION]);
+  await db.query('DELETE FROM "FitnessTestResult" WHERE "applicationId" = ANY($1)', [apps]);
   // ลบ User แล้ว Application / AthleteProfile / StatusHistory ตามไปด้วย (onDelete: Cascade)
   await db.query('DELETE FROM "User" WHERE id = ANY($1)', [owners]);
   await db.query('DELETE FROM "Club" WHERE id = $1', [CLUB_ID]);
