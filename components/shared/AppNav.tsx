@@ -24,6 +24,7 @@ const STAFF_LINKS: NavLink[] = [
   ["/staff/requests", "คำร้องพิเศษ"],
   ["/staff/activities", "กิจกรรมชมรม"],
   ["/staff/analytics", "สถิติ"],
+  ["/staff/excellence", "สู่ความเป็นเลิศ"],
 ];
 
 const STAFF_SETTINGS: NavLink = ["/staff/settings", "ตั้งค่าระบบ"];
