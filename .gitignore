@@ -60,3 +60,7 @@ debug.log
 
 # per-machine Claude Code settings
 /.claude/settings.local.json
+
+# installed agent skills (reinstallable, not project code)
+/.agents/
+skills-lock.json
