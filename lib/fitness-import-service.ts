@@ -1,6 +1,7 @@
 import type { JWTPayload } from "@/lib/auth";
 import { atomic, ensure, json } from "@/lib/phase4-server";
 import { cleanThaiName } from "@/lib/fitness-import-parser";
+import { preserveExcellenceMetadata } from "@/lib/fitness-score-metadata";
 
 export type ImportFitnessRecordInput = {
   name: string;
@@ -114,22 +115,25 @@ export async function importFitnessRecords(session: JWTPayload, options: ImportF
       const fitnessStatus = passPct >= 60 ? "PASSED" : "FAILED";
 
       try {
+        const existingResult = await tx.fitnessTestResult.findUnique({ where: { applicationId: matchedApp.id } });
+        const baseScores = {
+          version: "summary-v1",
+          protocolId: record.sport,
+          items: record.stations,
+          passedCount,
+          requiredCount: totalTests,
+          totalTests,
+          passPercentage: passPct,
+          round: record.round || "รอบที่ 1",
+        };
+        const finalScores = json(preserveExcellenceMetadata(existingResult?.scores, baseScores));
         const upserted = await tx.fitnessTestResult.upsert({
           where: { applicationId: matchedApp.id },
           create: {
             applicationId: matchedApp.id,
             status: fitnessStatus,
             totalScore: passPct,
-            scores: json({
-              version: "summary-v1",
-              protocolId: record.sport,
-              items: record.stations,
-              passedCount,
-              requiredCount: totalTests,
-              totalTests,
-              passPercentage: passPct,
-              round: record.round || "รอบที่ 1",
-            }),
+            scores: finalScores,
             notes: record.note || null,
             testedAt: new Date(),
             recordedBy: session.id,
@@ -137,16 +141,7 @@ export async function importFitnessRecords(session: JWTPayload, options: ImportF
           update: {
             status: fitnessStatus,
             totalScore: passPct,
-            scores: json({
-              version: "summary-v1",
-              protocolId: record.sport,
-              items: record.stations,
-              passedCount,
-              requiredCount: totalTests,
-              totalTests,
-              passPercentage: passPct,
-              round: record.round || "รอบที่ 1",
-            }),
+            scores: finalScores,
             notes: record.note || null,
             testedAt: new Date(),
             recordedBy: session.id,

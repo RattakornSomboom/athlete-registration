@@ -129,6 +129,21 @@ test("fitness re-import keeps Excellence v2 data", () => {
   assert.deepEqual(next, { items: { agility: "ดีมาก" }, _excellence: { v2: { revision: 4, plans: [], retests: [] } } });
 });
 
+test("keeping Excellence data handles first imports, legacy rows and odd score shapes", () => {
+  const v2 = { v2: { revision: 2, plans: [], retests: [] } };
+  const fresh = { items: { sitUps: "ผ่าน" } };
+  // ยังไม่มีผลเดิม / ผลเดิมไม่มี _excellence / ผลเดิมเป็นรูปร่างผิด = ใช้ค่าใหม่ตามเดิม
+  assert.deepEqual(preserveExcellenceMetadata(null, fresh), fresh);
+  assert.deepEqual(preserveExcellenceMetadata({ items: {} }, fresh), fresh);
+  assert.deepEqual(preserveExcellenceMetadata([1], fresh), fresh);
+  assert.deepEqual(preserveExcellenceMetadata({ _excellence: "x" }, fresh), fresh);
+  // ผู้เรียกส่ง _excellence มาเองไม่ได้ ค่าใหม่ถูกตัดทิ้งแม้ไม่มีของเดิม
+  assert.deepEqual(preserveExcellenceMetadata(null, { ...fresh, _excellence: { v2: { revision: 9 } } }), fresh);
+  // คะแนนใหม่ที่ไม่ใช่ object ถูกห่อใน items และยังคงข้อมูลเดิมไว้
+  assert.deepEqual(preserveExcellenceMetadata({ _excellence: v2 }, "ผ่าน"), { items: "ผ่าน", _excellence: v2 });
+  assert.deepEqual(preserveExcellenceMetadata({ _excellence: v2 }, null), { items: {}, _excellence: v2 });
+});
+
 test("result update takes the same fields without an application id and refuses demo ids", () => {
   const parsed = validateResultUpdateInput({ event: "200m", mark: "23.45", competedAt: "2026-09-01", stage: "" });
   assert.deepEqual(parsed, { event: "200m", mark: 23.45, competedAt: "2026-09-01", stage: null });

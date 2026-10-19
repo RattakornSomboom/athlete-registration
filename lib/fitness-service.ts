@@ -8,6 +8,7 @@ import {
   type ValidatedFitnessInput,
 } from "@/lib/validation";
 import type { Prisma, ApplicationStatus } from "@prisma/client";
+import { preserveExcellenceMetadata } from "@/lib/fitness-score-metadata";
 
 function isTableMissingError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
@@ -357,13 +358,17 @@ export async function recordFitnessResults(session: JWTPayload, data: Record<str
 
       let upserted;
       try {
+        const existingResult = await tx.fitnessTestResult.findUnique({ where: { applicationId: item.applicationId } });
+        const nextScores = item.scores
+          ? json(preserveExcellenceMetadata(existingResult?.scores, item.scores))
+          : undefined;
         upserted = await tx.fitnessTestResult.upsert({
           where: { applicationId: item.applicationId },
           create: {
             applicationId: item.applicationId,
             status: item.status,
             totalScore: item.totalScore,
-            scores: item.scores ? json(item.scores) : undefined,
+            scores: nextScores,
             notes: item.notes,
             testedAt,
             recordedBy,
@@ -371,7 +376,7 @@ export async function recordFitnessResults(session: JWTPayload, data: Record<str
           update: {
             status: item.status,
             totalScore: item.totalScore,
-            scores: item.scores ? json(item.scores) : undefined,
+            scores: nextScores,
             notes: item.notes,
             testedAt,
             recordedBy,

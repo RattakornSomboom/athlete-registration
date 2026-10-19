@@ -1,5 +1,6 @@
 import { api, body, ensure, json, STAFF } from "@/lib/phase4-server";
 import { prisma } from "@/lib/prisma";
+import { preserveExcellenceMetadata } from "@/lib/fitness-score-metadata";
 
 export async function POST(request: Request) {
   return api(request, STAFF, async session => {
@@ -86,6 +87,8 @@ export async function POST(request: Request) {
           },
           items: testMap,
         };
+        const existingResult = await tx.fitnessTestResult.findUnique({ where: { applicationId: matchedApp.id } });
+        const finalScores = json(preserveExcellenceMetadata(existingResult?.scores, scoresPayload));
 
         await tx.fitnessTestResult.upsert({
           where: { applicationId: matchedApp.id },
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
             applicationId: matchedApp.id,
             status: isPassed ? "PASSED" : "FAILED",
             totalScore: scorePct,
-            scores: json(scoresPayload),
+            scores: finalScores,
             notes: typeof athlete.notes === "string" ? athlete.notes : "นำเข้าจากไฟล์ผลการทดสอบสมรรถภาพทางกาย",
             testedAt: new Date(),
             recordedBy: session.id,
@@ -101,7 +104,7 @@ export async function POST(request: Request) {
           update: {
             status: isPassed ? "PASSED" : "FAILED",
             totalScore: scorePct,
-            scores: json(scoresPayload),
+            scores: finalScores,
             notes: typeof athlete.notes === "string" ? athlete.notes : "นำเข้าจากไฟล์ผลการทดสอบสมรรถภาพทางกาย",
             testedAt: new Date(),
             recordedBy: session.id,
