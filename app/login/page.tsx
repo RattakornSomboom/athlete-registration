@@ -6,6 +6,18 @@ import Link from "next/link";
 import Image from "next/image";
 import BackButton from "@/components/shared/BackButton";
 import ThaiDateInput from "@/components/shared/ThaiDateInput";
+import {
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  BookOpenIcon,
+  BuildingIcon,
+  CheckIcon,
+  CloseIcon,
+  ClipboardListIcon,
+  RunnerIcon,
+  TrophyIcon,
+} from "@/components/shared/Icons";
 import { fetchJson, requestMessage } from "@/lib/http-client";
 import {
   ALL_THAI_PROVINCES,
@@ -537,7 +549,7 @@ export default function LoginPage() {
                 <p className="text-xs text-slate-500 mt-0.5">
                   เข้าสู่ระบบสารสนเทศเพื่อการบริหารจัดการและพัฒนากีฬาสู่ความเป็นเลิศ
                 </p>
-                <p className="text-[10px] text-blue-900 font-semibold mt-0.5">
+                <p className="text-xs text-blue-900 font-semibold mt-0.5">
                   Information System for Sports Management and Excellence Development
                 </p>
               </div>
@@ -600,7 +612,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
                       >
                         {showPassword ? "ซ่อน" : "แสดง"}
                       </button>
@@ -617,12 +629,12 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#e11d48] hover:bg-[#be123c] active:scale-[0.99] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-full text-xs transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full bg-blue-900 hover:bg-blue-800 active:bg-blue-950 active:scale-[0.99] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg text-sm transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
                   >
                     <span>{loading ? "กำลังตรวจสอบสิทธิ์..." : "Login"}</span>
                   </button>
 
-                  <p className="text-center text-[11px] text-slate-500">ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบเพื่อยืนยันตัวและรับรหัสชั่วคราว</p>
+                  <p className="text-center text-xs text-slate-500">ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบเพื่อยืนยันตัวและรับรหัสชั่วคราว</p>
                 </form>
               )}
 
@@ -630,10 +642,10 @@ export default function LoginPage() {
               {mode === "register" && registerStep === "select_role" && (
                 <div className="space-y-3">
                   <div className="text-center pb-1">
-                    <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <h2 className="text-xs font-bold text-slate-800 tracking-normal">
                       เลือกกลุ่มผู้ใช้งานเพื่อลงทะเบียน
                     </h2>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       โปรดเลือกประเภทบัญชีผู้ใช้งานที่ท่านต้องการเปิดใหม่
                     </p>
                   </div>
@@ -646,22 +658,22 @@ export default function LoginPage() {
                     <span className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-lg bg-blue-900 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
-                          🏃
+                          <RunnerIcon className="w-4 h-4" />
                         </span>
                         <span className="font-bold text-slate-900 text-xs group-hover:text-blue-900 transition-colors">
                           นิสิต / นักกีฬาตัวแทนสถาบัน
                         </span>
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-semibold font-mono">
+                      <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-semibold font-mono">
                         @up.ac.th
                       </span>
                     </span>
-                    <span className="block text-[11px] text-slate-500 leading-relaxed pl-9">
+                    <span className="block text-xs text-slate-500 leading-relaxed pl-9">
                       สำหรับนิสิต ม.พะเยา ทุกชั้นปี ใช้อีเมลนิสิตและรหัสนิสิต 8 หลัก เพื่อบันทึกประวัติการศึกษา เกรดเฉลี่ยสะสม และสมัครเข้ารับการคัดเลือก
                     </span>
-                    <span className="pl-9 pt-1 flex items-center justify-between text-[11px] font-semibold text-blue-900 group-hover:translate-x-0.5 transition-transform">
+                    <span className="pl-9 pt-1 flex items-center justify-between text-xs font-semibold text-blue-900 group-hover:translate-x-0.5 transition-transform">
                       <span>ลงทะเบียนบัญชีนักกีฬาใหม่</span>
-                      <span>→</span>
+                      <ArrowRightIcon className="w-4 h-4" />
                     </span>
                   </button>
 
@@ -672,26 +684,26 @@ export default function LoginPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-800 text-white flex items-center justify-center text-xs font-bold shadow-2xs">
-                          📋
+                          <ClipboardListIcon className="w-4 h-4" />
                         </div>
                         <h3 className="font-bold text-slate-900 text-xs group-hover:text-emerald-800 transition-colors">
                           ผู้จัดการทีม / ผู้ฝึกสอนกีฬา (โค้ช)
                         </h3>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+                      <span className="text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
                         อาจารย์ / โค้ช
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed pl-9">
+                    <p className="text-xs text-slate-500 leading-relaxed pl-9">
                       สำหรับอาจารย์ที่ปรึกษา บุคลากร หรือผู้ฝึกสอนภายนอก บันทึกข้อมูลตำแหน่งทีม สังกัดชนิดกีฬา และแนบแผนการฝึกซ้อม
                     </p>
-                    <div className="pl-9 pt-1 flex items-center justify-between text-[11px] font-semibold text-emerald-800 group-hover:translate-x-0.5 transition-transform">
+                    <div className="pl-9 pt-1 flex items-center justify-between text-xs font-semibold text-emerald-800 group-hover:translate-x-0.5 transition-transform">
                       <span>ลงทะเบียนเจ้าหน้าที่ทีม / โค้ช</span>
-                      <span>→</span>
+                      <ArrowRightIcon className="w-4 h-4" />
                     </div>
                   </Link>
 
-                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-lg text-[10px] text-amber-900 space-y-1 mt-1">
+                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-lg text-xs text-amber-900 space-y-1 mt-1">
                     <p className="font-semibold flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
                       หมายเหตุสำหรับประธานชมรมและเจ้าหน้าที่:
@@ -706,7 +718,10 @@ export default function LoginPage() {
               {/* ===== REGISTER STEP 1: กรอก Account ===== */}
               {mode === "register" && registerStep === "account" && (
                 <form onSubmit={handleRegisterAccount} className="space-y-3.5">
-                  <button type="button" onClick={() => { setRegisterStep("select_role"); setError(""); }} className="cursor-pointer text-[11px] font-medium text-slate-500 hover:text-slate-800">← เปลี่ยนประเภทผู้ใช้งาน</button>
+                  <button type="button" onClick={() => { setRegisterStep("select_role"); setError(""); }} className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-800">
+                    <ArrowLeftIcon className="w-3.5 h-3.5" />
+                    เปลี่ยนประเภทผู้ใช้งาน
+                  </button>
                   <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700">
                     กรอกรหัสประจำตัวนิสิต 8 หลัก เพื่อสร้างบัญชีผู้ใช้งานระบบสารสนเทศ
                   </div>
@@ -723,7 +738,7 @@ export default function LoginPage() {
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none"
                     />
                     {registerForm.studentId.length === 8 && (
-                      <p className="text-[11px] text-slate-500 mt-1">Username ทางการของคุณคือ <span className="font-semibold text-blue-900">{username}</span></p>
+                      <p className="text-xs text-slate-500 mt-1">Username ทางการของคุณคือ <span className="font-semibold text-blue-900">{username}</span></p>
                     )}
                   </div>
 
@@ -739,7 +754,7 @@ export default function LoginPage() {
                         autoComplete="new-password"
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-900 outline-none pr-12"
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]">
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
                         {showPassword ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
@@ -754,8 +769,8 @@ export default function LoginPage() {
                           { ok: passwordCheck.hasNumber, label: "0-9 อย่างน้อย 1 ตัว" },
                           { ok: passwordCheck.hasSpecial, label: "อักษรพิเศษอย่างน้อย 1 ตัว" },
                         ].map((item) => (
-                          <p key={item.label} className={`text-[10px] flex items-center gap-1 ${item.ok ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
-                            <span>{item.ok ? "✓" : "○"}</span> {item.label}
+                          <p key={item.label} className={`text-xs flex items-center gap-1 ${item.ok ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
+                            {item.ok ? <CheckIcon className="w-3.5 h-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-300" aria-hidden="true" />} {item.label}
                           </p>
                         ))}
                       </div>
@@ -777,15 +792,18 @@ export default function LoginPage() {
                           : "border-slate-300"
                           }`}
                       />
-                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-[11px]">
+                      <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">
                         {showConfirmPassword ? "ซ่อน" : "แสดง"}
                       </button>
                     </div>
                     {registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
-                      <p className="text-[11px] text-rose-600 mt-1">รหัสผ่านไม่ตรงกัน</p>
+                      <p className="text-xs text-rose-600 mt-1">รหัสผ่านไม่ตรงกัน</p>
                     )}
                     {registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword && (
-                      <p className="text-[11px] text-emerald-700 font-medium mt-1">✓ รหัสผ่านตรงกันเรียบร้อย</p>
+                      <p className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium mt-1">
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        รหัสผ่านตรงกันเรียบร้อย
+                      </p>
                     )}
                   </div>
 
@@ -794,9 +812,10 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={!passwordCheck.valid || registerForm.password !== registerForm.confirmPassword || registerForm.studentId.length !== 8}
-                    className="w-full bg-[#e11d48] hover:bg-[#be123c] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-full text-xs transition-colors shadow-md cursor-pointer"
+                    className="w-full bg-blue-900 hover:bg-blue-800 active:bg-blue-950 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg text-sm transition-colors shadow-md cursor-pointer"
                   >
-                    ถัดไป: บันทึกข้อมูลประวัตินิสิต →
+                    <span>ถัดไป: บันทึกข้อมูลประวัตินิสิต</span>
+                    <ArrowRightIcon className="w-4 h-4" />
                   </button>
 
                   <p className="text-center text-xs text-slate-500">
@@ -808,11 +827,11 @@ export default function LoginPage() {
 
             </div>
 
-            <div className="text-center text-[11px] text-slate-400 pt-4 mt-4 border-t border-slate-100">
+            <div className="text-center text-xs text-slate-400 pt-4 mt-4 border-t border-slate-100">
               <p className="font-medium text-slate-600">
                 พบปัญหา โทร. 054-466-666 ต่อ 6290-6295
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 (งานกีฬา กองกิจการนิสิต มหาวิทยาลัยพะเยา)
               </p>
               <button type="button" onClick={() => guideRef.current?.showModal()} className="mt-3 text-blue-900 underline md:hidden">คู่มือการใช้งานระบบสารสนเทศ</button>
@@ -827,9 +846,7 @@ export default function LoginPage() {
               title="กลับหน้าหลัก"
               aria-label="กลับหน้าหลัก"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <CloseIcon className="w-4 h-4" />
             </Link>
 
             <div className="relative flex-1 w-full min-h-[380px] overflow-hidden flex items-center justify-center bg-slate-950">
@@ -847,9 +864,7 @@ export default function LoginPage() {
               onClick={() => guideRef.current?.showModal()}
               className="relative z-10 w-full py-3 px-4 bg-slate-900/90 hover:bg-slate-900 text-white/90 hover:text-white text-xs font-medium text-center transition-colors border-t border-white/10 cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <svg className="w-3.5 h-3.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+              <BookOpenIcon className="w-3.5 h-3.5 text-blue-300" />
               <span>คู่มือการใช้งานระบบสารสนเทศ</span>
             </button>
           </div>
@@ -862,26 +877,27 @@ export default function LoginPage() {
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-2">
               <div>
                 <p className="text-sm font-bold text-slate-900">บันทึกข้อมูลประวัตินิสิต (ขั้นตอนที่ 2)</p>
-                <p className="text-[11px] text-slate-500">ข้อมูลนี้จะถูกบันทึกเป็นฐานข้อมูลประวัตินักกีฬาทางการของสถาบัน</p>
+                <p className="text-xs text-slate-500">ข้อมูลนี้จะถูกบันทึกเป็นฐานข้อมูลประวัตินักกีฬาทางการของสถาบัน</p>
               </div>
               <button
                 type="button"
                 onClick={() => { setRegisterStep("account"); setError(""); setProfileErrors({}); }}
-                className="text-xs text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 py-1 rounded cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 border border-slate-200 px-2.5 py-1 rounded cursor-pointer"
               >
-                ← ย้อนกลับ
+                <ArrowLeftIcon className="w-3.5 h-3.5" />
+                ย้อนกลับ
               </button>
             </div>
 
             {/* Mini step indicator */}
             <div className="flex items-center gap-2 mb-4 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-emerald-800 flex items-center justify-center text-[10px] font-bold text-white">✓</div>
+                <div className="w-5 h-5 rounded-full bg-emerald-800 flex items-center justify-center text-xs font-bold text-white"><CheckIcon className="w-3 h-3" /></div>
                 <span className="text-slate-500 font-medium">1. กำหนดรหัสผ่าน</span>
               </div>
               <div className="w-6 h-0.5 bg-blue-900" />
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-full bg-blue-900 flex items-center justify-center text-[10px] font-bold text-white">2</div>
+                <div className="w-5 h-5 rounded-full bg-blue-900 flex items-center justify-center text-xs font-bold text-white">2</div>
                 <span className="text-slate-900 font-bold">2. บันทึกข้อมูลประวัตินิสิต</span>
               </div>
             </div>
@@ -893,7 +909,7 @@ export default function LoginPage() {
             </div>
 
             {/* ข้อมูลนิสิต */}
-            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 uppercase tracking-wider">ข้อมูลส่วนตัวและสถานภาพการศึกษา</p>
+            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 tracking-normal">ข้อมูลส่วนตัวและสถานภาพการศึกษา</p>
 
             {/* ช่องเลือกคำนำหน้าชื่อ และ เลือกเพศ */}
             <div className="grid grid-cols-2 gap-3">
@@ -915,7 +931,7 @@ export default function LoginPage() {
                   <option value="Mrs">นาง</option>
                 </select>
                 {profileErrors.title && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.title}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.title}</p>
                 )}
               </div>
               <div>
@@ -935,7 +951,7 @@ export default function LoginPage() {
                   <option value="female">หญิง</option>
                 </select>
                 {profileErrors.gender && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.gender}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.gender}</p>
                 )}
               </div>
             </div>
@@ -953,7 +969,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("firstName", e.target.value)}
                 />
                 {profileErrors.firstName && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.firstName}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.firstName}</p>
                 )}
               </div>
               <div>
@@ -968,7 +984,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("lastName", e.target.value)}
                 />
                 {profileErrors.lastName && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.lastName}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.lastName}</p>
                 )}
               </div>
             </div>
@@ -1001,7 +1017,7 @@ export default function LoginPage() {
                 ))}
               </select>
               {profileErrors.faculty && (
-                <p className="text-[11px] text-rose-600 mt-1">{profileErrors.faculty}</p>
+                <p className="text-xs text-rose-600 mt-1">{profileErrors.faculty}</p>
               )}
             </div>
 
@@ -1023,7 +1039,7 @@ export default function LoginPage() {
                   ))}
                 </select>
                 {profileErrors.major && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.major}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.major}</p>
                 )}
               </div>
               <div>
@@ -1035,7 +1051,7 @@ export default function LoginPage() {
                   <button type="button" onClick={() => setProfile("studentLevel", "graduate")} className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${profileForm.studentLevel === "graduate" ? "bg-blue-900 text-white border-blue-900 font-bold" : "border-slate-300 text-slate-700 hover:bg-slate-50"}`}>บัณฑิตศึกษา</button>
                 </div>
                 {profileErrors.studentLevel && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.studentLevel}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.studentLevel}</p>
                 )}
               </div>
             </div>
@@ -1056,7 +1072,7 @@ export default function LoginPage() {
                 ))}
               </select>
               {profileErrors.year && (
-                <p className="text-[11px] text-rose-600 mt-1">{profileErrors.year}</p>
+                <p className="text-xs text-rose-600 mt-1">{profileErrors.year}</p>
               )}
             </div>
 
@@ -1074,7 +1090,7 @@ export default function LoginPage() {
                 <option value="3">ภาคเรียนฤดูร้อน</option>
               </select>
               {profileErrors.semester && (
-                <p className="text-[11px] text-rose-600 mt-1">{profileErrors.semester}</p>
+                <p className="text-xs text-rose-600 mt-1">{profileErrors.semester}</p>
               )}
               <p className="mt-1 text-xs text-slate-500">นิสิตปริญญาตรีปี 1 เทอม 1 ที่ยังไม่มีผลการเรียน สามารถเว้น GPA และ GPAX ทั้งสองช่องเพื่อรับการยกเว้นเกณฑ์ GPAX</p>
             </div>
@@ -1093,7 +1109,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("nationalId", e.target.value.replace(/[^\d-]/g, "").slice(0, 13))}
                 />
                 {profileErrors.nationalId && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.nationalId}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.nationalId}</p>
                 )}
               </div>
               <div>
@@ -1107,7 +1123,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("nationality", e.target.value)}
                 />
                 {profileErrors.nationality && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.nationality}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.nationality}</p>
                 )}
               </div>
             </div>
@@ -1126,12 +1142,12 @@ export default function LoginPage() {
                   ariaLabel="วันเดือนปีเกิด"
                 />
                 {dynamicAge !== null && (
-                  <span className={`text-[11px] font-medium mt-0.5 block ${ageEvaluation?.passed ? "text-blue-800" : "text-rose-600 font-semibold"}`}>
+                  <span className={`text-xs font-medium mt-0.5 block ${ageEvaluation?.passed ? "text-blue-800" : "text-rose-600 font-semibold"}`}>
                     อายุ {dynamicAge} ปีบริบูรณ์ {ageEvaluation && !ageEvaluation.passed ? `(${ageEvaluation.message})` : ""}
                   </span>
                 )}
                 {profileErrors.birthDate && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.birthDate}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.birthDate}</p>
                 )}
               </div>
               <div>
@@ -1147,7 +1163,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("phone", e.target.value.replace(/[^\d-]/g, "").slice(0, 10))}
                 />
                 {profileErrors.phone && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.phone}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.phone}</p>
                 )}
               </div>
             </div>
@@ -1158,8 +1174,9 @@ export default function LoginPage() {
                 {ageEvaluation && <p>{ageEvaluation.message}</p>}
                 <p>{participationEvaluation.message}</p>
                 {!eligibilityOk && (
-                  <p className="mt-1 font-semibold text-rose-800">
-                    ⚠️ อายุของคุณเกินเกณฑ์ที่ระเบียบ กกมท. กำหนด (ต้องไม่เกิน 28 ปีตามปีมหกรรมกีฬา) จึงไม่สามารถลงทะเบียนเป็นนักกีฬาตัวแทนสถาบันได้
+                  <p className="mt-1 flex items-start gap-2 font-semibold text-rose-800">
+                    <AlertTriangleIcon className="mt-0.5 w-4 h-4 shrink-0" />
+                    <span>อายุของคุณเกินเกณฑ์ที่ระเบียบ กกมท. กำหนด (ต้องไม่เกิน 28 ปีตามปีมหกรรมกีฬา) จึงไม่สามารถลงทะเบียนเป็นนักกีฬาตัวแทนสถาบันได้</span>
                   </p>
                 )}
               </div>
@@ -1180,7 +1197,7 @@ export default function LoginPage() {
                     onBlur={() => handleGpaBlur("gpaSemester")}
                   />
                   {profileErrors.gpaSemester && (
-                    <p className="text-[11px] text-rose-600 mt-1">{profileErrors.gpaSemester}</p>
+                    <p className="text-xs text-rose-600 mt-1">{profileErrors.gpaSemester}</p>
                   )}
                 </div>
                 <div>
@@ -1197,13 +1214,13 @@ export default function LoginPage() {
                     onBlur={() => handleGpaBlur("gpaCumulative")}
                   />
                   {profileErrors.gpaCumulative && (
-                    <p className="text-[11px] text-rose-600 mt-1">{profileErrors.gpaCumulative}</p>
+                    <p className="text-xs text-rose-600 mt-1">{profileErrors.gpaCumulative}</p>
                   )}
                 </div>
               </div>
 
             {/* ที่อยู่ */}
-            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 uppercase tracking-wider">ที่อยู่ตามทะเบียนบ้าน/ที่อยู่ปัจจุบัน</p>
+            <p className="text-xs font-bold text-slate-800 pt-2 border-t border-slate-100 tracking-normal">ที่อยู่ตามทะเบียนบ้าน/ที่อยู่ปัจจุบัน</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="profile-address-no" className="block text-xs font-medium text-slate-700 mb-1">
@@ -1216,7 +1233,7 @@ export default function LoginPage() {
                   onChange={(e) => setProfile("addressNo", e.target.value)}
                 />
                 {profileErrors.addressNo && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.addressNo}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.addressNo}</p>
                 )}
               </div>
               <div>
@@ -1235,7 +1252,7 @@ export default function LoginPage() {
                   ))}
                 </select>
                 {profileErrors.province && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.province}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.province}</p>
                 )}
               </div>
               <div>
@@ -1255,7 +1272,7 @@ export default function LoginPage() {
                   ))}
                 </select>
                 {profileErrors.district && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.district}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.district}</p>
                 )}
               </div>
               <div>
@@ -1275,7 +1292,7 @@ export default function LoginPage() {
                   ))}
                 </select>
                 {profileErrors.subDistrict && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.subDistrict}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.subDistrict}</p>
                 )}
               </div>
               <div>
@@ -1290,7 +1307,7 @@ export default function LoginPage() {
                   aria-label="รหัสไปรษณีย์"
                 />
                 {profileErrors.postalCode && (
-                  <p className="text-[11px] text-rose-600 mt-1">{profileErrors.postalCode}</p>
+                  <p className="text-xs text-rose-600 mt-1">{profileErrors.postalCode}</p>
                 )}
               </div>
             </div>
@@ -1300,7 +1317,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || (ageEvaluation ? !ageEvaluation.passed : false)}
-              className="w-full bg-[#e11d48] hover:bg-[#be123c] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-full text-xs transition-colors shadow-md cursor-pointer"
+              className="w-full bg-blue-900 hover:bg-blue-800 active:bg-blue-950 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg text-sm transition-colors shadow-md cursor-pointer"
             >
               {loading
                 ? "กำลังบันทึกข้อมูลเข้าฐานข้อมูล..."
@@ -1327,14 +1344,14 @@ export default function LoginPage() {
               aria-label="ปิดคู่มือ"
               className="w-7 h-7 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center text-xs"
             >
-              <span aria-hidden="true">✕</span>
+              <CloseIcon className="w-4 h-4" />
             </button>
           </div>
 
           <div className="text-xs text-slate-600 space-y-3">
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="font-semibold text-slate-900 mb-1">🏃 สำหรับนิสิต / นักกีฬา:</p>
-              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
+              <p className="flex items-center gap-2 font-semibold text-slate-900 mb-1"><RunnerIcon className="w-4 h-4 text-blue-900" /> สำหรับนิสิต / นักกีฬา:</p>
+              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
                 <li>ลงทะเบียนด้วยรหัสนิสิต 8 หลัก และกำหนดรหัสผ่านความปลอดภัย</li>
                 <li>กรอกข้อมูลประวัติการศึกษา จากนั้นเข้าสู่ระบบเพื่อแนบรูปถ่ายหน้าตรงชุดนิสิต</li>
                 <li>ยื่นใบสมัครคัดเลือกชนิดกีฬาที่เปิดรับ และแนบเอกสารตามที่ระบบกำหนด</li>
@@ -1343,8 +1360,8 @@ export default function LoginPage() {
             </div>
 
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="font-semibold text-slate-900 mb-1">🏆 สำหรับชมรมกีฬา:</p>
-              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
+              <p className="flex items-center gap-2 font-semibold text-slate-900 mb-1"><TrophyIcon className="w-4 h-4 text-emerald-800" /> สำหรับชมรมกีฬา:</p>
+              <ol className="list-decimal list-inside space-y-1 text-slate-600 text-xs">
                 <li>เข้าสู่ระบบด้วยบัญชีชมรมกีฬาต้นสังกัด</li>
                 <li>พิจารณาคัดเลือกนักกีฬาและจัดประเภทตัวจริง/ตัวสำรองตามโควตา กกมท.</li>
                 <li>ตรวจสอบและส่งบัญชีรายชื่อให้กองกิจการนิสิตตามขั้นตอนของระบบ</li>
@@ -1352,8 +1369,8 @@ export default function LoginPage() {
             </div>
 
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="font-semibold text-slate-900 mb-1">🏛️ ช่องทางการติดต่อเจ้าหน้าที่:</p>
-              <p className="text-[11px] text-slate-600">
+              <p className="flex items-center gap-2 font-semibold text-slate-900 mb-1"><BuildingIcon className="w-4 h-4 text-slate-700" /> ช่องทางการติดต่อเจ้าหน้าที่:</p>
+              <p className="text-xs text-slate-600">
                 งานกีฬาและนันทนาการ กองกิจการนิสิต มหาวิทยาลัยพะเยา<br />
                 โทร. 054-466-666 ต่อ 6290-6295 หรืออีเมล: <span className="font-mono text-blue-900">dsa@up.ac.th</span>
               </p>

@@ -15,6 +15,15 @@ import { detectAthleteGender, getGenderLabel } from "@/lib/thai-name-title";
 import { countParticipationForLevel, evaluateAge, evaluateParticipationCount, evaluateGpax, isFirstSemesterGradeExempt } from "@/lib/rule-checker";
 import { UNIVERSITY_CLUBS, suggestClubForSport } from "@/lib/university-clubs";
 import { getSportEntryLimit, getSportType, isTeamSport, MAX_INDIVIDUAL_SPORT_ENTRIES } from "@/lib/sport-type";
+import {
+  AlertTriangleIcon,
+  BanIcon,
+  CalendarIcon,
+  CheckIcon,
+  ClipboardListIcon,
+  CloseIcon,
+  InfoIcon,
+} from "@/components/shared/Icons";
 
 const CURRENT_YEAR_CE = new Date().getFullYear();
 const CURRENT_YEAR_BE = CURRENT_YEAR_CE + 543;
@@ -284,7 +293,7 @@ export default function AthleteRegisterPage() {
           <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
             <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
-            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
+            <span className="text-xs font-semibold text-blue-800">
               กองกิจการนิสิต มหาวิทยาลัยพะเยา
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -314,7 +323,7 @@ export default function AthleteRegisterPage() {
             {/* Profile Card — ข้อมูลนิสิตจาก Register ครั้งแรก */}
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 mb-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-slate-500">
                 ข้อมูลประวัตินักศึกษา
               </p>
               <button
@@ -334,13 +343,13 @@ export default function AthleteRegisterPage() {
             </div>
             {editSuccessMessage && (
               <div className="mb-4 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs text-emerald-800">
-                <span>✓ {editSuccessMessage}</span>
+                <span className="inline-flex items-center gap-1.5"><CheckIcon className="w-3.5 h-3.5" /> {editSuccessMessage}</span>
                 <button
                   type="button"
                   onClick={() => setEditSuccessMessage("")}
                   className="text-emerald-600 hover:text-emerald-900 font-bold ml-2 cursor-pointer"
                 >
-                  ✕
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -454,7 +463,7 @@ export default function AthleteRegisterPage() {
         {/* แจ้งเตือนสิทธิ์ */}
         {isOverMaxStrict && (
           <div className="bg-red-100 border border-red-300 rounded-xl p-4 mb-6">
-            <p className="text-sm font-bold text-red-900 mb-1">🚫 ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
+            <p className="flex items-center gap-2 text-sm font-bold text-red-900 mb-1"><BanIcon className="w-4 h-4" /> ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
             <p className="text-sm text-red-700">การสมัครครั้งนี้จะทำให้จำนวนครั้งที่เข้าร่วมการแข่งขันกีฬามหาวิทยาลัยฯ เกิน 5 ครั้ง ตามระเบียบ กกมท. ข้อ 7.2</p>
           </div>
         )}
@@ -467,7 +476,7 @@ export default function AthleteRegisterPage() {
         )}
         {!isOverMaxStrict && (!isAgeEligible || !isEntryCountEligible || (studentProfile.gpaCumulative ? !isGpaxEligible : false)) && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-            <p className="text-sm font-medium text-red-800 mb-1">⚠️ ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-red-800 mb-1"><AlertTriangleIcon className="w-4 h-4" /> ไม่มีสิทธิ์สมัครเข้าร่วมการแข่งขัน</p>
             {!isAgeEligible && <p className="text-sm text-red-600">อายุของท่าน ({athleteAge} ปี) ไม่ผ่านเกณฑ์ปีมหกรรม {selectedCompetition?.year} ตามเกณฑ์อายุของกีฬา</p>}
             {!isEntryCountEligible && <p className="text-sm text-red-600">{participationEvaluation.message}</p>}
             {studentProfile.gpaCumulative && !isGpaxEligible && <p className="text-sm text-red-600">{gpaxEvaluation.message || "เกรดเฉลี่ยสะสม (GPAX) ไม่ผ่านเกณฑ์การแข่งขัน (ต้องไม่ต่ำกว่า 2.00)"}</p>}
@@ -475,7 +484,7 @@ export default function AthleteRegisterPage() {
         )}
         {!isGradeExempt && !studentProfile.gpaCumulative && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-            <p className="text-sm font-medium text-amber-900 mb-0.5">⚠️ ยังไม่พบข้อมูลเกรดเฉลี่ยสะสม (GPAX)</p>
+            <p className="flex items-center gap-2 text-sm font-medium text-amber-900 mb-0.5"><AlertTriangleIcon className="w-4 h-4" /> ยังไม่พบข้อมูลเกรดเฉลี่ยสะสม (GPAX)</p>
             <p className="text-xs text-amber-800">กรุณากดปุ่ม &ldquo;แก้ไขข้อมูลนิสิต&rdquo; ด้านบนเพื่อระบุเกรดเฉลี่ยสะสมก่อนดำเนินการสมัครเข้าร่วมการแข่งขัน</p>
           </div>
         )}
@@ -487,7 +496,7 @@ export default function AthleteRegisterPage() {
         )}
         {isAgeEligible && isEntryCountEligible && remainingEntries === 1 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-amber-700">⚠️ นี่จะเป็นการสมัครครั้งสุดท้ายของท่าน ({previousEntriesCount + 1}/{maxEntries} ครั้ง)</p>
+            <p className="flex items-center gap-2 text-sm text-amber-700"><AlertTriangleIcon className="w-4 h-4" /> นี่จะเป็นการสมัครครั้งสุดท้ายของท่าน ({previousEntriesCount + 1}/{maxEntries} ครั้ง)</p>
           </div>
         )}
 
@@ -568,10 +577,11 @@ export default function AthleteRegisterPage() {
               </div>
 
               {form.round && (
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
-                  {form.round === "qualifier"
-                    ? "📅 กำหนดการทดสอบสมรรถภาพรอบคัดเลือก: วันพุธที่ 2 ก.ย. 2569 (สำหรับ เปตอง, วอลเลย์บอล, บาสเกตบอล, ฟุตซอล)"
-                    : "📅 กำหนดการทดสอบสมรรถภาพรอบมหกรรม: วันอังคารที่ 1 ธ.ค. 2569 (สำหรับกีฬา 11 ชนิด และกีฬาที่ผ่านรอบคัดเลือก)"}
+                <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+                  <CalendarIcon className="mt-0.5 w-4 h-4 shrink-0" />
+                  <span>{form.round === "qualifier"
+                    ? "กำหนดการทดสอบสมรรถภาพรอบคัดเลือก: วันพุธที่ 2 ก.ย. 2569 (สำหรับ เปตอง, วอลเลย์บอล, บาสเกตบอล, ฟุตซอล)"
+                    : "กำหนดการทดสอบสมรรถภาพรอบมหกรรม: วันอังคารที่ 1 ธ.ค. 2569 (สำหรับกีฬา 11 ชนิด และกีฬาที่ผ่านรอบคัดเลือก)"}</span>
                 </div>
               )}
 
@@ -626,7 +636,7 @@ export default function AthleteRegisterPage() {
               {hasSportClub === "no" && (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
                   <div className="bg-orange-100 rounded-lg p-3 mb-2">
-                    <p className="text-sm font-medium text-orange-900 mb-1">📋 สำหรับชนิดกีฬาที่ยังไม่มีการจัดตั้งเป็นชมรมกีฬาของมหาวิทยาลัย</p>
+                    <p className="flex items-center gap-2 text-sm font-medium text-orange-900 mb-1"><ClipboardListIcon className="w-4 h-4" /> สำหรับชนิดกีฬาที่ยังไม่มีการจัดตั้งเป็นชมรมกีฬาของมหาวิทยาลัย</p>
                     <ol className="text-xs text-orange-800 space-y-1 list-decimal list-inside">
                       <li>กรอกข้อมูลและแนบหนังสือขออนุญาตพร้อมบุคลากรรับรองอย่างน้อย 1 คน</li>
                       <li>ระบบจะส่งข้อมูลไปยัง <strong>กองกิจการนิสิต</strong> โดยตรง (ไม่ผ่านชมรม)</li>
@@ -634,7 +644,7 @@ export default function AthleteRegisterPage() {
                       <li>รอการแจ้งผลการพิจารณาจากกองกิจการนิสิต</li>
                     </ol>
                   </div>
-                  <p className="text-sm text-orange-800 font-medium">⚠️ ต้องทำหนังสือขออนุญาตพร้อมมีบุคลากรในสังกัดมหาวิทยาลัยอย่างน้อย 1 คน รับรองและรับผิดชอบทีม</p>
+                  <p className="flex items-start gap-2 text-sm text-orange-800 font-medium"><AlertTriangleIcon className="mt-0.5 w-4 h-4 shrink-0" /> ต้องทำหนังสือขออนุญาตพร้อมมีบุคลากรในสังกัดมหาวิทยาลัยอย่างน้อย 1 คน รับรองและรับผิดชอบทีม</p>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุล บุคลากรผู้รับรอง</label>
                     <input className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value={supervisorName} onChange={(e) => setSupervisorName(e.target.value)} />
@@ -655,7 +665,7 @@ export default function AthleteRegisterPage() {
 
               {missingStep1Fields.length > 0 && (
                 <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                  <span className="font-semibold">⚠️ ข้อมูลและเอกสารที่ต้องระบุก่อนไปขั้นตอนถัดไป:</span>
+                  <span className="flex items-center gap-1.5 font-semibold"><AlertTriangleIcon className="w-4 h-4" /> ข้อมูลและเอกสารที่ต้องระบุก่อนไปขั้นตอนถัดไป:</span>
                   <ul className="mt-1 list-disc list-inside space-y-0.5">
                     {missingStep1Fields.map((f, i) => (
                       <li key={i}>{f}</li>
@@ -696,7 +706,7 @@ export default function AthleteRegisterPage() {
                           <p className="font-medium text-gray-900">{i + 1}. {s.sport}</p>
                           <p className="text-gray-500 text-xs mt-0.5">{s.category || "-"} {s.division && `· รุ่น ${s.division}`}</p>
                         </div>
-                        <button onClick={() => removeSportEntry(s.id)} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
+                        <button type="button" aria-label={`ลบกีฬา ${s.sport}`} onClick={() => removeSportEntry(s.id)} className="rounded-md p-1 text-red-400 hover:bg-red-50 hover:text-red-600 shrink-0"><CloseIcon className="w-4 h-4" /></button>
                       </div>
                     ))}
                   </div>
@@ -790,9 +800,9 @@ export default function AthleteRegisterPage() {
                           <p className="font-medium text-gray-900">{c.competitionName}</p>
                           <p className="text-gray-500 text-xs mt-0.5">พ.ศ. {c.year} · ผลการแข่งขัน: {c.result}</p>
                           {c.evidenceFile && <p className="text-blue-600 text-xs mt-1">แนบรูปหลักฐาน: {c.evidenceFile.name}</p>}
-                          {!isWithinTwoYears(c.year) && <p className="text-red-500 text-xs mt-1">⚠️ เกิน 2 ปีย้อนหลัง อาจไม่นำมาพิจารณา</p>}
+                          {!isWithinTwoYears(c.year) && <p className="flex items-center gap-1 text-red-600 text-xs mt-1"><AlertTriangleIcon className="w-3.5 h-3.5" /> เกิน 2 ปีย้อนหลัง อาจไม่นำมาพิจารณา</p>}
                         </div>
-                        <button onClick={() => removeCompetition(c.id)} className="text-red-400 hover:text-red-600 shrink-0">✕</button>
+                        <button type="button" aria-label={`ลบผลงาน ${c.competitionName}`} onClick={() => removeCompetition(c.id)} className="rounded-md p-1 text-red-400 hover:bg-red-50 hover:text-red-600 shrink-0"><CloseIcon className="w-4 h-4" /></button>
                       </div>
                     ))}
                   </div>
@@ -807,7 +817,7 @@ export default function AthleteRegisterPage() {
                   <label className="flex flex-col items-center justify-center w-full min-h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors px-3 py-2">
                     <span className="text-xs text-gray-600 text-center break-all">{newComp.evidenceFile ? newComp.evidenceFile.name : "แนบรูปหลักฐานผลงาน (ถ้ามี) JPG/PNG ไม่เกิน 5 MB"}</span>
                     {!newComp.evidenceFile && (
-                      <span className="text-[11px] text-gray-400 text-center mt-0.5">
+                      <span className="text-xs text-gray-500 text-center mt-0.5">
                         (หากมีภาพหลักฐานหลายภาพ เช่น เกียรติบัตรและรูปถ่ายแข่งขัน สามารถรวมภาพเป็นรูปเดียวแบบตาราง/Collage แล้วอัปโหลดได้)
                       </span>
                     )}
@@ -832,17 +842,18 @@ export default function AthleteRegisterPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium text-gray-700">หลักฐานประกอบการสมัคร (เอกสารบังคับ)</label>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded ${
                     missingRequiredDocuments.length === 0 ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
                   }`}>
-                    {missingRequiredDocuments.length === 0 ? "✅ แนบเอกสารครบ 4 รายการ" : `⚠️ ขาดอีก ${missingRequiredDocuments.length} รายการ`}
+                    {missingRequiredDocuments.length === 0 ? <CheckIcon className="w-3.5 h-3.5" /> : <AlertTriangleIcon className="w-3.5 h-3.5" />}
+                    {missingRequiredDocuments.length === 0 ? "แนบเอกสารครบ 4 รายการ" : `ขาดอีก ${missingRequiredDocuments.length} รายการ`}
                   </span>
                 </div>
 
                 {missingRequiredDocuments.length > 0 ? (
                   <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-800 shadow-xs">
                     <div className="flex items-start gap-2">
-                      <span className="text-base text-rose-600 font-bold">⚠️</span>
+                      <AlertTriangleIcon className="mt-0.5 w-4 h-4 shrink-0 text-rose-600" />
                       <div>
                         <p className="font-semibold text-rose-950">ยังไม่ได้แนบเอกสารบังคับ ({missingRequiredDocuments.length} รายการ)</p>
                         <p className="mt-0.5 text-rose-800">ระบบจะไม่สามารถส่งใบสมัครได้จนกว่าจะแนบเอกสารต่อไปนี้ให้ครบถ้วน:</p>
@@ -856,21 +867,23 @@ export default function AthleteRegisterPage() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 shadow-xs flex items-center gap-2">
-                    <span className="text-base text-emerald-600">✅</span>
+                    <CheckIcon className="w-4 h-4 text-emerald-600" />
                     <span className="font-medium">แนบเอกสารบังคับครบถ้วนแล้ว (4/4 รายการ)</span>
                   </div>
                 )}
 
-                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 leading-relaxed">
-                  ℹ️ <strong>ข้อควรทราบ:</strong> การอัปโหลดเอกสารหมายถึงการส่งเอกสารเข้าสู่ระบบ <u>ยังไม่ถือว่าเอกสารผ่านการอนุมัติ</u> จนกว่าชมรมหรือกองกิจการนิสิตจะตรวจสอบแล้ว
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-900 leading-relaxed">
+                  <InfoIcon className="mt-0.5 w-4 h-4 shrink-0" />
+                  <span><strong>ข้อควรทราบ:</strong> การอัปโหลดเอกสารหมายถึงการส่งเอกสารเข้าสู่ระบบ <u>ยังไม่ถือว่าเอกสารผ่านการอนุมัติ</u> จนกว่าชมรมหรือกองกิจการนิสิตจะตรวจสอบแล้ว</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                       <span>รูปถ่ายชุดนิสิตถูกระเบียบ (ขนาด 1 นิ้ว) <span className="text-red-500">*</span></span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${photoFile || savedPhoto ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
-                        {photoFile || savedPhoto ? "✅ แนบแล้ว" : "⚠️ ยังไม่แนบ"}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded ${photoFile || savedPhoto ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
+                        {photoFile || savedPhoto ? <CheckIcon className="w-3 h-3" /> : <AlertTriangleIcon className="w-3 h-3" />}
+                        {photoFile || savedPhoto ? "แนบแล้ว" : "ยังไม่แนบ"}
                       </span>
                     </label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
@@ -881,8 +894,9 @@ export default function AthleteRegisterPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                       <span>สำเนาบัตรประจำตัวประชาชน <span className="text-red-500">*</span></span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${idCardFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
-                        {idCardFile ? "✅ แนบแล้ว" : "⚠️ ยังไม่แนบ"}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded ${idCardFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
+                        {idCardFile ? <CheckIcon className="w-3 h-3" /> : <AlertTriangleIcon className="w-3 h-3" />}
+                        {idCardFile ? "แนบแล้ว" : "ยังไม่แนบ"}
                       </span>
                     </label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
@@ -893,8 +907,9 @@ export default function AthleteRegisterPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                       <span>สำเนาบัตรนิสิต <span className="text-red-500">*</span></span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${studentCardFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
-                        {studentCardFile ? "✅ แนบแล้ว" : "⚠️ ยังไม่แนบ"}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded ${studentCardFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
+                        {studentCardFile ? <CheckIcon className="w-3 h-3" /> : <AlertTriangleIcon className="w-3 h-3" />}
+                        {studentCardFile ? "แนบแล้ว" : "ยังไม่แนบ"}
                       </span>
                     </label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
@@ -905,8 +920,9 @@ export default function AthleteRegisterPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                       <span>ใบรับรองการเป็นนิสิต <span className="text-red-500">*</span></span>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${studentCertFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
-                        {studentCertFile ? "✅ แนบแล้ว" : "⚠️ ยังไม่แนบ"}
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-1.5 py-0.5 rounded ${studentCertFile ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"}`}>
+                        {studentCertFile ? <CheckIcon className="w-3 h-3" /> : <AlertTriangleIcon className="w-3 h-3" />}
+                        {studentCertFile ? "แนบแล้ว" : "ยังไม่แนบ"}
                       </span>
                     </label>
                     <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">

@@ -12,6 +12,12 @@ import { clubReviewProgress } from "@/lib/phase4-client";
 import { extractClubFromNote, suggestClubForSport } from "@/lib/university-clubs";
 import { useRequestAction } from "@/components/shared/RequestState";
 import { documentReference } from "@/lib/athlete-document-policy";
+import {
+  AlertTriangleIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  ClipboardListIcon,
+} from "@/components/shared/Icons";
 
 type StatusHistory = {
   id: string;
@@ -96,7 +102,7 @@ export default function AthleteStatusPage() {
           <div className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
           <div>
             <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
-            <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
+            <span className="text-xs font-semibold text-blue-800">
               ระบบรับสมัครและรายงานตัวนักกีฬาตัวแทนสถาบัน
             </span>
             <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -121,7 +127,7 @@ export default function AthleteStatusPage() {
         ) : applications.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">📋</span>
+              <ClipboardListIcon className="w-7 h-7 text-slate-500" />
             </div>
             <h2 className="text-lg font-medium text-slate-900 mb-1">ยังไม่มีใบสมัคร</h2>
             <p className="text-slate-500 text-sm mb-4">คุณยังไม่ได้ส่งใบสมัครแข่งขัน</p>
@@ -147,14 +153,14 @@ export default function AthleteStatusPage() {
                 <div key={app.id} className="space-y-6">
                   {/* Step Progress Tracker */}
                   <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                    <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-6">
+                    <h2 className="text-xs font-semibold text-slate-500 mb-6">
                       ขั้นตอนการคัดเลือก ({app.competition.name})
                     </h2>
                     <div className="grid grid-cols-4 gap-2 relative">
                       <div className="text-center">
                         <div className="w-8 h-8 rounded-full bg-emerald-700 text-white text-xs font-bold flex items-center justify-center mx-auto mb-2">1</div>
                         <p className="text-xs font-semibold text-slate-900">ยื่นใบสมัคร</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">สำเร็จแล้ว</p>
+                        <p className="text-xs text-slate-500 mt-0.5">สำเร็จแล้ว</p>
                       </div>
 
                       <div className="text-center">
@@ -162,7 +168,7 @@ export default function AthleteStatusPage() {
                           clubProgress.approved ? "bg-emerald-700 text-white" : clubProgress.rejected ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
                         }`}>2</div>
                         <p className="text-xs font-semibold text-slate-900">พิจารณาคัดเลือก (ชมรม)</p>
-                        <p className={`text-[11px] mt-0.5 ${clubProgress.approved ? "text-emerald-700" : clubProgress.rejected ? "text-rose-700" : "text-slate-400"}`}>
+                        <p className={`text-xs mt-0.5 ${clubProgress.approved ? "text-emerald-700" : clubProgress.rejected ? "text-rose-700" : "text-slate-500"}`}>
                           {clubSelectionLabel}
                         </p>
                       </div>
@@ -172,7 +178,7 @@ export default function AthleteStatusPage() {
                           isStaffApproved ? "bg-emerald-700 text-white" : isRejected && app.status === "STAFF_REJECTED" ? "bg-rose-700 text-white" : "bg-slate-200 text-slate-500"
                         }`}>3</div>
                         <p className="text-xs font-semibold text-slate-900">พิจารณา (เจ้าหน้าที่)</p>
-                        <p className={`text-[11px] mt-0.5 ${isStaffApproved ? "text-emerald-700" : isRejected && app.status === "STAFF_REJECTED" ? "text-rose-700" : "text-slate-400"}`}>
+                        <p className={`text-xs mt-0.5 ${isStaffApproved ? "text-emerald-700" : isRejected && app.status === "STAFF_REJECTED" ? "text-rose-700" : "text-slate-500"}`}>
                           {isStaffApproved ? "อนุมัติ" : isRejected && app.status === "STAFF_REJECTED" ? "ไม่ผ่าน" : "รอพิจารณา"}
                         </p>
                       </div>
@@ -182,7 +188,7 @@ export default function AthleteStatusPage() {
                           isFinal ? "bg-emerald-700 text-white" : "bg-slate-200 text-slate-500"
                         }`}>4</div>
                         <p className="text-xs font-semibold text-slate-900">ประกาศผล</p>
-                        <p className={`text-[11px] mt-0.5 ${isFinal ? "text-emerald-700 font-medium" : "text-slate-400"}`}>
+                        <p className={`text-xs mt-0.5 ${isFinal ? "text-emerald-700 font-medium" : "text-slate-500"}`}>
                           {isFinal ? "ผ่านการคัดเลือก" : "-"}
                         </p>
                       </div>
@@ -194,7 +200,7 @@ export default function AthleteStatusPage() {
                     <div className="bg-slate-900 text-white p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono tracking-widest text-slate-300">
+                          <span className="text-xs font-mono tracking-wide text-slate-300">
                             {app.id.slice(-8).toUpperCase()}
                           </span>
                         </div>
@@ -220,7 +226,7 @@ export default function AthleteStatusPage() {
                                 {isConfirmed ? "ยืนยันสิทธิ์แล้ว" : "สละสิทธิ์แล้ว"}
                               </p>
                               <p className={`mt-1 text-xs ${isConfirmed ? "text-emerald-800" : "text-rose-800"}`}>{athleteDecision.label}</p>
-                              <p className="mt-1 text-[11px] text-slate-500">บันทึกเมื่อ {new Date(athleteDecision.createdAt).toLocaleString("th-TH")}</p>
+                              <p className="mt-1 text-xs text-slate-500">บันทึกเมื่อ {new Date(athleteDecision.createdAt).toLocaleString("th-TH")}</p>
                             </div>
                           ) : declineApplicationId === app.id ? (
                             <div className="space-y-3">
@@ -250,7 +256,7 @@ export default function AthleteStatusPage() {
                                   }}
                                   className="block w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"
                                 />
-                                <span className="mt-1 block text-[11px] text-slate-500">PDF/JPG/PNG ขนาดไม่เกิน 5 MB</span>
+                                <span className="mt-1 block text-xs text-slate-500">PDF/JPG/PNG ขนาดไม่เกิน 5 MB</span>
                               </label>
                               <div className="flex flex-wrap gap-2">
                                 <button
@@ -359,12 +365,14 @@ export default function AthleteStatusPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           {app.competitionResults && app.competitionResults.some(r => !r.evidenceFileUrl) ? (
-                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-                              ⚠️ ยังไม่ได้แนบรูปหลักฐานผลงาน ({app.competitionResults.filter(r => !r.evidenceFileUrl).length} รายการ)
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                              <AlertTriangleIcon className="w-3.5 h-3.5" />
+                              ยังไม่ได้แนบรูปหลักฐานผลงาน ({app.competitionResults.filter(r => !r.evidenceFileUrl).length} รายการ)
                             </span>
                           ) : app.competitionResults && app.competitionResults.length > 0 ? (
-                            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              ✅ แนบรูปหลักฐานผลงานครบถ้วน
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <CheckIcon className="w-3.5 h-3.5" />
+                              แนบรูปหลักฐานผลงานครบถ้วน
                             </span>
                           ) : null}
                         </div>
@@ -373,7 +381,7 @@ export default function AthleteStatusPage() {
                           className="self-start sm:self-auto text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
                         >
                           <span>ดูรายละเอียดใบสมัคร</span>
-                          <span>→</span>
+                          <ArrowRightIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
@@ -400,7 +408,7 @@ export default function AthleteStatusPage() {
                               return "รอชมรมรับรองการสมัคร";
                             })()}
                           </span>
-                          <span className="text-slate-500 text-[11px] mt-1 block">
+                          <span className="text-slate-500 text-xs mt-1 block">
                             {app.rosterClub
                               ? (app.squadType === "main" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวจริง)" : app.squadType === "reserve" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวสำรอง)" : "จัดเข้าบัญชีรายชื่อชมรมแล้ว")
                               : (app.noClubFileUrl ? "ส่งพิจารณาผ่านกองกิจการนิสิตโดยตรง" : "อยู่ระหว่างขั้นตอนพิจารณาของชมรมกีฬา")}

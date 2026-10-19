@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/components/shared/LogoutButton";
+import { SettingsIcon, CloseIcon } from "@/components/shared/Icons";
 
 type NavLink = readonly [href: string, label: string];
 
@@ -47,11 +48,10 @@ function isActive(path: string, href: string) {
 }
 
 const logoutClass =
-  "rounded-lg border border-rose-400/60 px-4 py-2 text-sm font-medium text-rose-300 transition-colors hover:bg-rose-500 hover:text-white";
+  "rounded-lg border border-rose-400/60 px-3.5 py-1.5 text-xs font-semibold text-rose-300 transition-colors hover:bg-rose-500 hover:text-white focus-visible:ring-2 focus-visible:ring-rose-400";
 
 export default function AppNav() {
   const path = usePathname();
-  // เก็บ path ที่เปิดเมนูมือถือไว้ เมื่อเปลี่ยนหน้าเมนูจะปิดเองโดยไม่ต้องใช้ effect
   const [openPath, setOpenPath] = useState<string | null>(null);
   const links = linksFor(path);
   if (!links.length || path.endsWith("/signup")) return null;
@@ -60,23 +60,33 @@ export default function AppNav() {
   const open = openPath === path;
 
   const linkClass = (href: string) =>
-    `block whitespace-nowrap rounded-full px-3.5 py-2 text-sm transition-colors ${
+    `block whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-medium transition-colors ${
       isActive(path, href)
         ? "bg-blue-600 font-semibold text-white shadow-sm"
         : "text-slate-300 hover:bg-white/10 hover:text-white"
     }`;
 
   return (
-    <nav aria-label="เมนูหลัก" className="sticky top-0 z-40 print:hidden border-b border-white/10 bg-gradient-to-r from-slate-950 to-slate-900 text-white shadow-lg">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
-        <Link href="/" className="shrink-0 text-lg font-bold tracking-wide">
+    <nav
+      aria-label="เมนูหลัก"
+      className="sticky top-0 z-40 print:hidden border-b border-white/10 bg-slate-950 text-white shadow-md backdrop-blur-md"
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <Link
+          href="/"
+          className="shrink-0 text-base font-bold tracking-wide transition-opacity hover:opacity-90"
+        >
           UP <span className="text-blue-400">SMED</span>
         </Link>
 
         <ul className="hidden flex-1 items-center justify-center gap-1 xl:flex">
           {links.map(([href, label]) => (
             <li key={href}>
-              <Link href={href} aria-current={isActive(path, href) ? "page" : undefined} className={linkClass(href)}>
+              <Link
+                href={href}
+                aria-current={isActive(path, href) ? "page" : undefined}
+                className={linkClass(href)}
+              >
                 {label}
               </Link>
             </li>
@@ -90,11 +100,13 @@ export default function AppNav() {
               title={STAFF_SETTINGS[1]}
               aria-label={STAFF_SETTINGS[1]}
               aria-current={isActive(path, STAFF_SETTINGS[0]) ? "page" : undefined}
-              className={`rounded-full p-2 text-lg transition-colors ${
-                isActive(path, STAFF_SETTINGS[0]) ? "bg-blue-600" : "hover:bg-white/10"
+              className={`rounded-lg p-2 text-slate-300 transition-colors ${
+                isActive(path, STAFF_SETTINGS[0])
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-white/10 hover:text-white"
               }`}
             >
-              ⚙️
+              <SettingsIcon className="w-4 h-4" />
             </Link>
           )}
           {isStaff && <LogoutButton className={logoutClass} />}
@@ -105,9 +117,21 @@ export default function AppNav() {
           onClick={() => setOpenPath(open ? null : path)}
           aria-expanded={open}
           aria-label="เปิด/ปิดเมนู"
-          className="ml-auto rounded-lg p-2 text-2xl leading-none hover:bg-white/10 xl:hidden"
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white xl:hidden"
         >
-          {open ? "✕" : "☰"}
+          {open ? (
+            <CloseIcon className="w-5 h-5" />
+          ) : (
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -115,7 +139,11 @@ export default function AppNav() {
         <ul className="space-y-1 border-t border-white/10 px-4 py-3 xl:hidden">
           {[...links, ...(isStaff ? [STAFF_SETTINGS] : [])].map(([href, label]) => (
             <li key={href}>
-              <Link href={href} aria-current={isActive(path, href) ? "page" : undefined} className={linkClass(href)}>
+              <Link
+                href={href}
+                aria-current={isActive(path, href) ? "page" : undefined}
+                className={linkClass(href)}
+              >
                 {label}
               </Link>
             </li>

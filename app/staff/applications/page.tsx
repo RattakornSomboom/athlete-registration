@@ -7,6 +7,7 @@ import StaffReview from "@/components/shared/StaffReview";
 import StaffRosterReview from "@/components/shared/StaffRosterReview";
 import { RequestState, useRemoteData } from "@/components/shared/RequestState";
 import { fetchJson } from "@/lib/http-client";
+import { ArrowRightIcon } from "@/components/shared/Icons";
 
 type Stats = {
   total: number;
@@ -66,7 +67,7 @@ function StaffApplicationsContent() {
           <div className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
             <div>
               <div className="mb-3"><BackButton href="/" label="กลับหน้าหลัก" /></div>
-              <span className="text-xs uppercase tracking-[0.16em] font-semibold text-blue-800">
+              <span className="text-xs font-semibold text-blue-800">
                 กองกิจการนิสิต มหาวิทยาลัยพะเยา
               </span>
               <h1 className="text-xl font-bold text-slate-900 mt-0.5">
@@ -162,11 +163,11 @@ function StaffApplicationsContent() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-slate-900">{club.name}</h3>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                          <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
                             {club.sport}
                           </span>
                           {!club.isActive && (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                            <span className="text-xs px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
                               ปิดใช้งาน
                             </span>
                           )}
@@ -175,7 +176,7 @@ function StaffApplicationsContent() {
                           กิจกรรม: {club._count.activities} · สมาชิก: {club._count.activities}
                         </p>
                       </div>
-                      <span className="text-slate-400 shrink-0 text-sm">→</span>
+                      <ArrowRightIcon className="w-4 h-4 shrink-0 text-slate-400" />
                     </div>
                   </button>
                 ))}
