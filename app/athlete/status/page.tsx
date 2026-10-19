@@ -33,7 +33,7 @@ type CompetitionResult = { competitionName: string; year: string; result: string
 type Application = {
   id: string;
   status: string;
-  squadType?: "main" | "reserve" | null;
+  squadType?: "main" | "reserve" | "selected" | null;
   note?: string | null;
   noClubFileUrl?: string | null;
   sport: string;
@@ -140,7 +140,7 @@ export default function AthleteStatusPage() {
 
               const clubProgress = clubReviewProgress(app);
               const clubSelectionLabel = clubProgress.approved && app.squadType
-                ? `ผ่านพิจารณาชมรม — ${app.squadType === "main" ? "ตัวจริง" : "ตัวสำรอง"}`
+                ? `ผ่านพิจารณาชมรม — ${app.squadType === "main" ? "ตัวจริง" : app.squadType === "reserve" ? "ตัวสำรอง" : "ชมรมเสนอชื่อ"}`
                 : clubProgress.label;
               const isStaffApproved = app.status === "STAFF_APPROVED" || app.status === "FINAL_SELECTED";
               const isFinal = app.status === "FINAL_SELECTED";
@@ -410,7 +410,7 @@ export default function AthleteStatusPage() {
                           </span>
                           <span className="text-slate-500 text-xs mt-1 block">
                             {app.rosterClub
-                              ? (app.squadType === "main" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวจริง)" : app.squadType === "reserve" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวสำรอง)" : "จัดเข้าบัญชีรายชื่อชมรมแล้ว")
+                              ? (app.squadType === "main" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวจริง)" : app.squadType === "reserve" ? "อยู่ในบัญชีรายชื่อชมรม (ตัวสำรอง)" : app.squadType === "selected" ? "อยู่ในบัญชีรายชื่อชมรม (ชมรมเสนอชื่อ)" : "จัดเข้าบัญชีรายชื่อชมรมแล้ว")
                               : (app.noClubFileUrl ? "ส่งพิจารณาผ่านกองกิจการนิสิตโดยตรง" : "อยู่ระหว่างขั้นตอนพิจารณาของชมรมกีฬา")}
                           </span>
                         </div>
