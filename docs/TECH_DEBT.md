@@ -15,7 +15,7 @@
 
 ## สถาปัตยกรรม / ข้อมูล
 - route 2 สไตล์ (`api()` vs try/catch เอง) ข้อความ/สถานะ error ไม่สม่ำเสมอ
-- Excellence เก็บใน JSON `scores._excellence.v2` ต้องตรวจว่า `lib/fitness-service.ts` / `fitness-import-service.ts` ไม่เขียนทับ (มี unit test ใน `excellence-validation.test.mjs`)
+- Excellence เก็บใน JSON `scores._excellence.v2` การบันทึก/นำเข้าผลสมรรถภาพทั้ง 3 จุด (`lib/fitness-service.ts`, `lib/fitness-import-service.ts`, `app/api/staff/fitness-tests/import/route.ts`) เรียก `preserveExcellenceMetadata` แล้ว ไม่เขียนทับ (มี unit test ใน `excellence-validation.test.mjs`) ถ้าเพิ่มทางเขียน `scores` ใหม่ต้องเรียกตัวเดียวกัน
 - ผลแข่ง Excellence ใช้ `CompetitionMatch` (sport `กรีฑา`, `division` = รหัสรายการ เช่น `100m`, `longJump`): ลู่ = `eventType` TIMED + `timeSeconds`, ลาน = `eventType` RANKING + `score` (เมตร) ตรวจแล้วยังไม่มีโค้ดส่วนอื่นใช้ตารางนี้ และ service กรองด้วย sport + eventType ที่ตรงกับ `division` เสมอ ถ้าระบบจัดการแข่งขันอื่นจะใช้ TIMED/RANKING ของกรีฑาด้วย ต้องกำหนดรหัส `division` ใหม่ไม่ให้ชน
 - `SystemSetting` key `ATHLETICS_TRACK_BENCHMARKS` ชื่อเดิมแต่ใช้เก็บเป้าทั้งลู่และลาน (ฟิลด์ `target`; รุ่นแรกเป็น `targetSeconds` อ่านต่อได้) ยังไม่ได้เปลี่ยนชื่อเพราะต้องย้ายข้อมูล
 - สถานี/ระดับของ Excellence ตามเกณฑ์กลุ่ม 9 แต่ผลที่นำเข้าจาก Excel เก็บเป็นผ่าน/ไม่ผ่านหรือระดับข้อความ ไม่มีตัวเลขดิบ จึงได้ระดับเฉพาะเมื่อไฟล์นำเข้ามีระดับในช่องนั้น หรือเมื่อมีตัวเลขดิบใต้ key ของสถานี (เช่น `sprint40mSec`) ยังไม่มีหน้ากรอกตัวเลขดิบกลุ่ม 9 ที่บันทึกลง `scores` (มีแค่เครื่องมือประเมิน `evaluate` ที่ไม่บันทึก) · เกณฑ์สมรรถภาพรุ่นเดิมแยกอายุ (`lib/fitness-calculation.ts`) ยังเป็นอีกชุดหนึ่งที่ค่าไม่เหมือนกลุ่ม 9
@@ -25,7 +25,7 @@
 - โหมดพิมพ์ใช้ `print:` ของ Tailwind ซ่อนตัวกรอง/ปุ่ม แต่ส่วนหัวมาตรฐานของ `Page` (ปุ่มย้อนกลับ) ยังพิมพ์ออก และยังไม่ได้ทดสอบพิมพ์จริง
 - บันทึกผลเป็นชุดใช้ transaction Serializable เดียว (สูงสุด 200 คน) บน DB ระยะไกลใช้เวลาหลายวินาที ถ้าชุดใหญ่มากอาจต้องแบ่งส่งหรือตั้ง timeout (ตอนนี้ `atomic` timeout 20 วินาที)
 - ใบกรอกเป็นชุดเลือกรายการ/วัน/รอบเดียวต่อครั้ง และกรอกผลดีที่สุดเพียงค่าเดียวต่อคน ไม่รองรับหลายรอบ/หลายครั้งในหน้าเดียว (ตามขอบเขตที่ตัดช่วงระหว่างแข่งออก)
-- การเข้าถึง/การพิมพ์ของ Excellence ตรวจด้วย axe + ตรวจมือ + จำลองสื่อ print แต่ยังไม่ได้ทดสอบกับโปรแกรมอ่านหน้าจอจริง (NVDA/VoiceOver) และยังไม่ได้พิมพ์ลงกระดาษ/PDF จริง; `excellence-a11y.spec.ts` (axe ทุกหน้า) ต้องมีบัญชี `E2E_STAFF_*`/`E2E_ADMIN_*` จึงไม่ได้รันใน CI ที่ไม่มีบัญชี; axe ยังรายงาน "ต้องตรวจเอง" 1 รายการในหน้าเป้าหมาย (หัวกลุ่มแถว `th scope=rowgroup` ไม่มีเซลล์ข้อมูลในแถวเดียวกัน ซึ่งเป็นโครงที่ถูกต้อง)
+- การเข้าถึง/การพิมพ์ของ Excellence ตรวจด้วย axe + ตรวจมือ + จำลองสื่อ print แต่ยังไม่ได้ทดสอบกับโปรแกรมอ่านหน้าจอจริง (NVDA/VoiceOver) (การพิมพ์จริงเจ้าของระบบลองแล้วออกมาปกติเมื่อ 19 ต.ค. 2569); `excellence-a11y.spec.ts` (axe ทุกหน้า) ต้องมีบัญชี `E2E_STAFF_*`/`E2E_ADMIN_*` จึงไม่ได้รันใน CI ที่ไม่มีบัญชี; axe ยังรายงาน "ต้องตรวจเอง" 1 รายการในหน้าเป้าหมาย (หัวกลุ่มแถว `th scope=rowgroup` ไม่มีเซลล์ข้อมูลในแถวเดียวกัน ซึ่งเป็นโครงที่ถูกต้อง)
 - แก้ที่ส่วนกลาง 3 จุดเพื่อ a11y/พิมพ์: `Page` (Phase4UI) ไม่ใช้ `<main>` ซ้อน, `app/layout.tsx` มี skip link + `id=main-content`, `AppNav` เพิ่ม `print:hidden` หน้าอื่นนอก Excellence ยังไม่ได้ตรวจ contrast/ชื่อหน้า (ชื่อหน้าตั้งผ่าน metadata ต่อ route ได้ด้วย layout.tsx เล็ก ๆ เช่นเดียวกับ Excellence)
 - ค่าคงที่รายการกรีฑา/สถานีซ้ำกันใน `lib/excellence-athletics.ts` และ `lib/excellence-validation.ts` เพราะ node unit test import runtime ข้ามไฟล์ไม่ได้ มี test ตรวจว่าตรงกัน
 - `StatusHistory.status` เป็น String; สถานะยืนยัน/สละสิทธิ์ derive จากข้อความ
