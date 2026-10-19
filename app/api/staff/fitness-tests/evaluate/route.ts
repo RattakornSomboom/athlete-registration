@@ -1,4 +1,4 @@
-import { api, body, STAFF } from "@/lib/phase4-server";
+import { api, body, STAFF, ApiError, ensure } from "@/lib/phase4-server";
 import {
   evaluateGeneralFitness,
   evaluateFootballFitness,
@@ -10,6 +10,14 @@ import {
   type FootballFitnessInputs,
   type BasketballFitnessInputs,
 } from "@/lib/fitness-calculation";
+import {
+  GROUP9_TEST_KEYS,
+  Group9ValidationError,
+  evaluateGroup9Fitness,
+  isGroup9Gender,
+  toBodyWeightRatio,
+  type Group9Inputs,
+} from "@/lib/fitness-group9-norms";
 
 /**
  * POST /api/staff/fitness-tests/evaluate
@@ -19,6 +27,38 @@ export async function POST(request: Request) {
   return api(request, STAFF, async () => {
     const data = await body(request);
     const type = typeof data.type === "string" ? data.type.toLowerCase() : "general";
+
+    if (type === "group9") {
+      ensure(isGroup9Gender(data.gender), "กรุณาระบุเพศเป็น ชาย หรือ หญิง");
+      const inputs: Group9Inputs = {};
+
+      for (const key of GROUP9_TEST_KEYS) {
+        const value = data[key];
+        if (value !== undefined && value !== null && value !== "") {
+          const numericValue = Number(value);
+          ensure(Number.isFinite(numericValue), `ค่า ${key} ต้องเป็นตัวเลข`);
+          inputs[key] = numericValue;
+        }
+      }
+
+      const weightKg = data.weightKg === undefined ? undefined : Number(data.weightKg);
+
+      try {
+        if (inputs.gripStrengthRatio === undefined && data.gripStrengthKg !== undefined) {
+          ensure(Number.isFinite(weightKg) && Number(weightKg) > 0, "ต้องระบุน้ำหนักตัวเพื่อคำนวณแรงบีบมือต่อน้ำหนักตัว");
+          inputs.gripStrengthRatio = toBodyWeightRatio(Number(data.gripStrengthKg), Number(weightKg));
+        }
+        if (inputs.legStrengthRatio === undefined && data.legStrengthKg !== undefined) {
+          ensure(Number.isFinite(weightKg) && Number(weightKg) > 0, "ต้องระบุน้ำหนักตัวเพื่อคำนวณแรงเหยียดขาต่อน้ำหนักตัว");
+          inputs.legStrengthRatio = toBodyWeightRatio(Number(data.legStrengthKg), Number(weightKg));
+        }
+        const evaluation = evaluateGroup9Fitness(inputs, data.gender);
+        return { type: "group9", evaluation };
+      } catch (error) {
+        if (error instanceof Group9ValidationError) throw new ApiError(400, error.message);
+        throw error;
+      }
+    }
 
     if (type === "rast") {
       const weightKg = Number(data.weightKg);
