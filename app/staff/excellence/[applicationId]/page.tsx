@@ -11,7 +11,7 @@ import { PlanForm, ResultForm, RetestForm, type EditableResult, type EditableRet
 import { requestJson, errorMessage } from "@/lib/phase4-client";
 import {
   ATTENTION_LABEL,
-  PLAN_STATUS_LABEL,
+  PLAN_DISPLAY_STATUS_LABEL,
   eventKind,
   eventLabel,
   findStation,
@@ -163,7 +163,7 @@ export default function ExcellenceAthletePage() {
             />
             <Kpi
               label="แผนพัฒนา"
-              value={detail.summary.latestPlanStatus ? PLAN_STATUS_LABEL[detail.summary.latestPlanStatus] : "ยังไม่มี"}
+              value={detail.summary.latestPlanStatus ? PLAN_DISPLAY_STATUS_LABEL[detail.summary.latestPlanStatus] : "ยังไม่มี"}
               caption={detail.summary.plans ? `${detail.summary.plans} แผน` : weak.length ? "มีจุดอ่อนที่ควรวางแผน" : "—"}
             />
             <Kpi
@@ -256,7 +256,7 @@ export default function ExcellenceAthletePage() {
                             {formatThaiDate(plan.startDate)} – {formatThaiDate(plan.endDate)} · {plan.coachName}
                           </p>
                           <div className="flex items-center gap-3">
-                            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-900">{PLAN_STATUS_LABEL[plan.status]}</span>
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${plan.displayStatus === "OVERDUE" ? "bg-amber-50 text-amber-900" : "bg-blue-50 text-blue-900"}`}>{PLAN_DISPLAY_STATUS_LABEL[plan.displayStatus]}</span>
                             {!readOnly && <button type="button" onClick={() => setForm({ kind: "plan", plan })} className="rounded px-1.5 py-1 text-sm text-blue-900 hover:underline print:hidden">แก้ไข</button>}
                           </div>
                         </div>

@@ -489,6 +489,19 @@ export function latestPlan(plans: DevelopmentPlan[]): DevelopmentPlan | null {
   return [...plans].sort((a, b) => b.startDate.localeCompare(a.startDate) || b.updatedAt.localeCompare(a.updatedAt))[0] ?? null;
 }
 
+// สถานะที่แสดง: "เลยกำหนด" คิดจากวันที่ ไม่ได้เก็บ (แผน ACTIVE ที่เลยวันสิ้นสุดและยังไม่มีผลทดสอบซ้ำของแผนนั้น)
+// today (YYYY-MM-DD) ไม่ส่งมา = ไม่ตัดสิน
+export type PlanDisplayStatus = PlanStatus | "OVERDUE";
+export const PLAN_DISPLAY_STATUS_LABEL: Record<PlanDisplayStatus, string> = { ...PLAN_STATUS_LABEL, OVERDUE: "เลยกำหนด" };
+
+export function isPlanOverdue(plan: DevelopmentPlan, retests: Retest[], today: string): boolean {
+  return Boolean(today) && plan.status === "ACTIVE" && plan.endDate < today && !retests.some(retest => retest.planId === plan.id);
+}
+
+export function planDisplayStatus(plan: DevelopmentPlan, retests: Retest[], today: string): PlanDisplayStatus {
+  return isPlanOverdue(plan, retests, today) ? "OVERDUE" : plan.status;
+}
+
 export type StationChange = {
   stationKey: string;
   stationName: string;
@@ -622,7 +635,7 @@ export type OverviewRow = {
   percentOfTarget: number | null;
   status: TargetStatus;
   weakestStation: string | null;
-  planStatus: PlanStatus | null;
+  planStatus: PlanDisplayStatus | null;
   retestCount: number;
   // สิ่งที่ต้องติดตาม (ใช้กรองจากการ์ด "ต้องติดตาม" และนับในรายงาน)
   flags: AttentionFlag[];
@@ -646,7 +659,7 @@ export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks, toda
   const plan = latestPlan(record.storage.plans);
   const personFlags: AttentionFlag[] = [];
   if (weakCount > 0 && record.storage.plans.length === 0) personFlags.push("WEAK_NO_PLAN");
-  if (today && record.storage.plans.some(item => item.status === "ACTIVE" && item.endDate < today && !record.storage.retests.some(retest => retest.planId === item.id))) {
+  if (record.storage.plans.some(item => isPlanOverdue(item, record.storage.retests, today))) {
     personFlags.push("PLAN_OVERDUE");
   }
   const base = {
@@ -656,7 +669,7 @@ export function overviewRows(record: AthleteRecord, benchmarks: Benchmarks, toda
     faculty: record.faculty,
     gender: record.gender,
     weakestStation: weakest,
-    planStatus: plan?.status ?? null,
+    planStatus: plan ? planDisplayStatus(plan, record.storage.retests, today) : null,
     retestCount: record.storage.retests.length,
   };
   const events = ATHLETICS_EVENTS.map(event => event.key).filter(key => record.results.some(result => result.event === key));
@@ -724,10 +737,10 @@ export type AthleteDetail = {
   // สิ่งที่ต้องติดตามของนักกีฬาคนนี้ (ชุดเดียวกับหน้ารายงาน)
   flags: AttentionFlag[];
   // สรุปย่อของคนนี้สำหรับแถบตัวชี้วัดในหน้ารายคน
-  summary: { events: number; atTarget: number; belowTarget: number; noTarget: number; plans: number; retests: number; latestPlanStatus: PlanStatus | null };
+  summary: { events: number; atTarget: number; belowTarget: number; noTarget: number; plans: number; retests: number; latestPlanStatus: PlanDisplayStatus | null };
   results: (MarkedResult & { target: number | null; gap: number | null; percentOfTarget: number | null })[];
   stations: StationResult[];
-  plans: DevelopmentPlan[];
+  plans: (DevelopmentPlan & { displayStatus: PlanDisplayStatus })[];
   retests: (Retest & { comparison: RetestComparison })[];
   timeline: TimelineEntry[];
   events: AthleticsEvent[];
@@ -758,14 +771,16 @@ export function buildAthleteDetail(record: AthleteRecord, benchmarks: Benchmarks
       noTarget: eventRows.filter(row => row.status === "NO_TARGET").length,
       plans: storage.plans.length,
       retests: storage.retests.length,
-      latestPlanStatus: latestPlan(storage.plans)?.status ?? null,
+      latestPlanStatus: rows[0]?.planStatus ?? null,
     },
     results: markBests(results).map(result => {
       const target = targetFor(benchmarks, result.event, record.gender);
       return { ...result, target, gap: gapToTarget(result.event, result.mark, target), percentOfTarget: percentOfTarget(result.event, result.mark, target) };
     }),
     stations: stationResults(baseline),
-    plans: [...storage.plans].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    plans: [...storage.plans]
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))
+      .map(plan => ({ ...plan, displayStatus: planDisplayStatus(plan, storage.retests, today) })),
     retests: compared.reverse(),
     timeline: buildTimeline(record),
     events: eventsForGender(record.gender),
@@ -972,7 +987,7 @@ export function overviewCsv(rows: OverviewRow[]): string {
     row.percentOfTarget === null ? "" : row.percentOfTarget.toFixed(1),
     TARGET_STATUS_LABEL[row.status],
     row.weakestStation ?? "",
-    row.planStatus ? PLAN_STATUS_LABEL[row.planStatus] : "ยังไม่มีแผน",
+    row.planStatus ? PLAN_DISPLAY_STATUS_LABEL[row.planStatus] : "ยังไม่มีแผน",
     row.retestCount,
     row.flags.map(flag => ATTENTION_LABEL[flag]).join(" / "),
   ].map(csvCell).join(","));

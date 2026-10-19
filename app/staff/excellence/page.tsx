@@ -10,7 +10,7 @@ import {
   ATHLETICS_EVENTS,
   ATHLETICS_GENDERS,
   ATTENTION_LABEL,
-  PLAN_STATUS_LABEL,
+  PLAN_DISPLAY_STATUS_LABEL,
   TARGET_STATUS_LABEL,
   eventLabel,
   filterRows,
@@ -263,7 +263,7 @@ export default function ExcellenceOverviewPage() {
                           <td className="px-4 py-3"><TargetBadge status={row.status} /></td>
                           <td className="px-4 py-3 text-slate-700">{row.weakestStation ?? <span className="text-slate-500">ไม่พบจุดอ่อน</span>}</td>
                           <td className="px-4 py-3">
-                            <span className="text-slate-700">{row.planStatus ? PLAN_STATUS_LABEL[row.planStatus] : <span className="text-slate-500">ยังไม่มีแผน</span>}</span>
+                            <span className={row.planStatus === "OVERDUE" ? "font-semibold text-amber-800" : "text-slate-700"}>{row.planStatus ? PLAN_DISPLAY_STATUS_LABEL[row.planStatus] : <span className="text-slate-500">ยังไม่มีแผน</span>}</span>
                             {row.retestCount > 0 && <span className="ml-2 text-xs text-slate-500">ทดสอบซ้ำ {row.retestCount} ครั้ง</span>}
                             {flags.length > 0 && (
                               <span className="mt-1 flex flex-wrap gap-1">

@@ -32,6 +32,8 @@ import {
   parseTrackTime,
   percentOfTarget,
   personalBest,
+  PLAN_DISPLAY_STATUS_LABEL,
+  planDisplayStatus,
   progressionSeries,
   readExcellenceStorage,
   stationResults,
@@ -552,7 +554,8 @@ test("athlete detail carries the same attention flags as the report plus a short
   const athletes = getDemoAthletes();
   const overdue = buildAthleteDetail(athletes.find(item => item.name.includes("อภิสิทธิ์")), DEMO_BENCHMARKS, "2026-10-18");
   assert.ok(overdue.flags.includes("PLAN_OVERDUE"));
-  assert.deepEqual(overdue.summary, { events: 1, atTarget: 0, belowTarget: 1, noTarget: 0, plans: 1, retests: 0, latestPlanStatus: "ACTIVE" });
+  assert.deepEqual(overdue.summary, { events: 1, atTarget: 0, belowTarget: 1, noTarget: 0, plans: 1, retests: 0, latestPlanStatus: "OVERDUE" });
+  assert.deepEqual(overdue.plans.map(plan => [plan.status, plan.displayStatus]), [["ACTIVE", "OVERDUE"]]);
   const strong = buildAthleteDetail(athletes[0], DEMO_BENCHMARKS, "2026-10-18");
   assert.equal(strong.summary.atTarget, 1);
   assert.deepEqual(strong.flags, []);
@@ -562,5 +565,21 @@ test("athlete detail carries the same attention flags as the report plus a short
   assert.equal(none.summary.latestPlanStatus, null);
   // ไม่ส่งวันที่ = ไม่ตัดสินแผนเลยกำหนด
   assert.equal(buildAthleteDetail(athletes.find(item => item.name.includes("อภิสิทธิ์")), DEMO_BENCHMARKS).flags.includes("PLAN_OVERDUE"), false);
+});
+
+test("plan status reads overdue from its end date, not from the stored status", () => {
+  const plan = { id: "p", coachName: "", startDate: "2026-08-01", endDate: "2026-09-15", status: "ACTIVE", items: [], notes: null, updatedAt: "", updatedBy: "" };
+  const retest = { id: "t", planId: "p", testedAt: "2026-09-20", ratings: {}, event: null, mark: null, notes: null, recordedAt: "", recordedBy: "" };
+  assert.equal(planDisplayStatus(plan, [], "2026-10-19"), "OVERDUE");
+  assert.equal(PLAN_DISPLAY_STATUS_LABEL.OVERDUE, "เลยกำหนด");
+  // วันสิ้นสุดยังไม่ผ่าน / มีผลทดสอบซ้ำแล้ว / ปิดแผนแล้ว / ไม่ส่งวันที่ = ไม่เลยกำหนด
+  assert.equal(planDisplayStatus(plan, [], "2026-09-15"), "ACTIVE");
+  assert.equal(planDisplayStatus(plan, [retest], "2026-10-19"), "ACTIVE");
+  assert.equal(planDisplayStatus({ ...plan, status: "COMPLETED" }, [], "2026-10-19"), "COMPLETED");
+  assert.equal(planDisplayStatus(plan, [], ""), "ACTIVE");
+  // แถวรายงานใช้กฎเดียวกับป้าย "แผนเลยกำหนดแต่ยังไม่ทดสอบซ้ำ"
+  const rows = getDemoAthletes().flatMap(item => overviewRows(item, DEMO_BENCHMARKS, TODAY));
+  for (const row of rows) assert.equal(row.planStatus === "OVERDUE", row.flags.includes("PLAN_OVERDUE"));
+  assert.ok(overviewCsv(rows).includes('"เลยกำหนด"'));
 });
 
