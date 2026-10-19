@@ -53,3 +53,10 @@ lint*.txt
 
 # demo seed credentials (never commit)
 scripts/demo-applications/accounts.local.txt
+
+# local debug output and scratch folders
+debug.log
+/playwright-workshop/
+
+# per-machine Claude Code settings
+/.claude/settings.local.json
